@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Placement Driver - The Cluster Brain
+  jettra-pd:
+    build:
+      context: ./jettra-pd
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: jettra-pd
+    ports:
+      - "9000:9000"
+      - "8080:8080"
+    environment:
+      - QUARKUS_HTTP_PORT=8080
+      - JETTRA_PD_ADDR=0.0.0.0:9000
+    networks:
+      - jettra-net
+
+  # Web Dashboard
+  jettra-web:
+    build:
+      context: ./jettra-web
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: jettra-web
+    ports:
+      - "8081:8080"
+    depends_on:
+      - jettra-pd
+    environment:
+      - QUARKUS_HTTP_PORT=8080
+      - JETTRA_PD_URL=http://jettra-pd:8080
+    networks:
+      - jettra-net
+
+  # Storage Node 1
+  jettra-store-1:
+    build:
+      context: ./jettra-store
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: jettra-store-1
+    depends_on:
+      - jettra-pd
+    environment:
+      - QUARKUS_HTTP_PORT=8080
+      - JETTRA_PD_ADDR=jettra-pd:9000
+      - JETTRA_NODE_ID=store-1
+    networks:
+      - jettra-net
+
+  # Storage Node 2
+  jettra-store-2:
+    build:
+      context: ./jettra-store
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: jettra-store-2
+    depends_on:
+      - jettra-pd
+    environment:
+      - QUARKUS_HTTP_PORT=8080
+      - JETTRA_PD_ADDR=jettra-pd:9000
+      - JETTRA_NODE_ID=store-2
+    networks:
+      - jettra-net
+
+  # Storage Node 3
+  jettra-store-3:
+    build:
+      context: ./jettra-store
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: jettra-store-3
+    depends_on:
+      - jettra-pd
+    environment:
+      - QUARKUS_HTTP_PORT=8080
+      - JETTRA_PD_ADDR=jettra-pd:9000
+      - JETTRA_NODE_ID=store-3
+    networks:
+      - jettra-net
+
+networks:
+  jettra-net:
+    driver: bridge
