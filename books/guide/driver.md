@@ -1,86 +1,57 @@
-# JettraDB Java Driver
+# JettraDB Java Driver Guide
 
-The JettraDB Java Driver provides a high-performance, reactive interface for interacting with JettraDB clusters. It is built on top of **Mutiny** and **gRPC**, ensuring efficient resource usage and asynchronous communication.
+The JettraDB Java Driver allows seamless integration with JettraDB clusters using reactive programming principles (Mutiny).
 
-## Connectivity
+## Maven Dependency
 
-The driver connects to the cluster via the **Placement Driver (PD)**, which provides the addresses of the relevant shards and leaders.
+Add the following dependency to your `pom.xml`:
 
-### Basic Initialization
+```xml
+<dependency>
+    <groupId>io.jettra</groupId>
+    <artifactId>jettra-driver-java</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+</dependency>
+```
+
+## Usage
+
+### 1. Initialization
+Initialize the client with the Placement Driver (PD) address and your Authentication Token.
 
 ```java
 import io.jettra.driver.JettraReactiveClient;
 
-// Connect to the Placement Driver
-JettraReactiveClient client = new JettraReactiveClient("localhost:9000");
+// ...
+String pdAddress = "localhost:9000"; // PD address
+String authToken = "eyJh... (your JWT token)"; // Obtain via Auth API
+
+JettraReactiveClient client = new JettraReactiveClient(pdAddress, authToken);
 ```
 
-## Reactive API (`Uni`)
-
-The driver uses `Uni<T>` from Project Mutiny to handle asynchronous results.
-
-### Saving Documents
+### 2. Database Management
 
 ```java
-Map<String, Object> doc = Map.of("id", "123", "name", "Example");
+// Create a new database
+client.createDatabase("analytics_db").await().indefinitely();
 
-client.save("my_collection", doc)
-    .subscribe().with(
-        success -> System.out.println("Document saved successfully"),
-        failure -> System.err.println("Failed to save: " + failure.getMessage())
-    );
+// List databases
+Set<String> dbs = client.listDatabases().await().indefinitely();
+System.out.println("Databases: " + dbs);
+
+// Delete a database
+client.deleteDatabase("analytics_db").await().indefinitely();
 ```
 
-### Finding by ID
+### 3. Data Operations
 
 ```java
-client.findById("my_collection", "123")
-    .onItem().ifNotNull().transform(obj -> (Map<String, Object>) obj)
-    .subscribe().with(doc -> {
-        System.out.println("Found: " + doc.get("name"));
-    });
+// Save a document
+MyObject doc = new MyObject("key1", "value");
+client.save("my_collection", doc).await().indefinitely();
+
+// Find a document
+MyObject result = client.findById("my_collection", "key1").await().indefinitely();
 ```
 
-## Multi-Model Support
-
-The Java driver provides specialized methods to interact with JettraDB's various engines.
-
-### Vector Similarity Search
-
-```java
-float[] queryVector = {0.1f, 0.5f, 0.9f};
-int topK = 5;
-
-client.searchVector(queryVector, topK)
-    .subscribe().with(results -> {
-        results.forEach(id -> System.out.println("Similar Document ID: " + id));
-    });
-```
-
-### Graph Traversal
-
-```java
-String startNode = "user:101";
-int depth = 2;
-
-client.traverseGraph(startNode, depth)
-    .subscribe().with(path -> {
-        System.out.println("Traversed path: " + String.join(" -> ", path));
-    });
-```
-
-## Integration with Repository Pattern
-
-While the `JettraReactiveClient` provides low-level access, it is recommended to use the **Repository Pattern** for a more expressive, annotation-based approach.
-
-See the [Repository Pattern Guide](repository.md) for more details.
-
-## Error Handling
-
-The driver uses reactive streams principles for error handling. You can use operators like `.onFailure().retry()` or `.onFailure().recoverWithItem()` to build resilient data access logic.
-
-```java
-client.findById("users", "admin")
-    .onFailure().retry().atMost(3)
-    .subscribe().with(user -> System.out.println("Retrieved: " + user));
-```
+The driver uses `Mutiny` (Uni/Multi) for non-blocking I/O.

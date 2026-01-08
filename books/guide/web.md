@@ -5,7 +5,9 @@ El Dashboard de JettraDB es una aplicación de una sola página (SPA) moderna, e
 ## Acceso al Dashboard
 La interfaz web se despliega automáticamente con el componente `jettra-web`.
 - **URL**: `http://localhost:8080`
-- **Credenciales**: Por defecto, no requiere autenticación en entornos de desarrollo, aunque puede configurarse mediante Quarkus Security.
+- **Credenciales**: **Requerido**. El acceso está protegido.
+  - Usuario por defecto: `admin`
+  - Contraseña por defecto: `adminadmin` (Cambio obligatorio al primer inicio).
 
 ## Secciones y Funcionalidades
 
@@ -16,10 +18,11 @@ Es la vista general del sistema donde se muestran indicadores clave de rendimien
 - **Latencia Global**: Tiempo de respuesta medio a través de todos los motores (Document, Graph, Vector, etc.).
 
 ### 2. Nodos del Cluster (Nodes)
-Muestra una topología detallada de la red JettraDB:
-- Identificación de nodos **Leader** y **Follower**.
-- Estadísticas de carga por nodo.
-- Visualización de la distribución de los grupos Raft.
+Muestra una topología detallada de la red JettraDB en tiempo real:
+- **Descubrimiento Automático**: Los nodos se registran automáticamente con el Placement Driver al iniciarse.
+- **Estado en Vivo**: Indicadores visuales (Verde/Rojo) para el estado ONLINE/OFFLINE de cada nodo.
+- **Roles**: Identificación de nodos **Storage** y su dirección de red.
+- **Actualización Dinámica**: La lista se refresca cada 5 segundos para reflejar cambios en la topología.
 
 ### 3. Consola de Consultas (Query Console)
 Permite ejecutar operaciones multi-modelo directamente desde el navegador:
@@ -39,6 +42,12 @@ Esta sección utiliza análisis de tendencias para anticipar problemas:
 - **Alertas de Severidad**: Clasificación en *Critical*, *Warning* y *Predictive*.
 - **Predicción de Almacenamiento**: Proyección del uso de disco para las próximas 24 horas.
 - **Tendencias de Tráfico**: Visualización de aumentos o caídas repentinas en el Throughput (RPS).
+
+### 6. Administración de Bases de Datos (Database Management)
+Gestión completa del ciclo de vida de las bases de datos:
+- **Listar**: Visualiza todas las bases de datos creadas en el cluster.
+- **Crear**: Provisiona nuevas bases de datos lógicas instantáneamente.
+- **Eliminar**: Borra bases de datos y todos sus datos asociados.
 
 ## Consejos de Navegación
 - **Cambio de Sección**: Utiliza el menú lateral izquierdo para saltar entre funcionalidades sin recargar la página.

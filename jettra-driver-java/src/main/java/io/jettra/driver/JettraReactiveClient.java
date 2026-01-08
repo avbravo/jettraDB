@@ -7,9 +7,11 @@ import java.util.logging.Logger;
 public class JettraReactiveClient implements JettraClient {
     private static final Logger LOG = Logger.getLogger(JettraReactiveClient.class.getName());
     private final String pdAddress;
+    private final String authToken;
 
-    public JettraReactiveClient(String pdAddress) {
+    public JettraReactiveClient(String pdAddress, String authToken) {
         this.pdAddress = pdAddress;
+        this.authToken = authToken;
     }
 
     @Override
@@ -34,6 +36,24 @@ public class JettraReactiveClient implements JettraClient {
     public Uni<Long> count(String collection) {
         LOG.info("Counting documents in " + collection);
         return Uni.createFrom().item(0L);
+    }
+
+    @Override
+    public Uni<Void> createDatabase(String name) {
+        LOG.info("Creating database " + name + " [Auth: " + authToken + "]");
+        return Uni.createFrom().voidItem();
+    }
+
+    @Override
+    public Uni<Void> deleteDatabase(String name) {
+        LOG.info("Deleting database " + name + " [Auth: " + authToken + "]");
+        return Uni.createFrom().voidItem();
+    }
+
+    @Override
+    public Uni<java.util.Set<String>> listDatabases() {
+        LOG.info("Listing databases [Auth: " + authToken + "]");
+        return Uni.createFrom().item(java.util.Collections.emptySet());
     }
 
     // Specific Vector Engine Method

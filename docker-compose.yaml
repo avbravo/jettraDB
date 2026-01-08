@@ -43,7 +43,7 @@ services:
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
-      - JETTRA_NODE_ID=store-1
+      - JETTRA_NODE_ID=jettra-store-1
     networks:
       - jettra-net
 
@@ -58,7 +58,7 @@ services:
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
-      - JETTRA_NODE_ID=store-2
+      - JETTRA_NODE_ID=jettra-store-2
     networks:
       - jettra-net
 
@@ -73,7 +73,7 @@ services:
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
-      - JETTRA_NODE_ID=store-3
+      - JETTRA_NODE_ID=jettra-store-3
     networks:
       - jettra-net
 

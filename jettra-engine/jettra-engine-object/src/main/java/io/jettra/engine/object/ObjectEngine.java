@@ -4,6 +4,7 @@ import io.jettra.engine.core.AbstractEngine;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Optional;
+import org.jboss.logging.Logger;
 
 /**
  * Optimized Object Engine.
@@ -11,6 +12,8 @@ import java.util.Optional;
  */
 @ApplicationScoped
 public class ObjectEngine extends AbstractEngine {
+
+    private static final Logger LOG = Logger.getLogger(ObjectEngine.class);
 
     public Uni<Void> storeLargeObject(String bucket, String name, byte[] data) {
         // Logic for splitting into 1MB chunks (simulation)

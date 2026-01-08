@@ -1,0 +1,16 @@
+/jettra-engine/jettra-engine-object/target/
+/jettra-shell/target/
+/jettra-engine/jettra-engine-time-series/target/
+/jettra-web/target/
+/jettra-engine/jettra-engine-graph/target/
+/jettra-consensus/target/
+/jettra-engine/jettra-engine-core/target/
+/jettra-engine/jettra-engine-geographics/target/
+/jettra-engine/jettra-engine-vector/target/
+/jettra-tx/target/
+/jettra-pd/target/
+/jettra-store/target/
+/jettra-engine/jettra-engine-column/target/
+/jettra-driver-java/target/
+/jettra-engine/jettra-engine-key-value/target/
+/jettra-engine/jettra-engine-document/target/

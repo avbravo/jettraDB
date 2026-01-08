@@ -16,7 +16,7 @@ public class JettraLoadTest {
         int totalRecords = 5000;
         int concurrency = 50;
 
-        JettraReactiveClient client = new JettraReactiveClient(pdAddress);
+        JettraReactiveClient client = new JettraReactiveClient(pdAddress, "dummy-token");
         AtomicInteger count = new AtomicInteger(0);
 
         System.out.println("🚀 Starting Java Reactive Load Test (" + totalRecords + " records)...");

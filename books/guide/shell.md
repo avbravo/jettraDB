@@ -18,6 +18,14 @@ The first step is always connecting to the Placement Driver (PD).
 connect localhost:9000
 ```
 
+### 2. Authentication
+Before performing operations, you must log in:
+
+```bash
+login admin
+# Password prompt will appear
+```
+
 ### 2. Querying Data
 You can execute SQL-like queries for the different engines.
 
@@ -31,6 +39,20 @@ query "GET config 'max_connections'"
 
 # Analyze with Column Engine
 query "AGGREGATE SUM(sales) FROM transactions"
+```
+
+### 4. Database Management
+Manage your databases directly from the shell:
+
+```bash
+# Create a new database
+db create my_new_db
+
+# List all databases
+db list
+
+# Delete a database
+db delete my_new_db
 ```
 
 ### 3. Cluster Administration

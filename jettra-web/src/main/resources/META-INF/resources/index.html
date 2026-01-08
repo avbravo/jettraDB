@@ -358,46 +358,236 @@
 <body>
     <div class="sidebar">
         <h1>JettraDB</h1>
+        <div class="nav-item active" onclick="showView('cluster')" id="nav-cluster">Cluster</div>
+        <div class="nav-item" onclick="showView('databases')" id="nav-databases">Databases</div>
         <div class="nav-item">Consensus</div>
         <div class="nav-item">Storage</div>
         <div class="nav-item">Users</div>
         <div class="nav-item">Rule Engine</div>
     </div>
     <div class="main-content">
-        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h2>Cluster Overview</h2>
-            <button class="btn">+ New Database</button>
-        </header>
+        <!-- Cluster View -->
+        <div id="view-cluster">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>Cluster Overview</h2>
+            </header>
 
-        <div class="grid" id="node-grid">
-            <!-- Node cards will be injected here -->
-            <div class="card">
-                <h3>Node: pd-01</h3>
-                <p><span class="status-dot status-online"></span> Role: Placement Driver</p>
-                <small>Address: 10.0.0.1:9000</small>
+            <div class="grid" id="node-grid">
+                <!-- Node cards injected here -->
             </div>
-            <div class="card">
-                <h3>Node: store-01</h3>
-                <p><span class="status-dot status-online"></span> Role: Storage / Leader</p>
-                <small>Address: 10.0.0.2:9001</small>
+
+            <h2 style="margin-top: 3rem;">Multi-Raft Groups</h2>
+            <div class="grid" id="group-grid" style="margin-top: 1.5rem;">
+                <!-- Group cards injected here -->
+                <div style="color: #94a3b8; text-align: center; width: 100%;">Loading groups...</div>
             </div>
-            <div class="card">
-                <h3>Node: store-02</h3>
-                <p><span class="status-dot status-online"></span> Role: Storage / Follower</p>
-                <small>Address: 10.0.0.3:9001</small>
+
+            <h2 style="margin-top: 3rem;">Recent Activity</h2>
+            <div class="card" style="margin-top: 1rem;">
+                <p style="color: #94a3b8;">[21:45:12] Raft Group #432 elected leader: store-01</p>
+                <p style="color: #94a3b8;">[21:44:05] Shard split completed for collection 'telemetry'</p>
             </div>
         </div>
 
-        <h2 style="margin-top: 3rem;">Recent Activity</h2>
-        <div class="card" style="margin-top: 1rem;">
-            <p style="color: #94a3b8;">[21:45:12] Raft Group #432 elected leader: store-01</p>
-            <p style="color: #94a3b8;">[21:44:05] Shard split completed for collection 'telemetry'</p>
+        <!-- Databases View -->
+        <div id="view-databases" class="hidden">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>Database Administration</h2>
+            </header>
+
+            <div class="card mb-6" style="border-left: 4px solid var(--primary);">
+                <h3 class="mb-2">Create New Database</h3>
+                <p class="text-sm text-gray-400 mb-6">Enter a unique name for the new database. This will initialize a
+                    new Raft group metadata.</p>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="text" id="dbNameInput" placeholder="e.g. sales_data"
+                        style="flex: 1; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 0.5rem;">
+                    <button class="btn" onclick="handleCreateDb()">Create Database</button>
+                </div>
+            </div>
+
+            <h2 class="mb-4">Registered Databases</h2>
+            <div class="grid" id="db-grid">
+                <!-- DB cards injected here -->
+                <div style="color: #94a3b8; text-align: center; width: 100%;">Loading databases...</div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Future logic for fetching real data
-        console.log("JettraDB Manager Loaded");
+        const token = localStorage.getItem('jettra_token');
+        if (!token) window.location.href = '/login.html';
+
+        let currentView = 'cluster';
+        const nodeGrid = document.getElementById('node-grid');
+        const groupGrid = document.getElementById('group-grid');
+        const dbGrid = document.getElementById('db-grid');
+
+        // --- Navigation Logic ---
+        function showView(viewId) {
+            currentView = viewId;
+            document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
+            document.getElementById('view-databases').classList.toggle('hidden', viewId !== 'databases');
+
+            document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
+            document.getElementById('nav-databases').classList.toggle('active', viewId === 'databases');
+
+            refreshData();
+        }
+
+        // --- Data Fetching ---
+        function refreshData() {
+            if (currentView === 'cluster') {
+                fetchNodes();
+                fetchGroups();
+            } else if (currentView === 'databases') {
+                fetchDatabases();
+            }
+        }
+
+        setInterval(refreshData, 5000);
+        refreshData();
+
+        async function fetchNodes() {
+            try {
+                const response = await fetch('/api/monitor/nodes', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.status === 401) return logout();
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                renderNodes(await response.json());
+            } catch (error) {
+                console.error('Error fetching nodes:', error);
+                nodeGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function fetchGroups() {
+            try {
+                const response = await fetch('/api/monitor/groups', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.status === 401) return;
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                renderGroups(await response.json());
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+                groupGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function fetchDatabases() {
+            try {
+                const response = await fetch('/api/db', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.status === 401) return logout();
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                renderDatabases(await response.json());
+            } catch (error) {
+                console.error('Error fetching databases:', error);
+                dbGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // --- Rendering ---
+        function renderNodes(nodes) {
+            if (!nodes || nodes.length === 0) {
+                nodeGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No nodes registered.</div>';
+                return;
+            }
+            nodeGrid.innerHTML = nodes.map(node => `
+                <div class="card">
+                    <h3>Node: ${node.id}</h3>
+                    <p>
+                        <span class="status-dot ${node.status === 'ONLINE' ? 'status-online' : 'status-offline'}" 
+                              style="background: ${node.status === 'ONLINE' ? '#10b981' : '#ef4444'}; box-shadow: 0 0 10px ${node.status === 'ONLINE' ? '#10b981' : '#ef4444'}">
+                        </span> 
+                        Role: ${node.role}
+                    </p>
+                    <small style="color: #94a3b8;">Address: ${node.address}</small>
+                </div>
+            `).join('');
+        }
+
+        function renderGroups(groups) {
+            if (!groups || groups.length === 0) {
+                groupGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No Raft groups found.</div>';
+                return;
+            }
+            groupGrid.innerHTML = groups.map(group => `
+                <div class="card" style="border-left: 4px solid var(--primary);">
+                    <h3>Group ID: ${group.groupId}</h3>
+                    <p><span class="status-dot status-online"></span> Leader: <span style="color: var(--primary);">${group.leaderId}</span></p>
+                    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #94a3b8;">
+                        Peers: ${group.peers.join(', ')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderDatabases(dbs) {
+            if (!dbs || dbs.length === 0) {
+                dbGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No databases found.</div>';
+                return;
+            }
+            dbGrid.innerHTML = dbs.map(db => `
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--secondary);">
+                    <div>
+                        <h3 style="margin: 0;">${db}</h3>
+                        <small style="color: #94a3b8;">Status: Active</small>
+                    </div>
+                    <button class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);" 
+                            onclick="handleDeleteDb('${db}')">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        // --- Actions ---
+        async function handleCreateDb() {
+            const input = document.getElementById('dbNameInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            try {
+                const response = await fetch('/api/db', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: name
+                });
+                if (response.ok) {
+                    input.value = '';
+                    fetchDatabases();
+                } else {
+                    alert('Failed to create database: ' + await response.text());
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error creating database');
+            }
+        }
+
+        async function handleDeleteDb(name) {
+            if (!confirm(`Are you sure you want to delete database "${name}"?\nThis action cannot be undone.`)) return;
+            try {
+                const response = await fetch('/api/db/' + name, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) fetchDatabases();
+                else alert('Failed to delete database');
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('jettra_token');
+            window.location.href = '/login.html';
+        }
     </script>
 </body>
 

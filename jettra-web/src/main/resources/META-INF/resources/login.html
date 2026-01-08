@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JettraDB Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .login-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            padding: 2.5rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #94a3b8;
+            font-size: 0.875rem;
+        }
+
+        input {
+            width: 90%;
+            padding: 0.75rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            color: white;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #error-msg {
+            color: #ef4444;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <h2>JettraDB Admin</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit">Log In</button>
+            <div id="error-msg"></div>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const errorMsg = document.getElementById('error-msg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.style.display = 'none';
+            errorMsg.textContent = '';
+
+            const username = form.username.value;
+            const password = form.password.value;
+
+            try {
+                // We access PD auth via web proxy or direct? 
+                // Web proxy is safer for CORs if using relative path, BUT we haven't implemented proxy in web backend for auth.
+                // Assuming web backend will proxy /api/auth/* to PD, OR we call PD direct.
+                // PD is on port 8080 (localhost), Web is 8081. This is cross-origin.
+                // Let's rely on Jettra Web Backend to proxy it.
+                // Wait, I need to implement the proxy in MonitoringResource or similar.
+
+                // Temporary: Directly Call web backend which I will setup to forward, 
+                // OR call absolute URL if user browser can reach PD (localhost:8080).
+                // Let's assume browser can reach localhost:8080 for Auth for now, BUT CORS might block.
+                // Better: Add AuthResource to jettra-web that proxies.
+
+                // Let's try direct to 8080 first (User said endpoint is on 8080 usually).
+                // Actually user said "Para conectarse desde ... curl (endpoint) debe autentificarse".
+                // I will update MonitoringResource to proxy auth requests shortly.
+
+                const response = await fetch('/api/web-auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('jettra_token', data.token);
+                    localStorage.setItem('jettra_username', username);
+
+                    if (data.mustChangePassword) {
+                        window.location.href = '/change-password.html';
+                    } else {
+                        window.location.href = '/index.html';
+                    }
+                } else {
+                    errorMsg.textContent = 'Invalid credentials';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                errorMsg.textContent = 'Login failed: ' + err.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+
+</html>

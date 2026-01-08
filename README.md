@@ -27,6 +27,7 @@ JettraDB follows a distributed architecture with specialized nodes:
 Comprehensive documentation can be found in the `books/guide` directory:
 - [Getting Started](books/guide/getting-started.md)
 - [Architecture](books/guide/architecture.md)
+- [Docker Deployment](books/guide/docker.md)
 - [Java Driver & Repository](books/guide/repository.md)
 
 ## License

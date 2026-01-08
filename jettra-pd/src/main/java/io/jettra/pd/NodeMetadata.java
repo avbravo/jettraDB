@@ -1,7 +1,9 @@
 package io.jettra.pd;
 
 public record NodeMetadata(
-    String id,
-    String address,
-    boolean healthy
-) {}
+        String id,
+        String address,
+        String role,
+        String status,
+        long lastSeen) {
+}
