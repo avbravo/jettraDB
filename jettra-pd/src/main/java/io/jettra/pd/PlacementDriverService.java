@@ -11,11 +11,11 @@ public class PlacementDriverService {
 
     private final Map<String, NodeMetadata> nodes = new ConcurrentHashMap<>();
     private final Map<Long, RaftGroupMetadata> groups = new ConcurrentHashMap<>();
-    private final java.util.Set<String> databases = java.util.Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Map<String, DatabaseMetadata> databases = new ConcurrentHashMap<>();
 
-    public void createDatabase(String name) {
-        LOG.infof("Creating database: %s", name);
-        databases.add(name);
+    public void createDatabase(DatabaseMetadata db) {
+        LOG.infof("Creating database: %s (Storage: %s, Engine: %s)", db.name(), db.storage(), db.engine());
+        databases.put(db.name(), db);
     }
 
     public void deleteDatabase(String name) {
@@ -23,8 +23,8 @@ public class PlacementDriverService {
         databases.remove(name);
     }
 
-    public java.util.Set<String> listDatabases() {
-        return databases;
+    public java.util.Collection<DatabaseMetadata> listDatabases() {
+        return databases.values();
     }
 
     public void registerNode(NodeMetadata node) {

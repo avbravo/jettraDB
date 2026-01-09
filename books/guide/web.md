@@ -4,8 +4,8 @@ El Dashboard de JettraDB es una aplicación de una sola página (SPA) moderna, e
 
 ## Acceso al Dashboard
 La interfaz web se despliega automáticamente con el componente `jettra-web`.
-- **URL**: `http://localhost:8080`
-- **Credenciales**: **Requerido**. El acceso está protegido.
+- **URL**: `http://localhost:8081` (Puerto por defecto del componente web)
+- **Credenciales**: **Requerido**. El acceso está protegido por JWT.
   - Usuario por defecto: `admin`
   - Contraseña por defecto: `adminadmin` (Cambio obligatorio al primer inicio).
 
@@ -14,42 +14,40 @@ La interfaz web se despliega automáticamente con el componente `jettra-web`.
 ### 1. Panel de Control (Overview)
 Es la vista general del sistema donde se muestran indicadores clave de rendimiento (KPIs):
 - **Nodos del Cluster**: Conteo de nodos activos gestionados por el Placement Driver.
-- **Grupos Raft**: Estado de salud de los grupos de consenso.
-- **Latencia Global**: Tiempo de respuesta medio a través de todos los motores (Document, Graph, Vector, etc.).
+- **Grupos Raft**: Estado de salud de los grupos de consenso y elección de líderes.
 
 ### 2. Nodos del Cluster (Nodes)
 Muestra una topología detallada de la red JettraDB en tiempo real:
 - **Descubrimiento Automático**: Los nodos se registran automáticamente con el Placement Driver al iniciarse.
 - **Estado en Vivo**: Indicadores visuales (Verde/Rojo) para el estado ONLINE/OFFLINE de cada nodo.
 - **Roles**: Identificación de nodos **Storage** y su dirección de red.
-- **Actualización Dinámica**: La lista se refresca cada 5 segundos para reflejar cambios en la topología.
+- **Monitorización de Recursos** ⭐: Al dar clic en el botón de búsqueda/lupa del nodo, se abre un diálogo modal que muestra:
+    - **Uso de CPU**: Porcentaje de carga del procesador del nodo.
+    - **Uso de Memoria**: Memoria RAM consumida vs Memoria RAM disponible.
+    - **Latencia de Señal**: Tiempo transcurrido desde el último latido (heartbeat).
 
-### 3. Consola de Consultas (Query Console)
+### 3. Administración de Bases de Datos (Database Management)
+Gestión completa del ciclo de vida de las bases de datos desde el formulario web:
+- **Crear**: Provisiona nuevas bases de datos lógicas instantáneamente. Se debe seleccionar:
+    - **Nombre**: Identificador único de la base de datos.
+    - **Motor de Base de Datos (Engine)** ⭐: Selecciona el modelo de datos optimizado para tu caso de uso:
+        - `Document`, `Column`, `Key-Value`, `Graph`, `Vector`, `Object`, o `File`.
+    - **Tipo de Almacenamiento (Storage)**:
+        - **Persistent (Store)**: Los datos se guardan en disco (jettra-store).
+        - **In-Memory**: Los datos residen exclusivamente en RAM para baja latencia.
+- **Listar**: Visualiza todas las bases de datos registradas indicando su **Motor** y tipo de **Almacenamiento**.
+- **Eliminar**: Borra bases de datos y todos sus datos asociados tras confirmación.
+
+### 4. Consola de Consultas (Query Console)
 Permite ejecutar operaciones multi-modelo directamente desde el navegador:
 1.  **Selección de Motor**: Conmuta entre Document, Key-Value, Graph, Columnar, Time-Series, Vector y Geospatial.
 2.  **Editor JSON**: Entrada de comandos en formato JSON estandarizado de Jettra.
-3.  **Ejecución Reactiva**: Las consultas se procesan de forma no bloqueante utilizando Mutiny.
-4.  **Visor de Resultados**: Formateo automático de las respuestas JSON con resaltado de sintaxis.
+3.  **Ejecución Reactiva**: Las consultas se procesan de forma no bloqueante.
 
-### 4. Registros de Auditoría (Audit Logs)
-Visualización del sistema de auditoría global inmutable:
-- Seguimiento de transacciones distribuidas (2PC).
-- Registro de acciones críticas (COMMIT/ABORT).
-- Marcas de tiempo precisas para cumplimiento y debugging.
+## Procedimiento de Autenticación en la Web
 
-### 5. Alertas Predictivas y Métricas (Alerts) ⭐
-Esta sección utiliza análisis de tendencias para anticipar problemas:
-- **Alertas de Severidad**: Clasificación en *Critical*, *Warning* y *Predictive*.
-- **Predicción de Almacenamiento**: Proyección del uso de disco para las próximas 24 horas.
-- **Tendencias de Tráfico**: Visualización de aumentos o caídas repentinas en el Throughput (RPS).
-
-### 6. Administración de Bases de Datos (Database Management)
-Gestión completa del ciclo de vida de las bases de datos:
-- **Listar**: Visualiza todas las bases de datos creadas en el cluster.
-- **Crear**: Provisiona nuevas bases de datos lógicas instantáneamente.
-- **Eliminar**: Borra bases de datos y todos sus datos asociados.
-
-## Consejos de Navegación
-- **Cambio de Sección**: Utiliza el menú lateral izquierdo para saltar entre funcionalidades sin recargar la página.
-- **Badge de Alertas**: El icono de notificaciones en el menú lateral te avisará si hay nuevas alertas predictivas de alta prioridad.
-- **Respuesta Visual**: Los colores en el dashboard indican estados críticos: Verde (Saludable), Amarillo (Advertencia), Rojo (Crítico/Fallo).
+1. Al acceder a la URL, el sistema redirigirá automáticamente a `login.html`.
+2. Introduce tus credenciales (`admin` / `adminadmin`).
+3. El sistema generará un token JWT que se almacenará en el `localStorage` del navegador.
+4. El token se enviará automáticamente en la cabecera `Authorization: Bearer <token>` en cada petición a la API.
+5. Si el token expira o es inválido, serás redirigido nuevamente al Login.

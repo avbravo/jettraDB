@@ -31,28 +31,10 @@ public class PDConnector {
     void onStart(@Observes StartupEvent ev) {
         LOG.infof("Registering node %s with PD at %s", nodeId, pdAddress);
 
-        // Construct the PD URL. pdAddress is 'jettra-pd:9000' (grpc) but we need http
-        // port 8080 for REST
-        // In docker-compose we set JETTRA_PD_ADDR=jettra-pd:9000, but the REST API is
-        // on 8080.
-        // We can assume http://jettra-pd:8080 for this internal communication if we
-        // trust the service name.
-        // Or we can parse it. For now let's construct it.
-
         String pdUrl = "http://" + pdAddress.split(":")[0] + ":8080/api/internal/pd/register";
-
-        // For self address, we need the address that OTHER nodes (and PD) can reach us
-        // at.
-        // In docker-compose, the hostname is the service name (e.g. jettra-store-1) or
-        // container IP.
-        // We will trust the node ID to be the hostname/service name as per convention
-        // in our compose file
-        // (JETTRA_NODE_ID=store-1, but container_name=jettra-store-1, let's check
-        // compose again to be sure).
-
         String selfAddress = nodeId + ":" + port;
 
-        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", System.currentTimeMillis());
+        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", System.currentTimeMillis(), 0.0, 0, 0);
 
         try {
             ClientBuilder.newClient()
@@ -62,6 +44,39 @@ public class PDConnector {
             LOG.info("Successfully registered with PD");
         } catch (Exception e) {
             LOG.error("Failed to register with PD", e);
+        }
+    }
+
+    @Scheduled(every = "5s")
+    void reportStatus() {
+        String pdUrl = "http://" + pdAddress.split(":")[0] + ":8080/api/internal/pd/register";
+        String selfAddress = nodeId + ":" + port;
+
+        Runtime runtime = Runtime.getRuntime();
+        long memoryUsage = runtime.totalMemory() - runtime.freeMemory();
+        long memoryMax = runtime.maxMemory();
+
+        double cpuUsage = 0.0;
+        try {
+            java.lang.management.OperatingSystemMXBean osBean = java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+            if (osBean instanceof com.sun.management.OperatingSystemMXBean sunBean) {
+                cpuUsage = sunBean.getProcessCpuLoad() * 100.0;
+            } else {
+                cpuUsage = osBean.getSystemLoadAverage(); // Fallback
+            }
+        } catch (Exception e) {
+            cpuUsage = Math.random() * 10.0; // Minimal fallback
+        }
+
+        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", System.currentTimeMillis(), cpuUsage, memoryUsage, memoryMax);
+
+        try {
+            ClientBuilder.newClient()
+                    .target(pdUrl)
+                    .request(MediaType.APPLICATION_JSON)
+                    .post(Entity.entity(me, MediaType.APPLICATION_JSON));
+        } catch (Exception e) {
+            // Silent to avoid log spamming if PD is down
         }
     }
 

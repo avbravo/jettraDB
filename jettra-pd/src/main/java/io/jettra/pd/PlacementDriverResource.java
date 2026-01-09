@@ -45,14 +45,14 @@ public class PlacementDriverResource {
 
     @GET
     @Path("/databases")
-    public java.util.Set<String> listDatabases() {
+    public java.util.Collection<DatabaseMetadata> listDatabases() {
         return pdService.listDatabases();
     }
 
     @POST
     @Path("/databases")
-    public Response createDatabase(String name) {
-        pdService.createDatabase(name);
+    public Response createDatabase(DatabaseMetadata db) {
+        pdService.createDatabase(db);
         return Response.ok().build();
     }
 

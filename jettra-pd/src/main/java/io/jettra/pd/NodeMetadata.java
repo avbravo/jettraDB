@@ -5,5 +5,8 @@ public record NodeMetadata(
         String address,
         String role,
         String status,
-        long lastSeen) {
+        long lastSeen,
+        double cpuUsage,
+        long memoryUsage,
+        long memoryMax) {
 }

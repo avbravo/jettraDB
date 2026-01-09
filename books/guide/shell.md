@@ -26,7 +26,30 @@ login admin
 # Password prompt will appear
 ```
 
-### 2. Querying Data
+### 3. Database Management
+Manage your databases directly from the shell, specifying the engine and storage type:
+
+```bash
+# Create a new persistent Document database (Default)
+db create sales_db
+
+# Create a new Graph database in memory
+db create social_graph --engine Graph --storage MEMORY
+
+# Options for --engine:
+# Document, Column, Key-Value, Graph, Vector, Object, File
+
+# Options for --storage:
+# STORE (Persistent), MEMORY (In-Memory)
+
+# List all databases
+db list
+
+# Delete a database
+db delete sales_db
+```
+
+### 4. Querying Data
 You can execute SQL-like queries for the different engines.
 
 ```bash
@@ -35,27 +58,12 @@ query "INSERT DOCUMENT INTO users {name: 'John', age: 30}"
 
 # Query the Key-Value Engine
 query "SET config 'max_connections' '500'"
-query "GET config 'max_connections'"
 
 # Analyze with Column Engine
 query "AGGREGATE SUM(sales) FROM transactions"
 ```
 
-### 4. Database Management
-Manage your databases directly from the shell:
-
-```bash
-# Create a new database
-db create my_new_db
-
-# List all databases
-db list
-
-# Delete a database
-db delete my_new_db
-```
-
-### 3. Cluster Administration
+### 5. Cluster Administration
 
 ```bash
 # List all nodes in the cluster

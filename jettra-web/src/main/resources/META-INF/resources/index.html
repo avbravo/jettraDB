@@ -44,6 +44,7 @@
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .nav-item {
@@ -115,242 +116,61 @@
             display: none !important;
         }
 
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Styles for new elements */
-        .glass {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1rem;
-            padding: 1.5rem;
-        }
-
-        .p-6 {
-            padding: 1.5rem;
-        }
-
-        .rounded-2xl {
-            border-radius: 1rem;
-        }
-
-        .border-white\/10 {
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .text-2xl {
-            font-size: 1.5rem;
-        }
-
-        .font-semibold {
-            font-weight: 600;
-        }
-
         .mb-6 {
             margin-bottom: 1.5rem;
-        }
-
-        .grid-cols-1 {
-            grid-template-columns: repeat(1, minmax(0, 1fr));
-        }
-
-        .gap-6 {
-            gap: 1.5rem;
-        }
-
-        .bg-black\/20 {
-            background-color: rgba(0, 0, 0, 0.2);
-        }
-
-        .rounded-xl {
-            border-radius: 0.75rem;
-        }
-
-        .block {
-            display: block;
-        }
-
-        .text-sm {
-            font-size: 0.875rem;
-        }
-
-        .font-medium {
-            font-weight: 500;
         }
 
         .mb-2 {
             margin-bottom: 0.5rem;
         }
 
-        .bg-white\/5 {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
-        .border-white\/10 {
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .rounded {
-            border-radius: 0.25rem;
-        }
-
-        .px-3 {
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-        }
-
-        .py-2 {
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-        }
-
-        .w-full {
-            width: 100%;
-        }
-
-        .focus\:outline-none:focus {
-            outline: 2px solid transparent;
-            outline-offset: 2px;
-        }
-
-        .focus\:ring-2:focus {
-            --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-            --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-            box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-        }
-
-        .focus\:ring-blue-500:focus {
-            --tw-ring-color: #3b82f6;
-        }
-
-        .font-mono {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        }
-
-        .mt-4 {
-            margin-top: 1rem;
-        }
-
-        .bg-blue-600 {
-            background-color: #2563eb;
-        }
-
-        .hover\:bg-blue-500:hover {
-            background-color: #3b82f6;
-        }
-
-        .text-white {
-            color: #fff;
-        }
-
-        .font-bold {
-            font-weight: 700;
-        }
-
-        .py-2 {
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-        }
-
-        .px-6 {
-            padding-left: 1.5rem;
-            border-radius: 0.5rem;
-        }
-
-        .transition-all {
-            transition-property: all;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            transition-duration: 0.15s;
-        }
-
-        .transform {
-            transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-        }
-
-        .hover\:scale-105:hover {
-            --tw-scale-x: 1.05;
-            --tw-scale-y: 1.05;
-        }
-
-        .active\:scale-95:active {
-            --tw-scale-x: 0.95;
-            --tw-scale-y: 0.95;
-        }
-
-        .bg-black\/40 {
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        .p-3 {
-            padding: 0.75rem;
-        }
-
-        .text-green-400 {
-            color: #4ade80;
-        }
-
-        .min-h-\[100px\] {
-            min-height: 100px;
-        }
-
-        .overflow-x-auto {
-            overflow-x: auto;
-        }
-
-        .w-full {
-            width: 100%;
-        }
-
-        .text-left {
-            text-align: left;
-        }
-
-        .border-b {
-            border-bottom-width: 1px;
+        .text-sm {
+            font-size: 0.875rem;
         }
 
         .text-gray-400 {
             color: #9ca3af;
         }
 
-        .py-3 {
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
         }
 
-        .px-4 {
-            padding-left: 1rem;
-            padding-right: 1rem;
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
         }
 
-        .text-xs {
-            font-size: 0.75rem;
+        .progress-bar {
+            height: 100%;
+            transition: width 0.3s ease;
         }
 
-        .text-blue-400 {
-            color: #60a5fa;
+        input,
+        select {
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 0.5rem;
+            outline: none;
         }
 
-        .bg-green-500\/20 {
-            background-color: rgba(34, 197, 94, 0.2);
-        }
-
-        .hover\:bg-white\/5:hover {
-            background-color: rgba(255, 255, 255, 0.05);
+        input:focus,
+        select:focus {
+            border-color: var(--primary);
         }
     </style>
 </head>
@@ -381,35 +201,92 @@
                 <!-- Group cards injected here -->
                 <div style="color: #94a3b8; text-align: center; width: 100%;">Loading groups...</div>
             </div>
-
-            <h2 style="margin-top: 3rem;">Recent Activity</h2>
-            <div class="card" style="margin-top: 1rem;">
-                <p style="color: #94a3b8;">[21:45:12] Raft Group #432 elected leader: store-01</p>
-                <p style="color: #94a3b8;">[21:44:05] Shard split completed for collection 'telemetry'</p>
-            </div>
         </div>
 
         <!-- Databases View -->
         <div id="view-databases" class="hidden">
             <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>Database Administration</h2>
+                <h2>Administración de Bases de Datos</h2>
             </header>
 
             <div class="card mb-6" style="border-left: 4px solid var(--primary);">
-                <h3 class="mb-2">Create New Database</h3>
-                <p class="text-sm text-gray-400 mb-6">Enter a unique name for the new database. This will initialize a
-                    new Raft group metadata.</p>
-                <div style="display: flex; gap: 1rem;">
-                    <input type="text" id="dbNameInput" placeholder="e.g. sales_data"
-                        style="flex: 1; padding: 0.75rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 0.5rem;">
-                    <button class="btn" onclick="handleCreateDb()">Create Database</button>
+                <h3 class="mb-2">Nueva Base de Datos</h3>
+                <p class="text-sm text-gray-400 mb-6">Provisionar una nueva base de datos multi-modelo con motor y
+                    almacenamiento específicos.</p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="flex: 2; min-width: 200px; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label class="text-xs text-gray-400">Nombre de la Base de Datos</label>
+                        <input type="text" id="dbNameInput" placeholder="Ej: ventas_db">
+                    </div>
+
+                    <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label class="text-xs text-gray-400">Tipo de Base de Datos</label>
+                        <select id="dbEngineSelect">
+                            <option value="Document">Documento (Document)</option>
+                            <option value="Column">Columna (Column)</option>
+                            <option value="Key-Value">Llave-Valor (Key-Value)</option>
+                            <option value="Graph">Grafos (Graph)</option>
+                            <option value="Vector">Vectorial (Vector)</option>
+                            <option value="Object">Objetos (Object)</option>
+                            <option value="Time-Series">Series de Tiempo</option>
+                            <option value="Geographics">Geográfica (Spatial)</option>
+                            <option value="File">Archivos (File)</option>
+                        </select>
+                    </div>
+
+                    <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label class="text-xs text-gray-400">Almacenamiento</label>
+                        <select id="dbStorageSelect">
+                            <option value="STORE">Persistente (Disco)</option>
+                            <option value="MEMORY">En Memoria (RAM)</option>
+                        </select>
+                    </div>
+
+                    <button class="btn" onclick="handleCreateDb()" style="height: 44px;">Crear Base de Datos</button>
                 </div>
             </div>
 
-            <h2 class="mb-4">Registered Databases</h2>
+            <h2 class="mb-4">Bases de Datos Registradas</h2>
             <div class="grid" id="db-grid">
                 <!-- DB cards injected here -->
-                <div style="color: #94a3b8; text-align: center; width: 100%;">Loading databases...</div>
+                <div style="color: #94a3b8; text-align: center; width: 100%;">Cargando bases de datos...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resources Modal -->
+    <div id="resource-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 500px; border: 1px solid rgba(255,255,255,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="modal-node-id" style="margin: 0;">Node Resources</h2>
+                <button onclick="closeResourceModal()"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
+            </div>
+
+            <div class="mb-6">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                    <span>CPU Usage</span>
+                    <span id="modal-cpu-val">0%</span>
+                </div>
+                <div class="progress-container">
+                    <div id="modal-cpu-bar" class="progress-bar" style="width: 0%; background: var(--primary);"></div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                    <span>Memory Usage</span>
+                    <span id="modal-mem-val">0 / 0 MB</span>
+                </div>
+                <div class="progress-container">
+                    <div id="modal-mem-bar" class="progress-bar" style="width: 0%; background: var(--secondary);"></div>
+                </div>
+            </div>
+
+            <div
+                style="font-size: 0.85rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                <p>Last Heartbeat: <span id="modal-last-seen">just now</span></p>
+                <p>Status: <span id="modal-status" style="color: #10b981;">ONLINE</span></p>
             </div>
         </div>
     </div>
@@ -419,11 +296,13 @@
         if (!token) window.location.href = '/login.html';
 
         let currentView = 'cluster';
+        let allNodes = [];
+        let selectedNodeId = null;
+
         const nodeGrid = document.getElementById('node-grid');
         const groupGrid = document.getElementById('group-grid');
         const dbGrid = document.getElementById('db-grid');
 
-        // --- Navigation Logic ---
         function showView(viewId) {
             currentView = viewId;
             document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
@@ -435,7 +314,6 @@
             refreshData();
         }
 
-        // --- Data Fetching ---
         function refreshData() {
             if (currentView === 'cluster') {
                 fetchNodes();
@@ -455,7 +333,9 @@
                 });
                 if (response.status === 401) return logout();
                 if (!response.ok) throw new Error('HTTP ' + response.status);
-                renderNodes(await response.json());
+                allNodes = await response.json();
+                renderNodes(allNodes);
+                if (selectedNodeId) updateModalContent();
             } catch (error) {
                 console.error('Error fetching nodes:', error);
                 nodeGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
@@ -490,7 +370,6 @@
             }
         }
 
-        // --- Rendering ---
         function renderNodes(nodes) {
             if (!nodes || nodes.length === 0) {
                 nodeGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No nodes registered.</div>';
@@ -498,14 +377,16 @@
             }
             nodeGrid.innerHTML = nodes.map(node => `
                 <div class="card">
-                    <h3>Node: ${node.id}</h3>
-                    <p>
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <h3 style="margin:0">Node: ${node.id}</h3>
                         <span class="status-dot ${node.status === 'ONLINE' ? 'status-online' : 'status-offline'}" 
                               style="background: ${node.status === 'ONLINE' ? '#10b981' : '#ef4444'}; box-shadow: 0 0 10px ${node.status === 'ONLINE' ? '#10b981' : '#ef4444'}">
-                        </span> 
-                        Role: ${node.role}
-                    </p>
-                    <small style="color: #94a3b8;">Address: ${node.address}</small>
+                        </span>
+                    </div>
+                    <p style="margin: 0.5rem 0">Role: ${node.role}</p>
+                    <small style="color: #94a3b8; display: block; margin-bottom: 1rem;">Address: ${node.address}</small>
+                    <button class="btn" style="width: 100%; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);" 
+                            onclick="showNodeResources('${node.id}')">🔍 View Resources</button>
                 </div>
             `).join('');
         }
@@ -528,26 +409,66 @@
 
         function renderDatabases(dbs) {
             if (!dbs || dbs.length === 0) {
-                dbGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No databases found.</div>';
+                dbGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No se encontraron bases de datos.</div>';
                 return;
             }
             dbGrid.innerHTML = dbs.map(db => `
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--secondary);">
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid ${db.storage === 'MEMORY' ? '#10b981' : 'var(--secondary)'};">
                     <div>
-                        <h3 style="margin: 0;">${db}</h3>
-                        <small style="color: #94a3b8;">Status: Active</small>
+                        <h3 style="margin: 0;">${db.name}</h3>
+                        <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.2rem;">
+                             Motor: <span style="color: white; font-weight: 600;">${db.engine}</span> |
+                             Almacenamiento: <span style="color: white;">${db.storage === 'MEMORY' ? 'En Memoria (RAM)' : 'Persistente (Disco)'}</span>
+                        </div>
                     </div>
                     <button class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);" 
-                            onclick="handleDeleteDb('${db}')">Delete</button>
+                            onclick="handleDeleteDb('${db.name}')">Eliminar</button>
                 </div>
             `).join('');
         }
 
-        // --- Actions ---
+        function showNodeResources(nodeId) {
+            selectedNodeId = nodeId;
+            document.getElementById('resource-modal').classList.remove('hidden');
+            updateModalContent();
+        }
+
+        function closeResourceModal() {
+            selectedNodeId = null;
+            document.getElementById('resource-modal').classList.add('hidden');
+        }
+
+        function updateModalContent() {
+            const node = allNodes.find(n => n.id === selectedNodeId);
+            if (!node) return;
+
+            document.getElementById('modal-node-id').textContent = `Recursos: ${node.id}`;
+            document.getElementById('modal-cpu-val').textContent = `${(node.cpuUsage || 0).toFixed(1)}%`;
+            document.getElementById('modal-cpu-bar').style.width = `${Math.min(node.cpuUsage || 0, 100)}%`;
+
+            const memUsedMB = ((node.memoryUsage || 0) / 1024 / 1024).toFixed(1);
+            const memMaxMB = ((node.memoryMax || 1) / 1024 / 1024).toFixed(1);
+            const memPercent = (node.memoryUsage / node.memoryMax * 100) || 0;
+
+            document.getElementById('modal-mem-val').textContent = `${memUsedMB} / ${memMaxMB} MB`;
+            document.getElementById('modal-mem-bar').style.width = `${Math.min(memPercent, 100)}%`;
+
+            const lastSeenSec = Math.floor((Date.now() - node.lastSeen) / 1000);
+            document.getElementById('modal-last-seen').textContent = lastSeenSec < 5 ? 'ahora mismo' : `hace ${lastSeenSec}s`;
+            document.getElementById('modal-status').textContent = node.status;
+            document.getElementById('modal-status').style.color = node.status === 'ONLINE' ? '#10b981' : '#ef4444';
+        }
+
         async function handleCreateDb() {
-            const input = document.getElementById('dbNameInput');
-            const name = input.value.trim();
-            if (!name) return;
+            const nameInput = document.getElementById('dbNameInput');
+            const engineSelect = document.getElementById('dbEngineSelect');
+            const storageSelect = document.getElementById('dbStorageSelect');
+
+            const name = nameInput.value.trim();
+            const engine = engineSelect.value;
+            const storage = storageSelect.value;
+
+            if (!name) return alert('El nombre de la base de datos es obligatorio');
 
             try {
                 const response = await fetch('/api/db', {
@@ -556,29 +477,29 @@
                         'Authorization': 'Bearer ' + token,
                         'Content-Type': 'application/json'
                     },
-                    body: name
+                    body: JSON.stringify({ name, engine, storage })
                 });
                 if (response.ok) {
-                    input.value = '';
+                    nameInput.value = '';
                     fetchDatabases();
                 } else {
-                    alert('Failed to create database: ' + await response.text());
+                    alert('Error al crear la base de datos: ' + await response.text());
                 }
             } catch (e) {
                 console.error(e);
-                alert('Error creating database');
+                alert('Error al crear la base de datos');
             }
         }
 
         async function handleDeleteDb(name) {
-            if (!confirm(`Are you sure you want to delete database "${name}"?\nThis action cannot be undone.`)) return;
+            if (!confirm(`¿Está seguro de que desea eliminar la base de datos "${name}"?\nEsta acción no se puede deshacer.`)) return;
             try {
                 const response = await fetch('/api/db/' + name, {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 if (response.ok) fetchDatabases();
-                else alert('Failed to delete database');
+                else alert('Error al eliminar la base de datos');
             } catch (e) {
                 console.error(e);
             }

@@ -2,6 +2,16 @@
 
 JettraDB no solo monitoriza el estado actual del cluster, sino que utiliza algoritmos de tendencia para predecir posibles fallos o cuellos de botella antes de que ocurran.
 
+## Monitoreo de Recursos en Tiempo Real ⭐
+El sistema ahora permite una inspección profunda y granular de cada componente del cluster. A través del Dashboard Web, los administradores pueden visualizar el consumo exacto de recursos:
+
+1.  **Navegación**: Dirígete a la sección **Nodes** en el menú lateral.
+2.  **Inspección**: Haz clic en el botón **🔍 View Resources** dentro de la tarjeta de cualquier nodo (Storage, Memory, etc.).
+3.  **Métricas Detalladas**:
+    -   **CPU Usage**: Visualización mediante barra de progreso del porcentaje de carga de CPU actual del proceso.
+    -   **RAM Usage**: Consumo de memoria RAM en Megabytes vs el límite máximo configurado.
+    -   **Last Heartbeat**: Monitoreo de la frescura de la señal del nodo para detectar "zombie nodes".
+
 ## Centro de Alertas
 En la interfaz web, la sección **Alertas & Métricas** centraliza todas las notificaciones críticas. El sistema clasifica las alertas en tres niveles de severidad:
 

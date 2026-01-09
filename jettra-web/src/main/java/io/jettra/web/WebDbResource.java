@@ -15,7 +15,6 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.Collections;
-import java.util.Set;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/api/db")
@@ -34,26 +33,26 @@ public class WebDbResource {
     }
 
     @GET
-    public Set<String> listDatabases() {
+    public java.util.Collection<io.jettra.pd.DatabaseMetadata> listDatabases() {
         try (Client client = ClientBuilder.newClient()) {
             return client.target(pdUrl + "/api/internal/pd/databases")
                     .request(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .get(new GenericType<Set<String>>() {
+                    .get(new GenericType<java.util.List<io.jettra.pd.DatabaseMetadata>>() {
                     });
         } catch (Exception e) {
             e.printStackTrace();
-            return Collections.emptySet();
+            return Collections.emptyList();
         }
     }
 
     @POST
-    public Response createDatabase(String name) {
+    public Response createDatabase(io.jettra.pd.DatabaseMetadata db) {
         try (Client client = ClientBuilder.newClient()) {
             Response response = client.target(pdUrl + "/api/internal/pd/databases")
                     .request(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
-                    .post(Entity.text(name));
+                    .post(Entity.entity(db, MediaType.APPLICATION_JSON));
             return Response.status(response.getStatus()).build();
         } catch (Exception e) {
             return Response.serverError().build();

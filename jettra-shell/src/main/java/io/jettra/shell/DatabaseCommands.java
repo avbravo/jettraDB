@@ -1,11 +1,11 @@
 package io.jettra.shell;
 
-import picocli.CommandLine.Command;
-import picocli.CommandLine.Parameters;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Parameters;
 
 @Command(name = "db", description = "Database management commands", subcommands = {
         CreateDatabaseCommand.class,
@@ -20,6 +20,12 @@ class CreateDatabaseCommand implements Runnable {
     @Parameters(index = "0", description = "Database name")
     String name;
 
+    @picocli.CommandLine.Option(names = { "-s", "--storage" }, description = "Storage style: STORE (persistent) or MEMORY (in-memory)", defaultValue = "STORE")
+    String storage;
+
+    @picocli.CommandLine.Option(names = { "-e", "--engine" }, description = "Engine type: Document, Column, Key-Value, Graph, Vector, Object, File", defaultValue = "Document")
+    String engine;
+
     @Override
     public void run() {
         if (JettraShell.authToken == null) {
@@ -28,19 +34,21 @@ class CreateDatabaseCommand implements Runnable {
         }
         try {
             HttpClient client = HttpClient.newHttpClient();
+            String json = String.format("{\"name\": \"%s\", \"storage\": \"%s\", \"engine\": \"%s\"}", 
+                name, storage.toUpperCase(), engine);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:8080/api/internal/pd/databases"))
                     .header("Authorization", "Bearer " + JettraShell.authToken)
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(name))
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200)
-                System.out.println("Database created.");
+                System.out.println("Successfully created database '" + name + "' [Engine: " + engine + ", Storage: " + storage.toUpperCase() + "]");
             else
-                System.out.println("Error: " + response.statusCode());
+                System.out.println("Error creating database: " + response.statusCode() + " " + response.body());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Execution failed: " + e.getMessage());
         }
     }
 }
@@ -65,11 +73,11 @@ class DeleteDatabaseCommand implements Runnable {
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200)
-                System.out.println("Database deleted.");
+                System.out.println("Database '" + name + "' deleted.");
             else
                 System.out.println("Error: " + response.statusCode());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Execution failed: " + e.getMessage());
         }
     }
 }
@@ -90,12 +98,13 @@ class ListDatabasesCommand implements Runnable {
                     .GET()
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200)
+            if (response.statusCode() == 200) {
+                System.out.println("Registered Databases:");
                 System.out.println(response.body());
-            else
-                System.out.println("Error: " + response.statusCode());
+            } else
+                System.out.println("Error retrieving databases: " + response.statusCode());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Execution failed: " + e.getMessage());
         }
     }
 }

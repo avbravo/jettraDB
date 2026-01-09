@@ -39,8 +39,8 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
-    public Uni<Void> createDatabase(String name) {
-        LOG.info("Creating database " + name + " [Auth: " + authToken + "]");
+    public Uni<Void> createDatabase(String name, String storage, String engine) {
+        LOG.info("Creating database " + name + " [Engine: " + engine + ", Storage: " + storage + "] [Auth: " + authToken + "]");
         return Uni.createFrom().voidItem();
     }
 
@@ -51,9 +51,9 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
-    public Uni<java.util.Set<String>> listDatabases() {
+    public Uni<List<String>> listDatabases() {
         LOG.info("Listing databases [Auth: " + authToken + "]");
-        return Uni.createFrom().item(java.util.Collections.emptySet());
+        return Uni.createFrom().item(java.util.Collections.emptyList());
     }
 
     // Specific Vector Engine Method

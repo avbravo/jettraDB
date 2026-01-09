@@ -23,27 +23,42 @@ Initialize the client with the Placement Driver (PD) address and your Authentica
 import io.jettra.driver.JettraReactiveClient;
 
 // ...
-String pdAddress = "localhost:9000"; // PD address
+String pdAddress = "localhost:9000"; 
 String authToken = "eyJh... (your JWT token)"; // Obtain via Auth API
 
 JettraReactiveClient client = new JettraReactiveClient(pdAddress, authToken);
 ```
 
-### 2. Database Management
+### 2. Authentication Flow
+To obtain a token programmatically, you can use the Auth API:
 
 ```java
-// Create a new database
-client.createDatabase("analytics_db").await().indefinitely();
+// Example: Obtaining token via curl or dedicated AuthClient (if available)
+// Use this token for all JettraReactiveClient operations.
+```
+
+### 3. Database Management
+Create and manage databases, specifying the **Engine** (model) and the **Storage** style.
+
+```java
+// Create a new persistent Document database
+client.createDatabase("sales_db", "STORE", "Document").await().indefinitely();
+
+// Create a new in-memory Graph database
+client.createDatabase("social_net", "MEMORY", "Graph").await().indefinitely();
+
+// Supported Engines: "Document", "Column", "Key-Value", "Graph", "Vector", "Object", "File"
+// Supported Storage: "STORE", "MEMORY"
 
 // List databases
-Set<String> dbs = client.listDatabases().await().indefinitely();
+List<String> dbs = client.listDatabases().await().indefinitely();
 System.out.println("Databases: " + dbs);
 
 // Delete a database
-client.deleteDatabase("analytics_db").await().indefinitely();
+client.deleteDatabase("sales_db").await().indefinitely();
 ```
 
-### 3. Data Operations
+### 4. Data Operations
 
 ```java
 // Save a document
