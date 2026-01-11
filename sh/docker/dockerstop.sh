@@ -1,3 +1,3 @@
 #!/bin/bash
 echo "Deteniendo los contenedores de docker..."
-docker stop $(docker ps -q)
+docker ps -q | xargs -r docker stop

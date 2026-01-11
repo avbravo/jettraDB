@@ -32,6 +32,10 @@ Gestión completa del ciclo de vida de las bases de datos:
     - **Navegación Visual**: Listado en tiempo real de todas las bases de datos.
     - **Creación Rápida**: Botón "+" directamente en el encabezado del árbol para abrir el formulario de creación.
     - **Estructura Multi-modelo**: Cada base de datos muestra sub-nodos para sus motores integrados (**Document, Column, Graph, Vector, Object, Files**).
+    - **Barras de Opciones Rápidas** ⭐: Al hacer clic en un tipo de motor (ej: Document), se despliega una barra con botones para:
+        - **Añadir**: Insertar nuevos documentos, registros, vértices, etc.
+        - **Índices**: Gestionar índices específicos para ese modelo de datos.
+        - **Reglas**: Configurar reglas de validación y seguridad.
 - **Crear**: Provisiona nuevas bases de datos lógicas instantáneamente. Se debe seleccionar:
     - **Nombre**: Identificador único de la base de datos.
     - **Multi-modelo**: Permite crear dentro de ellas tipos Document, Column, Graph, Vector, Object y File de manera integrada.

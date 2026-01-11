@@ -1,5 +1,6 @@
 package io.jettra.shell;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -48,8 +49,9 @@ class CreateDatabaseCommand implements Runnable {
                 System.out.println("Successfully created Multi-Model database '" + name + "' [Storage: " + storage.toUpperCase() + "]");
             else
                 System.out.println("Error creating database: " + response.statusCode() + " " + response.body());
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             System.err.println("Execution failed: " + e.getMessage());
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
         }
     }
 }
@@ -77,8 +79,9 @@ class DeleteDatabaseCommand implements Runnable {
                 System.out.println("Database '" + name + "' deleted.");
             else
                 System.out.println("Error: " + response.statusCode());
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             System.err.println("Execution failed: " + e.getMessage());
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
         }
     }
 }
@@ -104,8 +107,9 @@ class ListDatabasesCommand implements Runnable {
                 System.out.println(response.body());
             } else
                 System.out.println("Error retrieving databases: " + response.statusCode());
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             System.err.println("Execution failed: " + e.getMessage());
+            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
         }
     }
 }

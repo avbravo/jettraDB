@@ -3,11 +3,9 @@ Base de datos realizar operaciones creacion, actualizar nombre o tipo o engine-s
 eliminar base de datos.
 
 
-[77](https://github.com/avbravo/jettraDB/issues/77)
-[78](https://github.com/avbravo/jettraDB/issues/78)
 
 
 
 
-[61](https://github.com/avbravo/jettraDB/issues/61)
-[76](https://github.com/avbravo/jettraDB/issues/76)
+[80](https://github.com/avbravo/jettraDB/issues/80)
+[81](https://github.com/avbravo/jettraDB/issues/81)
