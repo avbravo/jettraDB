@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
@@ -23,7 +24,7 @@ class CreateDatabaseCommand implements Runnable {
     @picocli.CommandLine.Option(names = { "-s", "--storage" }, description = "Storage style: STORE (persistent) or MEMORY (in-memory)", defaultValue = "STORE")
     String storage;
 
-    @picocli.CommandLine.Option(names = { "-e", "--engine" }, description = "Engine type: Document, Column, Key-Value, Graph, Vector, Object, File", defaultValue = "Document")
+    @picocli.CommandLine.Option(names = { "-e", "--engine" }, description = "Engine type: Document, Column, Key-Value, Graph, Vector, Object, File", defaultValue = "Multi-Model")
     String engine;
 
     @Override
@@ -44,7 +45,7 @@ class CreateDatabaseCommand implements Runnable {
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200)
-                System.out.println("Successfully created database '" + name + "' [Engine: " + engine + ", Storage: " + storage.toUpperCase() + "]");
+                System.out.println("Successfully created Multi-Model database '" + name + "' [Storage: " + storage.toUpperCase() + "]");
             else
                 System.out.println("Error creating database: " + response.statusCode() + " " + response.body());
         } catch (Exception e) {

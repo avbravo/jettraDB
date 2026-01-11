@@ -172,6 +172,112 @@
         select:focus {
             border-color: var(--primary);
         }
+
+        /* Tree Styles */
+        .tree-container {
+            margin-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1.5rem;
+        }
+
+        .tree-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #94a3b8;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.75rem;
+            padding: 0 0.5rem;
+        }
+
+        .tree-root {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .tree-db-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tree-db-name {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .tree-db-name:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--primary);
+        }
+
+        .tree-db-name svg {
+            transition: transform 0.2s;
+            color: #64748b;
+        }
+
+        .tree-db-name.expanded svg {
+            transform: rotate(90deg);
+        }
+
+        .tree-children {
+            margin-left: 1.25rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            padding-left: 0.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 1px;
+            margin-top: 2px;
+            margin-bottom: 4px;
+        }
+
+        .tree-children.show {
+            display: flex;
+        }
+
+        .tree-type-item {
+            padding: 0.4rem 0.5rem;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tree-type-item:hover {
+            color: white;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-plus {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-plus:hover {
+            background: var(--primary);
+            color: white;
+        }
     </style>
 </head>
 
@@ -180,10 +286,28 @@
         <h1>JettraDB</h1>
         <div class="nav-item active" onclick="showView('cluster')" id="nav-cluster">Cluster</div>
         <div class="nav-item" onclick="showView('databases')" id="nav-databases">Databases</div>
-        <div class="nav-item">Consensus</div>
-        <div class="nav-item">Storage</div>
-        <div class="nav-item">Users</div>
-        <div class="nav-item">Rule Engine</div>
+
+        <div class="tree-container">
+            <div class="tree-header">
+                <span>Explorador de Datos</span>
+                <div class="btn-plus" title="Nueva Base de Datos" onclick="showView('databases'); resetDbForm();">
+                    <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                </div>
+            </div>
+            <div id="db-tree-root" class="tree-root">
+                <!-- Tree nodes will be injected here -->
+                <div style="color: #475569; font-size: 0.75rem; padding: 0.5rem;">Cargando bases...</div>
+            </div>
+        </div>
+
+        <div style="margin-top: auto; padding-top: 2rem;">
+            <div class="nav-item">Consensus</div>
+            <div class="nav-item">Storage</div>
+            <div class="nav-item">Users</div>
+            <div class="nav-item">Rule Engine</div>
+        </div>
     </div>
     <div class="main-content">
         <!-- Cluster View -->
@@ -210,29 +334,19 @@
             </header>
 
             <div class="card mb-6" style="border-left: 4px solid var(--primary);">
-                <h3 class="mb-2">Nueva Base de Datos</h3>
-                <p class="text-sm text-gray-400 mb-6">Provisionar una nueva base de datos multi-modelo con motor y
-                    almacenamiento específicos.</p>
+                <h3 class="mb-2" id="dbFormTitle">Nueva Base de Datos</h3>
+                <p class="text-sm text-gray-400 mb-6" id="dbFormDescription">Provisionar una nueva base de datos
+                    multi-modelo que soporta tipos Document, Column, Graph, Vector, Object y File.</p>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+                    <input type="hidden" id="dbOldName">
                     <div style="flex: 2; min-width: 200px; display: flex; flex-direction: column; gap: 0.5rem;">
                         <label class="text-xs text-gray-400">Nombre de la Base de Datos</label>
                         <input type="text" id="dbNameInput" placeholder="Ej: ventas_db">
                     </div>
 
-                    <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 0.5rem;">
-                        <label class="text-xs text-gray-400">Tipo de Base de Datos</label>
-                        <select id="dbEngineSelect">
-                            <option value="Document">Documento (Document)</option>
-                            <option value="Column">Columna (Column)</option>
-                            <option value="Key-Value">Llave-Valor (Key-Value)</option>
-                            <option value="Graph">Grafos (Graph)</option>
-                            <option value="Vector">Vectorial (Vector)</option>
-                            <option value="Object">Objetos (Object)</option>
-                            <option value="Time-Series">Series de Tiempo</option>
-                            <option value="Geographics">Geográfica (Spatial)</option>
-                            <option value="File">Archivos (File)</option>
-                        </select>
-                    </div>
+                    <!-- Hidden engine selection, defaulting to Multi-Model -->
+                    <input type="hidden" id="dbEngineSelect" value="Multi-Model">
+
 
                     <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 0.5rem;">
                         <label class="text-xs text-gray-400">Almacenamiento</label>
@@ -242,7 +356,14 @@
                         </select>
                     </div>
 
-                    <button class="btn" onclick="handleCreateDb()" style="height: 44px;">Crear Base de Datos</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn" id="dbFormSubmitBtn" onclick="handleSubmitDb()" style="height: 44px;">Crear
+                            Base de Datos</button>
+                        <button class="btn hidden" id="dbFormCancelBtn" onclick="resetDbForm()"
+                            style="height: 44px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -291,13 +412,95 @@
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="card"
+            style="width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3);">
+            <div
+                style="background: rgba(239, 68, 68, 0.1); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg style="width: 30px; height: 30px; color: #ef4444;" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+            <h2 class="mb-2">¿Eliminar Base de Datos?</h2>
+            <p class="text-sm text-gray-400 mb-6">Esta acción eliminará permanentemente la base de datos <span
+                    id="delete-db-name-label" style="color: white; font-weight: 600;"></span> y todos sus datos
+                asociados.</p>
+
+            <input type="hidden" id="delete-db-name-hidden">
+
+            <div class="mb-6" style="text-align: left;">
+                <label class="text-xs text-gray-400 block mb-2">Para confirmar, escriba el nombre de la base de
+                    datos:</label>
+                <input type="text" id="delete-confirm-input" placeholder="Nombre de la BD"
+                    style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1px solid rgba(239, 68, 68, 0.3);">
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="closeDeleteModal()"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                    Cancelar
+                </button>
+                <button class="btn" onclick="confirmDeleteDb()" style="background: #ef4444; border: 1px solid #ef4444;">
+                    Sí, Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Alert Modal -->
+    <div id="alert-modal" class="modal-overlay hidden">
+        <div class="card"
+            style="width: 100%; max-width: 400px; text-align: center; border-top: 4px solid var(--primary);">
+            <div id="alert-icon-container"
+                style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                <!-- Icon will be injected -->
+            </div>
+            <h3 id="alert-title" class="mb-2">Aviso</h3>
+            <p id="alert-message" class="text-sm text-gray-400 mb-6"></p>
+            <button class="btn" onclick="closeAlertModal()" style="width: 100%;">Entendido</button>
+        </div>
+    </div>
+
     <script>
         const token = localStorage.getItem('jettra_token');
         if (!token) window.location.href = '/login.html';
 
         let currentView = 'cluster';
         let allNodes = [];
+        let allDatabases = [];
         let selectedNodeId = null;
+        let dbToDelete = null;
+
+        function showAlert(title, message, type = 'error') {
+            const modal = document.getElementById('alert-modal');
+            const titleEl = document.getElementById('alert-title');
+            const msgEl = document.getElementById('alert-message');
+            const iconContainer = document.getElementById('alert-icon-container');
+            const card = modal.querySelector('.card');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+
+            if (type === 'error') {
+                card.style.borderTopColor = '#ef4444';
+                iconContainer.style.background = 'rgba(239, 68, 68, 0.1)';
+                iconContainer.innerHTML = '<svg style="width: 24px; height: 24px; color: #ef4444;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            } else {
+                card.style.borderTopColor = '#10b981';
+                iconContainer.style.background = 'rgba(16, 185, 129, 0.1)';
+                iconContainer.innerHTML = '<svg style="width: 24px; height: 24px; color: #10b981;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-modal').classList.add('hidden');
+        }
 
         const nodeGrid = document.getElementById('node-grid');
         const groupGrid = document.getElementById('group-grid');
@@ -363,11 +566,64 @@
                 });
                 if (response.status === 401) return logout();
                 if (!response.ok) throw new Error('HTTP ' + response.status);
-                renderDatabases(await response.json());
+                allDatabases = await response.json();
+                renderDatabases(allDatabases);
+                renderDbTree(allDatabases);
             } catch (error) {
                 console.error('Error fetching databases:', error);
                 dbGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
             }
+        }
+
+        function renderDbTree(dbs) {
+            const treeRoot = document.getElementById('db-tree-root');
+            if (!treeRoot) return;
+
+            if (!dbs || dbs.length === 0) {
+                treeRoot.innerHTML = '<div style="color: #475569; font-size: 0.75rem; padding: 0.5rem;">No hay bases de datos</div>';
+                return;
+            }
+
+            treeRoot.innerHTML = dbs.map(db => `
+                <div class="tree-db-item">
+                    <div class="tree-db-name" onclick="toggleTreeChildren(this)">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
+                        <span>${db.name}</span>
+                    </div>
+                    <div class="tree-children">
+                        <div class="tree-type-item" onclick="showView('databases')">
+                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Document
+                        </div>
+                        <div class="tree-type-item" onclick="showView('databases')">
+                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            Column
+                        </div>
+                        <div class="tree-type-item" onclick="showView('databases')">
+                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
+                            Graph
+                        </div>
+                        <div class="tree-type-item" onclick="showView('databases')">
+                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Vector
+                        </div>
+                        <div class="tree-type-item" onclick="showView('databases')">
+                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                            Object
+                        </div>
+                        <div class="tree-type-item" onclick="showView('databases')">
+                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                            Files
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleTreeChildren(el) {
+            el.classList.toggle('expanded');
+            const children = el.nextElementSibling;
+            children.classList.toggle('show');
         }
 
         function renderNodes(nodes) {
@@ -417,14 +673,85 @@
                     <div>
                         <h3 style="margin: 0;">${db.name}</h3>
                         <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.2rem;">
-                             Motor: <span style="color: white; font-weight: 600;">${db.engine}</span> |
+                             Motor: <span style="color: white; font-weight: 600;">Multi-modelo (Col, Doc, Gra, Vec, Obj, Fil)</span> |
                              Almacenamiento: <span style="color: white;">${db.storage === 'MEMORY' ? 'En Memoria (RAM)' : 'Persistente (Disco)'}</span>
                         </div>
                     </div>
-                    <button class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);" 
-                            onclick="handleDeleteDb('${db.name}')">Eliminar</button>
+                    <div style="display: flex; gap: 0.5rem;">
+                         <button class="btn" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.3);" 
+                                onclick="handleEditDb('${db.name}')">Editar</button>
+                         <button class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);" 
+                                onclick="handleDeleteDb('${db.name}')">Eliminar</button>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        function handleEditDb(name) {
+            const db = allDatabases.find(d => d.name === name);
+            if (!db) return;
+
+            // Populate Form
+            document.getElementById('dbOldName').value = name;
+            document.getElementById('dbNameInput').value = db.name;
+            document.getElementById('dbEngineSelect').value = 'Multi-Model';
+            document.getElementById('dbStorageSelect').value = db.storage;
+
+            // UI Changes
+            document.getElementById('dbFormTitle').textContent = 'Editar Base de Datos';
+            document.getElementById('dbFormDescription').textContent = 'Modifique los parámetros de la base de datos seleccionada.';
+            document.getElementById('dbFormSubmitBtn').textContent = 'Guardar Cambios';
+            document.getElementById('dbFormCancelBtn').classList.remove('hidden');
+
+            // Scroll to form
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetDbForm() {
+            document.getElementById('dbOldName').value = '';
+            document.getElementById('dbNameInput').value = '';
+            document.getElementById('dbEngineSelect').value = 'Multi-Model';
+            document.getElementById('dbStorageSelect').selectedIndex = 0;
+
+            document.getElementById('dbFormTitle').textContent = 'Nueva Base de Datos';
+            document.getElementById('dbFormDescription').textContent = 'Provisionar una nueva base de datos multi-modelo que soporta tipos Document, Column, Graph, Vector, Object y File.';
+            document.getElementById('dbFormSubmitBtn').textContent = 'Crear Base de Datos';
+            document.getElementById('dbFormCancelBtn').classList.add('hidden');
+        }
+
+        async function handleSubmitDb() {
+            const oldName = document.getElementById('dbOldName').value;
+            const name = document.getElementById('dbNameInput').value.trim();
+            const engine = document.getElementById('dbEngineSelect').value;
+            const storage = document.getElementById('dbStorageSelect').value;
+
+            if (!name) return showAlert('Error', 'El nombre de la base de datos es obligatorio');
+
+            const isEdit = !!oldName;
+            const url = isEdit ? '/api/db/' + oldName : '/api/db';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, engine, storage })
+                });
+
+                if (response.ok) {
+                    resetDbForm();
+                    fetchDatabases();
+                    showAlert('Éxito', `Base de datos ${isEdit ? 'actualizada' : 'creada'} correctamente`, 'success');
+                } else {
+                    showAlert('Error', 'No se pudo procesar la solicitud: ' + await response.text());
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Error', 'Error de conexión con el servidor');
+            }
         }
 
         function showNodeResources(nodeId) {
@@ -459,49 +786,45 @@
             document.getElementById('modal-status').style.color = node.status === 'ONLINE' ? '#10b981' : '#ef4444';
         }
 
-        async function handleCreateDb() {
-            const nameInput = document.getElementById('dbNameInput');
-            const engineSelect = document.getElementById('dbEngineSelect');
-            const storageSelect = document.getElementById('dbStorageSelect');
-
-            const name = nameInput.value.trim();
-            const engine = engineSelect.value;
-            const storage = storageSelect.value;
-
-            if (!name) return alert('El nombre de la base de datos es obligatorio');
-
-            try {
-                const response = await fetch('/api/db', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name, engine, storage })
-                });
-                if (response.ok) {
-                    nameInput.value = '';
-                    fetchDatabases();
-                } else {
-                    alert('Error al crear la base de datos: ' + await response.text());
-                }
-            } catch (e) {
-                console.error(e);
-                alert('Error al crear la base de datos');
-            }
+        async function handleDeleteDb(name) {
+            dbToDelete = name;
+            document.getElementById('delete-db-name-label').textContent = name;
+            document.getElementById('delete-db-name-hidden').value = name;
+            document.getElementById('delete-confirm-input').value = '';
+            document.getElementById('delete-modal').classList.remove('hidden');
         }
 
-        async function handleDeleteDb(name) {
-            if (!confirm(`¿Está seguro de que desea eliminar la base de datos "${name}"?\nEsta acción no se puede deshacer.`)) return;
+        function closeDeleteModal() {
+            dbToDelete = null;
+            document.getElementById('delete-modal').classList.add('hidden');
+        }
+
+        async function confirmDeleteDb() {
+            const name = document.getElementById('delete-db-name-hidden').value;
+            const confirmInput = document.getElementById('delete-confirm-input').value.trim();
+
+            if (confirmInput !== name) {
+                showAlert('Error de Validación', 'El nombre ingresado no es correcto. Por favor verifíquelo antes de eliminar.', 'error');
+                return;
+            }
+
+            if (!name) return;
+
             try {
                 const response = await fetch('/api/db/' + name, {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                if (response.ok) fetchDatabases();
-                else alert('Error al eliminar la base de datos');
+                if (response.ok) {
+                    closeDeleteModal();
+                    fetchDatabases();
+                    showAlert('Eliminado', 'La base de datos ha sido eliminada permanentemente', 'success');
+                } else {
+                    showAlert('Error', 'Error al eliminar la base de datos');
+                }
             } catch (e) {
                 console.error(e);
+                showAlert('Error', 'Error de red al intentar eliminar');
             }
         }
 

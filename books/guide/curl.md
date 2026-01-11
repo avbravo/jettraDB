@@ -53,7 +53,7 @@ curl -s http://localhost:8081/api/monitor/nodes \
 
 ## Administración de Bases de Datos
 
-Gestión de bases de datos indicando el nombre, el motor (`engine`) y el tipo de almacenamiento (`storage`).
+Gestión de bases de datos indicando el nombre y el tipo de almacenamiento (`storage`). Por defecto, todas las bases de datos son **Multi-modelo**.
 
 ### Listar Bases de Datos
 ```bash
@@ -61,20 +61,20 @@ curl -s http://localhost:8081/api/db \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-### Crear Base de Datos (Persistent Document)
+### Crear Base de Datos (Persistent Multi-Model)
 ```bash
 curl -X POST http://localhost:8081/api/db \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "sales_db", "storage": "STORE", "engine": "Document"}'
+  -d '{"name": "sales_db", "storage": "STORE", "engine": "Multi-Model"}'
 ```
 
-### Crear Base de Datos (In-Memory Graph)
+### Crear Base de Datos (In-Memory Multi-Model)
 ```bash
 curl -X POST http://localhost:8081/api/db \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "user_graph", "storage": "MEMORY", "engine": "Graph"}'
+  -d '{"name": "user_graph", "storage": "MEMORY", "engine": "Multi-Model"}'
 ```
 
 ### Eliminar Base de Datos

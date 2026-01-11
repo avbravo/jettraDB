@@ -38,16 +38,15 @@ To obtain a token programmatically, you can use the Auth API:
 ```
 
 ### 3. Database Management
-Create and manage databases, specifying the **Engine** (model) and the **Storage** style.
+Create and manage multi-model databases, specifying the **Storage** style.
 
 ```java
-// Create a new persistent Document database
-client.createDatabase("sales_db", "STORE", "Document").await().indefinitely();
+// Create a new persistent Multi-Model database
+client.createDatabase("sales_db", "STORE").await().indefinitely();
 
-// Create a new in-memory Graph database
-client.createDatabase("social_net", "MEMORY", "Graph").await().indefinitely();
+// Create a new in-memory Multi-Model database
+client.createDatabase("social_net", "MEMORY").await().indefinitely();
 
-// Supported Engines: "Document", "Column", "Key-Value", "Graph", "Vector", "Object", "File"
 // Supported Storage: "STORE", "MEMORY"
 
 // List databases

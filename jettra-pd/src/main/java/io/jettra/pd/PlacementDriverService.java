@@ -13,8 +13,60 @@ public class PlacementDriverService {
     private final Map<Long, RaftGroupMetadata> groups = new ConcurrentHashMap<>();
     private final Map<String, DatabaseMetadata> databases = new ConcurrentHashMap<>();
 
+    @io.quarkus.scheduler.Scheduled(every = "2s")
+    void checkNodeHealth() {
+        long now = System.currentTimeMillis();
+        nodes.forEach((id, node) -> {
+            if (now - node.lastSeen() > 10000 && "ONLINE".equals(node.status())) { // 10 seconds threshold
+                LOG.warnf("Node %s is unresponsive. Marking as OFFLINE.", id);
+                NodeMetadata offlineNode = new NodeMetadata(
+                        node.id(), node.address(), node.role(), "OFFLINE",
+                        node.lastSeen(), node.cpuUsage(), node.memoryUsage(), node.memoryMax()
+                );
+                nodes.put(id, offlineNode);
+
+                // If this node was a leader of any group, trigger election
+                reassignLeadersFromOfflineNode(id);
+            }
+        });
+    }
+
+    private void reassignLeadersFromOfflineNode(String nodeId) {
+        groups.forEach((groupId, group) -> {
+            if (nodeId.equals(group.leaderId())) {
+                LOG.infof("Leader %s for group %d is offline. Reassigning leader...", nodeId, groupId);
+                // Find another online peer
+                java.util.Optional<String> newLeader = group.peers().stream()
+                        .filter(peerId -> !peerId.equals(nodeId))
+                        .filter(peerId -> {
+                            NodeMetadata peer = nodes.get(peerId);
+                            return peer != null && "ONLINE".equals(peer.status());
+                        })
+                        .findFirst();
+
+                if (newLeader.isPresent()) {
+                    LOG.infof("New leader for group %d: %s", groupId, newLeader.get());
+                    RaftGroupMetadata updatedGroup = new RaftGroupMetadata(
+                            group.groupId(), newLeader.get(), group.peers()
+                    );
+                    groups.put(groupId, updatedGroup);
+                } else {
+                    LOG.warnf("No online peers available for group %d to take over!", groupId);
+                }
+            }
+        });
+    }
+
     public void createDatabase(DatabaseMetadata db) {
         LOG.infof("Creating database: %s (Storage: %s, Engine: %s)", db.name(), db.storage(), db.engine());
+        databases.put(db.name(), db);
+    }
+
+    public void updateDatabase(String oldName, DatabaseMetadata db) {
+        LOG.infof("Updating database: %s -> %s", oldName, db.name());
+        if (!oldName.equals(db.name())) {
+            databases.remove(oldName);
+        }
         databases.put(db.name(), db);
     }
 
@@ -28,8 +80,13 @@ public class PlacementDriverService {
     }
 
     public void registerNode(NodeMetadata node) {
-        LOG.infof("Registering node: %s at %s", node.id(), node.address());
-        nodes.put(node.id(), node);
+        LOG.debugf("Registering node: %s at %s", node.id(), node.address());
+        NodeMetadata updatedNode = new NodeMetadata(
+                node.id(), node.address(), node.role(), node.status(),
+                System.currentTimeMillis(), // Use local PD time for lastSeen
+                node.cpuUsage(), node.memoryUsage(), node.memoryMax()
+        );
+        nodes.put(node.id(), updatedNode);
     }
 
     public RaftGroupMetadata getGroup(long groupId) {

@@ -27,11 +27,14 @@ Muestra una topología detallada de la red JettraDB en tiempo real:
     - **Latencia de Señal**: Tiempo transcurrido desde el último latido (heartbeat).
 
 ### 3. Administración de Bases de Datos (Database Management)
-Gestión completa del ciclo de vida de las bases de datos desde el formulario web:
+Gestión completa del ciclo de vida de las bases de datos:
+- **Explorador de Datos (Sidebar Tree)** ⭐: Un nuevo árbol interactivo en el menú izquierdo que permite:
+    - **Navegación Visual**: Listado en tiempo real de todas las bases de datos.
+    - **Creación Rápida**: Botón "+" directamente en el encabezado del árbol para abrir el formulario de creación.
+    - **Estructura Multi-modelo**: Cada base de datos muestra sub-nodos para sus motores integrados (**Document, Column, Graph, Vector, Object, Files**).
 - **Crear**: Provisiona nuevas bases de datos lógicas instantáneamente. Se debe seleccionar:
     - **Nombre**: Identificador único de la base de datos.
-    - **Motor de Base de Datos (Engine)** ⭐: Selecciona el modelo de datos optimizado para tu caso de uso:
-        - `Document`, `Column`, `Key-Value`, `Graph`, `Vector`, `Object`, o `File`.
+    - **Multi-modelo**: Permite crear dentro de ellas tipos Document, Column, Graph, Vector, Object y File de manera integrada.
     - **Tipo de Almacenamiento (Storage)**:
         - **Persistent (Store)**: Los datos se guardan en disco (jettra-store).
         - **In-Memory**: Los datos residen exclusivamente en RAM para baja latencia.

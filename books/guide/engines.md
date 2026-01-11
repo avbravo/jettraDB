@@ -1,6 +1,8 @@
 # Multi-Model Engine
 
-JettraDB is a truly multi-model database engine. Unlike other databases that add "wrappers", JettraDB's engines are optimized for each data model while sharing the same underlying Multi-Raft and LSM-Store layers.
+JettraDB is a truly multi-model database engine. Unlike other databases that add "wrappers", JettraDB's engines are optimized for each data model while sharing the same underlying Multi-Raft and LSM-Store layers. 
+
+**Note:** Starting from version 1.0, JettraDB databases are **Multi-Model by default**. You don't need to specify an engine during database creation; the database will automatically support all the models listed below integrated into a single instance.
 
 ## Supported Engines
 

@@ -126,27 +126,14 @@
             const password = form.password.value;
 
             try {
-                // We access PD auth via web proxy or direct? 
-                // Web proxy is safer for CORs if using relative path, BUT we haven't implemented proxy in web backend for auth.
-                // Assuming web backend will proxy /api/auth/* to PD, OR we call PD direct.
-                // PD is on port 8080 (localhost), Web is 8081. This is cross-origin.
-                // Let's rely on Jettra Web Backend to proxy it.
-                // Wait, I need to implement the proxy in MonitoringResource or similar.
-
-                // Temporary: Directly Call web backend which I will setup to forward, 
-                // OR call absolute URL if user browser can reach PD (localhost:8080).
-                // Let's assume browser can reach localhost:8080 for Auth for now, BUT CORS might block.
-                // Better: Add AuthResource to jettra-web that proxies.
-
-                // Let's try direct to 8080 first (User said endpoint is on 8080 usually).
-                // Actually user said "Para conectarse desde ... curl (endpoint) debe autentificarse".
-                // I will update MonitoringResource to proxy auth requests shortly.
-
+                console.log('Attempting login to /api/web-auth/login...');
                 const response = await fetch('/api/web-auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
+
+                console.log('Response status:', response.status);
 
                 if (response.ok) {
                     const data = await response.json();
@@ -159,12 +146,14 @@
                         window.location.href = '/index.html';
                     }
                 } else {
-                    errorMsg.textContent = 'Invalid credentials';
+                    const errorText = await response.text();
+                    console.error('Login failed with status:', response.status, errorText);
+                    errorMsg.textContent = 'Invalid credentials or server error';
                     errorMsg.style.display = 'block';
                 }
             } catch (err) {
-                console.error(err);
-                errorMsg.textContent = 'Login failed: ' + err.message;
+                console.error('Fetch error:', err);
+                errorMsg.textContent = 'Login failed (Network Error): ' + err.message + '. Check if the server is running and accessible.';
                 errorMsg.style.display = 'block';
             }
         });

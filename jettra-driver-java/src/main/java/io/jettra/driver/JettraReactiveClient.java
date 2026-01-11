@@ -1,8 +1,9 @@
 package io.jettra.driver;
 
-import io.smallrye.mutiny.Uni;
 import java.util.List;
 import java.util.logging.Logger;
+
+import io.smallrye.mutiny.Uni;
 
 public class JettraReactiveClient implements JettraClient {
     private static final Logger LOG = Logger.getLogger(JettraReactiveClient.class.getName());
@@ -36,6 +37,11 @@ public class JettraReactiveClient implements JettraClient {
     public Uni<Long> count(String collection) {
         LOG.info("Counting documents in " + collection);
         return Uni.createFrom().item(0L);
+    }
+
+    @Override
+    public Uni<Void> createDatabase(String name, String storage) {
+        return createDatabase(name, storage, "Multi-Model");
     }
 
     @Override

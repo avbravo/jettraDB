@@ -56,6 +56,13 @@ public class PlacementDriverResource {
         return Response.ok().build();
     }
 
+    @jakarta.ws.rs.PUT
+    @Path("/databases/{oldName}")
+    public Response updateDatabase(@jakarta.ws.rs.PathParam("oldName") String oldName, DatabaseMetadata db) {
+        pdService.updateDatabase(oldName, db);
+        return Response.ok().build();
+    }
+
     @jakarta.ws.rs.DELETE
     @Path("/databases/{name}")
     public Response deleteDatabase(@jakarta.ws.rs.PathParam("name") String name) {

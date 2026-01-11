@@ -11,6 +11,8 @@ public interface JettraClient {
 
     Uni<Long> count(String collection);
 
+    Uni<Void> createDatabase(String name, String storage);
+
     Uni<Void> createDatabase(String name, String storage, String engine);
 
     Uni<Void> deleteDatabase(String name);
