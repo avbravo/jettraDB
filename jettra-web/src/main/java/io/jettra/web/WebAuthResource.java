@@ -1,5 +1,7 @@
 package io.jettra.web;
 
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -9,7 +11,6 @@ import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Path("/api/web-auth")
 @Produces(MediaType.APPLICATION_JSON)
@@ -19,11 +20,6 @@ public class WebAuthResource {
     @ConfigProperty(name = "jettra.pd.url")
     String pdUrl;
 
-    public record LoginRequest(String username, String password) {
-    }
-
-    public record ChangePasswordRequest(String username, String oldPassword, String newPassword) {
-    }
 
     @POST
     @Path("/login")

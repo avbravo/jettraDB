@@ -39,7 +39,7 @@ class CreateDatabaseCommand implements Runnable {
             String json = String.format("{\"name\": \"%s\", \"storage\": \"%s\", \"engine\": \"%s\"}", 
                 name, storage.toUpperCase(), engine);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/internal/pd/databases"))
+                    .uri(URI.create("http://localhost:8081/api/db"))
                     .header("Authorization", "Bearer " + JettraShell.authToken)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json))
@@ -70,7 +70,7 @@ class DeleteDatabaseCommand implements Runnable {
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/internal/pd/databases/" + name))
+                    .uri(URI.create("http://localhost:8081/api/db/" + name))
                     .header("Authorization", "Bearer " + JettraShell.authToken)
                     .DELETE()
                     .build();
@@ -97,7 +97,7 @@ class ListDatabasesCommand implements Runnable {
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/api/internal/pd/databases"))
+                    .uri(URI.create("http://localhost:8081/api/db"))
                     .header("Authorization", "Bearer " + JettraShell.authToken)
                     .GET()
                     .build();

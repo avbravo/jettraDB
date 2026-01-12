@@ -30,8 +30,27 @@ El dashboard visualiza tendencias de salud del cluster:
 - **Alerta de Latencia**: Revisa la conectividad de red entre los nodos del grupo Raft afectado.
 - **Alerta Predictiva de CPU**: Es el momento ideal para escalar horizontalmente la capa de motores (Engines).
 
+## Métodos Alternativos de Monitoreo
+
+### 🐚 Vía Shell
+Ejecuta el comando `node list` para ver una tabla comparativa de recursos.
 ```bash
-# Ejemplo: Escalar nodos de almacenamiento si recibes una alerta crítica de disco
+node list
+```
+
+### 🌐 Vía cURL (API REST)
+Consulta el endpoint de monitorización (requiere token JWT).
+```bash
+curl -s http://localhost:8081/api/monitor/nodes -H "Authorization: Bearer $TOKEN"
+```
+
+### ☕ Vía Java Driver
+Utiliza el método `listNodes()` de `JettraClient`.
+```java
+List<NodeInfo> nodes = client.listNodes().await().indefinitely();
+```
+
+## Ejemplo: Escalamiento Dinámico
 docker-compose up -d --scale jettra-store=5
 ```
 

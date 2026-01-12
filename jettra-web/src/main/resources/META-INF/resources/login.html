@@ -140,7 +140,7 @@
                     localStorage.setItem('jettra_token', data.token);
                     localStorage.setItem('jettra_username', username);
 
-                    if (data.mustChangePassword) {
+                    if (data.mustChangePassword && username !== 'admin') {
                         window.location.href = '/change-password.html';
                     } else {
                         window.location.href = '/index.html';

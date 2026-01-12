@@ -69,4 +69,10 @@ public class PlacementDriverResource {
         pdService.deleteDatabase(name);
         return Response.ok().build();
     }
+
+    @GET
+    @Path("/health")
+    public Response health() {
+        return Response.ok("{\"status\":\"UP\"}").build();
+    }
 }

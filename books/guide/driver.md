@@ -57,7 +57,27 @@ System.out.println("Databases: " + dbs);
 client.deleteDatabase("sales_db").await().indefinitely();
 ```
 
-### 4. Data Operations
+### 4. Cluster Monitoring ⭐
+Monitor node resource consumption (CPU, Memory) directly via the driver.
+
+```java
+import io.jettra.driver.NodeInfo;
+
+// List all registered nodes and their resources
+List<NodeInfo> nodes = client.listNodes().await().indefinitely();
+
+for (NodeInfo node : nodes) {
+    System.out.println("Node: " + node.id());
+    System.out.println(" - Status: " + node.status());
+    System.out.println(" - CPU Use: " + node.cpuUsage() + "%");
+    System.out.println(" - Memory: " + (node.memoryUsage() / 1024 / 1024) + " MB");
+}
+
+// Check Connection Info
+System.out.println(client.connectionInfo());
+```
+
+### 5. Data Operations
 
 ```java
 // Save a document

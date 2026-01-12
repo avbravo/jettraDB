@@ -1,7 +1,8 @@
-package io.jettra.store;
+package io.jettra.engine.core;
+
+import java.util.Optional;
 
 import io.smallrye.mutiny.Uni;
-import java.util.Optional;
 
 public interface ObjectStorage {
     Uni<Void> put(String key, byte[] data);

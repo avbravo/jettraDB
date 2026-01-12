@@ -13,6 +13,12 @@ services:
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=0.0.0.0:9000
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/internal/pd/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     networks:
       - jettra-net
 
@@ -25,7 +31,8 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      - jettra-pd
+      jettra-pd:
+        condition: service_healthy
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_URL=http://jettra-pd:8080
@@ -39,7 +46,8 @@ services:
       dockerfile: src/main/docker/Dockerfile.jvm
     container_name: jettra-store-1
     depends_on:
-      - jettra-pd
+      jettra-pd:
+        condition: service_healthy
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
@@ -54,7 +62,8 @@ services:
       dockerfile: src/main/docker/Dockerfile.jvm
     container_name: jettra-store-2
     depends_on:
-      - jettra-pd
+      jettra-pd:
+        condition: service_healthy
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
@@ -69,7 +78,8 @@ services:
       dockerfile: src/main/docker/Dockerfile.jvm
     container_name: jettra-store-3
     depends_on:
-      - jettra-pd
+      jettra-pd:
+        condition: service_healthy
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000

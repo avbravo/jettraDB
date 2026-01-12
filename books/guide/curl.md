@@ -103,3 +103,33 @@ curl -X POST http://localhost:8080/api/internal/pd/register \
     "memoryMax": 0
   }'
 ```
+
+## Monitoring Node Resources
+
+You can monitor the resource usage (CPU, Memory) of all registered nodes:
+
+```bash
+# 1. Login to get token
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin", "password":"adminadmin"}' | jq -r .token)
+
+# 2. Get Node Metrics (Request to Web Dashboard on port 8081)
+curl -s http://localhost:8081/api/monitor/nodes \
+  -H "Authorization: Bearer $TOKEN" | jq .
+```
+Response:
+```json
+[
+  {
+    "id": "jettra-store-1",
+    "address": "jettra-store-1:8080",
+    "role": "STORAGE",
+    "status": "ONLINE",
+    "lastSeen": 1704321000,
+    "cpuUsage": 12.5,
+    "memoryUsage": 104857600,
+    "memoryMax": 4294967296
+  }
+]
+```

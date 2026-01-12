@@ -22,6 +22,20 @@ JettraDB follows a distributed architecture with specialized nodes:
 *   `jettra-consensus`: Raft-based consensus implementation.
 *   `jettra-tx`: Distributed transaction manager.
 
+## Quick Start
+To build and run the entire JettraDB cluster using Docker:
+
+```bash
+# Recommendation: Use the provided automated script
+bash buildandrundockercompose.sh
+
+# Or manually:
+mvn clean package -DskipTests
+docker-compose up -d --build
+```
+
+Access the dashboard at: `http://localhost:8081`
+
 ## Documentation
 
 Comprehensive documentation can be found in the `books/guide` directory:

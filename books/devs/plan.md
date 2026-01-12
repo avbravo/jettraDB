@@ -9,3 +9,14 @@ base de datos con las opciones Document, Column, Graph, Vector, Object, Files (c
 
 En cada subtree, debe contener una barra de opciones con los botones para (añadir (dependiendo de cada tipo de engine
 , indices, rules)
+
+
+
+
+Monitorear el consumo de recursos de cada nodo y mostrarlos en el shell
+
+Monitorear el consumo de recursos de cada nodo y mostrarlos en curl
+
+Monitorear el consumo de recursos de cada nodo y mostrarlos en el driver
+
+Actualizar la documentacion del shell, web, driver y curl indicando los procedimientos para monitorerar los recursos de los nodos

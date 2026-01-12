@@ -18,4 +18,8 @@ public interface JettraClient {
     Uni<Void> deleteDatabase(String name);
 
     Uni<java.util.List<String>> listDatabases();
+
+    Uni<java.util.List<NodeInfo>> listNodes();
+
+    String connectionInfo();
 }

@@ -36,17 +36,36 @@
     </dependencyManagement>
 
     <modules>
-        <module>jettra-store</module>
-        <module>jettra-shell</module>
-        <module>jettra-engine</module>
-        <module>jettra-driver-java</module>
         <module>jettra-consensus</module>
         <module>jettra-pd</module>
+        <module>jettra-engine</module>
+        <module>jettra-store</module>
+        <module>jettra-driver-java</module>
         <module>jettra-web</module>
+        <module>jettra-shell</module>
         <module>jettra-tx</module>
     </modules>
 
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>${quarkus.platform.group-id}</groupId>
+                    <artifactId>quarkus-maven-plugin</artifactId>
+                    <version>${quarkus.platform.version}</version>
+                    <extensions>true</extensions>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>build</goal>
+                                <goal>generate-code</goal>
+                                <goal>generate-code-tests</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -55,7 +74,6 @@
                 <configuration>
                     <source>${maven.compiler.source}</source>
                     <target>${maven.compiler.target}</target>
-
                 </configuration>
             </plugin>
         </plugins>

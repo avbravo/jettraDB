@@ -32,25 +32,34 @@ public class PDConnector {
     void onStart(@Observes StartupEvent ev) {
         LOG.infof("Registering node %s with PD at %s", nodeId, pdAddress);
 
-        String pdUrl = "http://" + pdAddress.split(":")[0] + ":8080/api/internal/pd/register";
+        String host = pdAddress.split(":")[0];
+        // PD REST API is always on 8080 in our current architecture
+        String pdUrl = String.format("http://%s:8080/api/internal/pd/register", host);
         String selfAddress = nodeId + ":" + port;
+
+        LOG.infof("Target PD Registration URL: %s", pdUrl);
 
         NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", System.currentTimeMillis(), 0.0, 0, 0);
 
-        try {
-            ClientBuilder.newClient()
-                    .target(pdUrl)
+        try (jakarta.ws.rs.client.Client client = ClientBuilder.newClient()) {
+            jakarta.ws.rs.core.Response response = client.target(pdUrl)
                     .request(MediaType.APPLICATION_JSON)
                     .post(Entity.entity(me, MediaType.APPLICATION_JSON));
-            LOG.info("Successfully registered with PD");
+            
+            if (response.getStatus() == 200) {
+                LOG.info("Successfully registered with PD");
+            } else {
+                LOG.warnf("Failed to register with PD. Status: %d", response.getStatus());
+            }
         } catch (Exception e) {
-            LOG.error("Failed to register with PD", e);
+            LOG.error("Initial registration attempt failed. Will retry in background: " + e.getMessage());
         }
     }
 
     @Scheduled(every = "5s")
     void reportStatus() {
-        String pdUrl = "http://" + pdAddress.split(":")[0] + ":8080/api/internal/pd/register";
+        String host = pdAddress.split(":")[0];
+        String pdUrl = String.format("http://%s:8080/api/internal/pd/register", host);
         String selfAddress = nodeId + ":" + port;
 
         Runtime runtime = Runtime.getRuntime();
@@ -84,26 +93,9 @@ public class PDConnector {
     @Scheduled(every = "10s")
     void reportGroups() {
         LOG.debugf("Node %s reporting Raft groups status to PD...", nodeId);
-        String pdUrl = "http://" + pdAddress.split(":")[0] + ":8080/api/internal/pd/groups";
+        String host = pdAddress.split(":")[0];
+        String pdUrl = String.format("http://%s:8080/api/internal/pd/groups", host);
 
-        // In this simulation, we'll assume group 1 exists.
-        // If store-1 is the leader, it should report it. 
-        // If we want to simulate a real failover, the "other" nodes should only report if they think they are leaders.
-        // For simplicity in this demo, all nodes report, but they only report themselves as leader if they are store-1 
-        // OR if they want to 'claim' it.
-        
-        // Let's make it smarter: only report if this node IS the leader in its own Raft state (if implemented)
-        // Since jettra-consensus is also in this project, we could check RaftGroup.
-        
-        // Simulating Group #1. 
-        // We'll keep jettra-store-1 as the default leader, but if it's gone, PD will reassign.
-        // If this node is NOT jettra-store-1, and it sees store-1 is down (not implemented here), it could report itself.
-        
-        // For now, let's just let store-1 be the one that reports the 'initial' state, 
-        // and let PD handle the 'offline' reassignment.
-        // BUT if store-1 is stopped, NO ONE reports the group state anymore, but the group object still exists in PD.
-        // PD's checkNodeHealth will see store-1 is offline and reassign the leader in the PD's memory.
-        
         if ("jettra-store-1".equals(nodeId)) {
              RaftGroupMetadata group1 = new RaftGroupMetadata(1L, "jettra-store-1",
                 List.of("jettra-store-1", "jettra-store-2", "jettra-store-3"));

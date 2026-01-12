@@ -1,5 +1,6 @@
 package io.jettra.store;
 
+import io.jettra.engine.core.ObjectStorage;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Map;

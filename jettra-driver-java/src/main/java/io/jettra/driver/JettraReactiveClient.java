@@ -1,5 +1,9 @@
 package io.jettra.driver;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -10,10 +14,12 @@ public class JettraReactiveClient implements JettraClient {
     private static final Logger LOG = Logger.getLogger(JettraReactiveClient.class.getName());
     private final String pdAddress;
     private final String authToken;
+    private final HttpClient httpClient;
 
     public JettraReactiveClient(String pdAddress, String authToken) {
         this.pdAddress = pdAddress;
         this.authToken = authToken;
+        this.httpClient = HttpClient.newHttpClient();
     }
 
     @Override
@@ -63,6 +69,33 @@ public class JettraReactiveClient implements JettraClient {
         return Uni.createFrom().item(java.util.Collections.emptyList());
     }
 
+    @Override
+    public Uni<List<NodeInfo>> listNodes() {
+        LOG.log(Level.INFO, "Listing cluster nodes from {0} [Auth: {1}]", new Object[]{pdAddress, authToken});
+        
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/nodes"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    return mapper.readValue(response.body(), new com.fasterxml.jackson.core.type.TypeReference<List<NodeInfo>>() {});
+                } catch (java.io.IOException e) {
+                    LOG.log(Level.SEVERE, "Failed to parse nodes response: {0}", e.getMessage());
+                    return List.of();
+                }
+            } else {
+                LOG.log(Level.WARNING, "Failed to list nodes. Status: {0}", response.statusCode());
+                return List.of();
+            }
+        });
+    }
+
     // Specific Vector Engine Method
     public Uni<List<String>> searchVector(float[] query, int k) {
         LOG.info("Performing vector similarity search...");
@@ -73,5 +106,10 @@ public class JettraReactiveClient implements JettraClient {
     public Uni<List<String>> traverseGraph(String startId, int depth) {
         LOG.log(Level.INFO, "Traversing graph from {0}", startId);
         return Uni.createFrom().item(List.of("vertex-a", "vertex-b"));
+    }
+
+    @Override
+    public String connectionInfo() {
+        return String.format("Connected to %s [Token: %s]", pdAddress, (authToken != null && !authToken.isEmpty()) ? "Present" : "None");
     }
 }
