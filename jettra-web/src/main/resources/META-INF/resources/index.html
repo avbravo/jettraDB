@@ -57,6 +57,7 @@
             font-weight: 600;
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -152,6 +153,7 @@
             margin-bottom: 1.5rem;
             background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             width: fit-content;
         }
@@ -445,6 +447,39 @@
             Sign Out
         </button>
     </nav>
+    <!-- Stop Node Modal -->
+    <div id="stop-modal" class="modal-overlay hidden">
+        <div class="modal-content"
+            style="max-width: 450px; border: 1px solid rgba(239, 68, 68, 0.3); background: var(--bg); padding: 2rem; border-radius: 1rem; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0; color: #ef4444; background: none; -webkit-text-fill-color: #ef4444;">🛑 Detener
+                    Nodo</h2>
+                <button onclick="closeStopModal()"
+                    style="background: none; border: none; color: #64748b; cursor: pointer;">
+                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <div
+                style="background: rgba(239, 68, 68, 0.1); border-radius: 0.75rem; padding: 1rem; margin-bottom: 1.5rem; border: 1px solid rgba(239, 68, 68, 0.2);">
+                <p style="margin: 0; color: #fca5a5; font-size: 0.9rem;">
+                    <strong>Advertencia:</strong> ¿Está seguro que desea detener el nodo <span id="stop-node-id-label"
+                        style="font-weight: 600; color: white;"></span>?
+                    Esto terminará el proceso del servidor inmediatamente.
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" onclick="closeStopModal()"
+                    style="flex: 1; background: rgba(255, 255, 255, 0.05); color: white;">Cancelar</button>
+                <button id="confirm-stop-btn" class="btn"
+                    style="flex: 1; background: #ef4444; color: white; border: none;">Detener Ahora</button>
+            </div>
+        </div>
+    </div>
 
     <div class="sidebar" id="sidebar">
         <!-- Sidebar Navigation -->
@@ -1023,10 +1058,50 @@
                     </div>
                     <p style="margin: 0.5rem 0">Role: ${node.role}</p>
                     <small style="color: #94a3b8; display: block; margin-bottom: 1rem;">Address: ${node.address}</small>
-                    <button class="btn" style="width: 100%; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);" 
-                            onclick="showNodeResources('${node.id}')">🔍 View Resources</button>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <button class="btn" style="flex: 1; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);" 
+                                onclick="showNodeResources('${node.id}')">🔍 Resources</button>
+                        <button class="btn" style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" 
+                                onclick="stopNode('${node.id}')">🛑 Stop</button>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        let nodeToStop = null;
+
+        function stopNode(nodeId) {
+            nodeToStop = nodeId;
+            document.getElementById('stop-node-id-label').textContent = nodeId;
+            document.getElementById('stop-modal').classList.remove('hidden');
+            document.getElementById('confirm-stop-btn').onclick = confirmStopNode;
+        }
+
+        function closeStopModal() {
+            nodeToStop = null;
+            document.getElementById('stop-modal').classList.add('hidden');
+        }
+
+        async function confirmStopNode() {
+            const nodeId = nodeToStop;
+            if (!nodeId) return;
+
+            try {
+                const response = await fetch(`/api/monitor/nodes/${nodeId}/stop`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    closeStopModal();
+                    showAlert('Éxito', `Solicitud de parada enviada para el nodo ${nodeId}`, 'success');
+                    fetchNodes();
+                } else {
+                    showAlert('Error', 'Error al enviar la solicitud de parada');
+                }
+            } catch (error) {
+                console.error('Error stopping node:', error);
+                showAlert('Error', 'Error de conexión');
+            }
         }
 
         function renderGroups(groups) {

@@ -124,7 +124,7 @@ Response:
   {
     "id": "jettra-store-1",
     "address": "jettra-store-1:8080",
-    "role": "STORAGE",
+    "role": "STORAGE",top
     "status": "ONLINE",
     "lastSeen": 1704321000,
     "cpuUsage": 12.5,
@@ -132,4 +132,20 @@ Response:
     "memoryMax": 4294967296
   }
 ]
+```
+
+## Detener un Nodo
+
+Para detener un nodo de forma segura, puedes usar el proxy de monitorización (puerto 8081) o directamente el PD (puerto 8080).
+
+### Vía Proxy (Recomendado)
+```bash
+curl -X POST http://localhost:8081/api/monitor/nodes/jettra-store-3/stop \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Vía Placement Driver (Directo)
+```bash
+curl -X POST http://localhost:8080/api/internal/pd/nodes/jettra-store-3/stop \
+  -H "Authorization: Bearer $TOKEN"
 ```

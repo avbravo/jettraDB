@@ -81,4 +81,21 @@ public class MonitoringResource {
 
     public record Alert(String type, String message, String severity) {
     }
+
+    @jakarta.ws.rs.POST
+    @Path("/nodes/{id}/stop")
+    public jakarta.ws.rs.core.Response stopNode(@jakarta.ws.rs.PathParam("id") String id) {
+        try {
+            String authHeader = headers.getHeaderString("Authorization");
+            try (jakarta.ws.rs.client.Client client = jakarta.ws.rs.client.ClientBuilder.newClient()) {
+                return client.target(pdUrl + "/api/internal/pd/nodes/" + id + "/stop")
+                        .request()
+                        .header("Authorization", authHeader)
+                        .post(jakarta.ws.rs.client.Entity.json("{}"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return jakarta.ws.rs.core.Response.serverError().build();
+        }
+    }
 }

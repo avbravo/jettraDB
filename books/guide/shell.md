@@ -146,6 +146,9 @@ node list
 # ID              | Address            | Role       | Status   | CPU%   | Memory Usage    / Max Memory
 # jettra-store-1  | jettra-store-1:8080| STORAGE    | ONLINE   | 4.2    | 120.5 MB        / 4096.0 MB
 ```
+- `node list`: Shows CPU/Memory and Raft Role of each node.
+- `node stop <node-id>`: Gracefully shuts down the specified node.
+- `database list`: List all multi-model databases.
 
 ```bash
 # List all nodes in the cluster (SQL legacy)
@@ -180,6 +183,38 @@ The shell is reactive. If a leader changes during your session, the shell automa
 ## Scripting Mode
 You can pass a file with commands to the shell for automation:
 
+## Monitoring via API (CURL)
+
+You can also monitor the cluster status using standard HTTP tools like `curl`. This is useful for integration with external monitoring systems.
+
+### 1. List Nodes
 ```bash
-./jettra-shell --file setup_db.jettra
+curl -H "Authorization: Bearer <your-token>" \
+     http://localhost:8081/api/monitor/nodes
+```
+
+### 2. List Raft Groups
+```bash
+curl -H "Authorization: Bearer <your-token>" \
+     http://localhost:8081/api/monitor/groups
+```bash
+curl -X GET http://localhost:8080/api/monitor/groups -H "Authorization: Bearer <token>"
+```
+
+### Stopping a Node
+To gracefully shut down a node via API Proxy (Recommended):
+
+```bash
+curl -X POST http://localhost:8081/api/monitor/nodes/<node-id>/stop -H "Authorization: Bearer <token>"
+```
+
+Or directly via PD (if exposed):
+
+```bash
+curl -X POST http://localhost:8080/api/internal/pd/nodes/<node-id>/stop -H "Authorization: Bearer <token>"
+```
+
+### 3. Health Check
+```bash
+curl http://localhost:8080/api/internal/pd/health
 ```

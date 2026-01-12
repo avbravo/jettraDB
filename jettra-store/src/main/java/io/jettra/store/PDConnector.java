@@ -13,12 +13,18 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
+import io.jettra.consensus.MultiRaftManager;
+import io.jettra.consensus.RaftState;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
 
 @ApplicationScoped
 public class PDConnector {
 
     private static final Logger LOG = Logger.getLogger(PDConnector.class);
+
+    @Inject
+    MultiRaftManager raftManager;
 
     @ConfigProperty(name = "jettra.pd.addr")
     String pdAddress;
@@ -39,13 +45,15 @@ public class PDConnector {
 
         LOG.infof("Target PD Registration URL: %s", pdUrl);
 
-        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", System.currentTimeMillis(), 0.0, 0, 0);
+        String raftRole = getLocalRaftRole();
+        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", raftRole,
+                System.currentTimeMillis(), 0.0, 0, 0);
 
         try (jakarta.ws.rs.client.Client client = ClientBuilder.newClient()) {
             jakarta.ws.rs.core.Response response = client.target(pdUrl)
                     .request(MediaType.APPLICATION_JSON)
                     .post(Entity.entity(me, MediaType.APPLICATION_JSON));
-            
+
             if (response.getStatus() == 200) {
                 LOG.info("Successfully registered with PD");
             } else {
@@ -68,7 +76,8 @@ public class PDConnector {
 
         double cpuUsageVal = 0.0;
         try {
-            java.lang.management.OperatingSystemMXBean osBean = java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+            java.lang.management.OperatingSystemMXBean osBean = java.lang.management.ManagementFactory
+                    .getOperatingSystemMXBean();
             if (osBean instanceof com.sun.management.OperatingSystemMXBean sunBean) {
                 cpuUsageVal = sunBean.getProcessCpuLoad() * 100.0;
             } else {
@@ -78,7 +87,9 @@ public class PDConnector {
             cpuUsageVal = Math.random() * 10.0; // Minimal fallback
         }
 
-        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", System.currentTimeMillis(), cpuUsageVal, memoryUsage, memoryMax);
+        String raftRole = getLocalRaftRole();
+        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", raftRole,
+                System.currentTimeMillis(), cpuUsageVal, memoryUsage, memoryMax);
 
         try {
             ClientBuilder.newClient()
@@ -97,9 +108,11 @@ public class PDConnector {
         String pdUrl = String.format("http://%s:8080/api/internal/pd/groups", host);
 
         if ("jettra-store-1".equals(nodeId)) {
-             RaftGroupMetadata group1 = new RaftGroupMetadata(1L, "jettra-store-1",
-                List.of("jettra-store-1", "jettra-store-2", "jettra-store-3"));
-             sendGroupReport(pdUrl, group1);
+            io.jettra.consensus.RaftGroup group = raftManager.getOrCreateGroup(1L);
+            group.setState(RaftState.LEADER);
+            RaftGroupMetadata metadata = new RaftGroupMetadata(1L, "jettra-store-1",
+                    List.of("jettra-store-1", "jettra-store-2", "jettra-store-3"));
+            sendGroupReport(pdUrl, metadata);
         }
     }
 
@@ -111,5 +124,15 @@ public class PDConnector {
         } catch (Exception e) {
             // LOG.error("Failed to report group", e);
         }
+    }
+
+    private String getLocalRaftRole() {
+        if (raftManager == null || raftManager.getGroups().isEmpty()) {
+            return "FOLLOWER";
+        }
+        // If leader of any group, report as LEADER for simplicity in node list
+        boolean isLeader = raftManager.getGroups().values().stream()
+                .anyMatch(g -> g.getState() == RaftState.LEADER);
+        return isLeader ? "LEADER" : "FOLLOWER";
     }
 }

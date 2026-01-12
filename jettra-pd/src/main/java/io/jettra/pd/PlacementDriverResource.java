@@ -70,6 +70,13 @@ public class PlacementDriverResource {
         return Response.ok().build();
     }
 
+    @POST
+    @Path("/nodes/{id}/stop")
+    public Response stopNode(@jakarta.ws.rs.PathParam("id") String id) {
+        pdService.stopNode(id);
+        return Response.ok().build();
+    }
+
     @GET
     @Path("/health")
     public Response health() {

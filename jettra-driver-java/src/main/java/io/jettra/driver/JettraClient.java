@@ -21,5 +21,7 @@ public interface JettraClient {
 
     Uni<java.util.List<NodeInfo>> listNodes();
 
+    Uni<Void> stopNode(String nodeId);
+
     String connectionInfo();
 }

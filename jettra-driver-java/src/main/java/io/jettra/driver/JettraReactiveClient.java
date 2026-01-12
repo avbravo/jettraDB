@@ -30,13 +30,13 @@ public class JettraReactiveClient implements JettraClient {
 
     @Override
     public Uni<Object> findById(String collection, String id) {
-        LOG.log(Level.INFO, "Finding document {0} in {1}", new Object[]{id, collection});
+        LOG.log(Level.INFO, "Finding document {0} in {1}", new Object[] { id, collection });
         return Uni.createFrom().item(null);
     }
 
     @Override
     public Uni<Void> delete(String collection, String id) {
-        LOG.log(Level.INFO, "Deleting document {0} from {1}", new Object[]{id, collection});
+        LOG.log(Level.INFO, "Deleting document {0} from {1}", new Object[] { id, collection });
         return Uni.createFrom().voidItem();
     }
 
@@ -53,26 +53,27 @@ public class JettraReactiveClient implements JettraClient {
 
     @Override
     public Uni<Void> createDatabase(String name, String storage, String engine) {
-        LOG.log(Level.INFO, "Creating database {0} at {1} [Engine: {2}, Storage: {3}] [Auth: {4}]", new Object[]{name, pdAddress, engine, storage, authToken});
+        LOG.log(Level.INFO, "Creating database {0} at {1} [Engine: {2}, Storage: {3}] [Auth: {4}]",
+                new Object[] { name, pdAddress, engine, storage, authToken });
         return Uni.createFrom().voidItem();
     }
 
     @Override
     public Uni<Void> deleteDatabase(String name) {
-        LOG.log(Level.INFO, "Deleting database {0} from {1} [Auth: {2}]", new Object[]{name, pdAddress, authToken});
+        LOG.log(Level.INFO, "Deleting database {0} from {1} [Auth: {2}]", new Object[] { name, pdAddress, authToken });
         return Uni.createFrom().voidItem();
     }
 
     @Override
     public Uni<List<String>> listDatabases() {
-        LOG.log(Level.INFO, "Listing databases from {0} [Auth: {1}]", new Object[]{pdAddress, authToken});
+        LOG.log(Level.INFO, "Listing databases from {0} [Auth: {1}]", new Object[] { pdAddress, authToken });
         return Uni.createFrom().item(java.util.Collections.emptyList());
     }
 
     @Override
     public Uni<List<NodeInfo>> listNodes() {
-        LOG.log(Level.INFO, "Listing cluster nodes from {0} [Auth: {1}]", new Object[]{pdAddress, authToken});
-        
+        LOG.log(Level.INFO, "Listing cluster nodes from {0} [Auth: {1}]", new Object[] { pdAddress, authToken });
+
         return Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://" + pdAddress + "/api/internal/pd/nodes"))
@@ -84,7 +85,9 @@ public class JettraReactiveClient implements JettraClient {
             if (response.statusCode() == 200) {
                 try {
                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    return mapper.readValue(response.body(), new com.fasterxml.jackson.core.type.TypeReference<List<NodeInfo>>() {});
+                    return mapper.readValue(response.body(),
+                            new com.fasterxml.jackson.core.type.TypeReference<List<NodeInfo>>() {
+                            });
                 } catch (java.io.IOException e) {
                     LOG.log(Level.SEVERE, "Failed to parse nodes response: {0}", e.getMessage());
                     return List.of();
@@ -92,6 +95,25 @@ public class JettraReactiveClient implements JettraClient {
             } else {
                 LOG.log(Level.WARNING, "Failed to list nodes. Status: {0}", response.statusCode());
                 return List.of();
+            }
+        });
+    }
+
+    @Override
+    public Uni<Void> stopNode(String nodeId) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/nodes/" + nodeId + "/stop"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200) {
+                return Uni.createFrom().voidItem();
+            } else {
+                return Uni.createFrom()
+                        .failure(new RuntimeException("Failed to stop node. Status: " + response.statusCode()));
             }
         });
     }
@@ -110,6 +132,7 @@ public class JettraReactiveClient implements JettraClient {
 
     @Override
     public String connectionInfo() {
-        return String.format("Connected to %s [Token: %s]", pdAddress, (authToken != null && !authToken.isEmpty()) ? "Present" : "None");
+        return String.format("Connected to %s [Token: %s]", pdAddress,
+                (authToken != null && !authToken.isEmpty()) ? "Present" : "None");
     }
 }

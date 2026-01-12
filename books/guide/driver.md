@@ -63,8 +63,13 @@ Monitor node resource consumption (CPU, Memory) directly via the driver.
 ```java
 import io.jettra.driver.NodeInfo;
 
-// List all registered nodes and their resources
-List<NodeInfo> nodes = client.listNodes().await().indefinitely();
+// List all cluster nodes
+Uni<List<NodeInfo>> nodesUni = client.listNodes();
+List<NodeInfo> nodes = nodesUni.await().indefinitely();
+
+// Stop a specific node
+Uni<Void> stopResult = client.stopNode("jettra-store-2");
+stopResult.await().indefinitely(); // Blocking wait for demo
 
 for (NodeInfo node : nodes) {
     System.out.println("Node: " + node.id());

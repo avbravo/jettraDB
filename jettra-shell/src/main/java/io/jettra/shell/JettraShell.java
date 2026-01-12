@@ -99,6 +99,8 @@ public class JettraShell implements Runnable {
 
                     System.out.println("@|bold,underline Cluster Management|@");
                     System.out.printf("  %-35s %s%n", "node list", "Show cluster nodes and resource usage");
+                    System.out.printf("  %-35s %s%n", "node stop <id>", "Gracefully shut down a node");
+                    System.out.printf("  %-35s %s%n", "node <id> stop", "Alternative syntax for shutdown");
                     System.out.println();
 
                     System.out.println("@|bold,underline Data & Querying|@");
