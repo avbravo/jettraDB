@@ -1,6 +1,9 @@
 # JettraDB Interactive Shell
 
-The `jettra-shell` provides a command-line interface to interact with JettraDB clusters.
+
+For specific engine details, see:
+- [Geospatial Engine Guide](jettra-engine-geospatial.md)
+
 
 ## Navigation
 To start the shell in interactive mode, navigate to the `jettra-shell` directory and run:
@@ -23,11 +26,27 @@ You will enter the JettraDB REPL where you can type commands directly.
 ## Basic Commands
 
 ### 1.# Connect to remote cluster
+### Finding Connection Details
+To know which IP and port to connect to, check your Docker configuration:
+
+1. List running containers:
+   ```bash
+   docker ps
+   ```
+2. Look for the `jettra-web` container and its port mapping (e.g., `0.0.0.0:8081->8080/tcp`).
+3. Connect using that address (e.g., `localhost:8081`).
+
 ```bash
 connect 192.168.1.50:8081
 ```
 
-# Show Connection Info
+Once connected, you typically need to login:
+```bash
+login admin -p
+# Enter password when prompted
+```
+
+# Show Connection Info (View current PD address and Auth status)
 ```bash
 connect info
 # Output:

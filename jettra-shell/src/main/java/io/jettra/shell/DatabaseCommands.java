@@ -22,10 +22,12 @@ class CreateDatabaseCommand implements Runnable {
     @Parameters(index = "0", description = "Database name")
     String name;
 
-    @picocli.CommandLine.Option(names = { "-s", "--storage" }, description = "Storage style: STORE (persistent) or MEMORY (in-memory)", defaultValue = "STORE")
+    @picocli.CommandLine.Option(names = { "-s",
+            "--storage" }, description = "Storage style: STORE (persistent) or MEMORY (in-memory)", defaultValue = "STORE")
     String storage;
 
-    @picocli.CommandLine.Option(names = { "-e", "--engine" }, description = "Engine type: Document, Column, Key-Value, Graph, Vector, Object, File", defaultValue = "Multi-Model")
+    @picocli.CommandLine.Option(names = { "-e",
+            "--engine" }, description = "Engine type: Document, Column, Key-Value, Graph, Vector, Object, File", defaultValue = "Multi-Model")
     String engine;
 
     @Override
@@ -36,22 +38,24 @@ class CreateDatabaseCommand implements Runnable {
         }
         try {
             HttpClient client = HttpClient.newHttpClient();
-            String json = String.format("{\"name\": \"%s\", \"storage\": \"%s\", \"engine\": \"%s\"}", 
-                name, storage.toUpperCase(), engine);
+            String json = String.format("{\"name\": \"%s\", \"storage\": \"%s\", \"engine\": \"%s\"}",
+                    name, storage.toUpperCase(), engine);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8081/api/db"))
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db"))
                     .header("Authorization", "Bearer " + JettraShell.authToken)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200)
-                System.out.println("Successfully created Multi-Model database '" + name + "' [Storage: " + storage.toUpperCase() + "]");
+                System.out.println("Successfully created Multi-Model database '" + name + "' [Storage: "
+                        + storage.toUpperCase() + "]");
             else
                 System.out.println("Error creating database: " + response.statusCode() + " " + response.body());
         } catch (IOException | InterruptedException e) {
             System.err.println("Execution failed: " + e.getMessage());
-            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            if (e instanceof InterruptedException)
+                Thread.currentThread().interrupt();
         }
     }
 }
@@ -70,7 +74,7 @@ class DeleteDatabaseCommand implements Runnable {
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8081/api/db/" + name))
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db/" + name))
                     .header("Authorization", "Bearer " + JettraShell.authToken)
                     .DELETE()
                     .build();
@@ -81,7 +85,8 @@ class DeleteDatabaseCommand implements Runnable {
                 System.out.println("Error: " + response.statusCode());
         } catch (IOException | InterruptedException e) {
             System.err.println("Execution failed: " + e.getMessage());
-            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            if (e instanceof InterruptedException)
+                Thread.currentThread().interrupt();
         }
     }
 }
@@ -97,7 +102,7 @@ class ListDatabasesCommand implements Runnable {
         try {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8081/api/db"))
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db"))
                     .header("Authorization", "Bearer " + JettraShell.authToken)
                     .GET()
                     .build();
@@ -109,7 +114,8 @@ class ListDatabasesCommand implements Runnable {
                 System.out.println("Error retrieving databases: " + response.statusCode());
         } catch (IOException | InterruptedException e) {
             System.err.println("Execution failed: " + e.getMessage());
-            if (e instanceof InterruptedException) Thread.currentThread().interrupt();
+            if (e instanceof InterruptedException)
+                Thread.currentThread().interrupt();
         }
     }
 }

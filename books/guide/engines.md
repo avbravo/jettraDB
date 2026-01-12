@@ -38,12 +38,17 @@ JettraDB is a truly multi-model database engine. Unlike other databases that add
 - **Use Case:** IoT, monitoring.
 - **Optimization:** Compression for time-series data.
 
-### 7. Geographic Engine
-- **Module:** `jettra-engine-geographics`
-- **Use Case:** GIS, location-based services.
-- **Indexes:** S2, R-Tree.
+### 7. Geospatial Engine
+- **Module:** `jettra-engine-geospatial`
+- **Use Case:** GIS, location-based services, spatial queries.
+- **Indexes:** QuadTree, R-Tree.
 
 ### 8. Object Engine
 - **Module:** `jettra-engine-object`
 - **Use Case:** Cloud-native object storage.
 - **API:** Compatible with major object storage protocols.
+
+### 9. Files Engine
+- **Module:** `jettra-engine-files`
+- **Use Case:** File management as databases.
+- **Features:** Treat file systems as queryable databases.

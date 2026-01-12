@@ -21,7 +21,9 @@
         <module>jettra-engine-graph</module>
         <module>jettra-engine-vector</module>
         <module>jettra-engine-time-series</module>
-        <module>jettra-engine-geographics</module>
+
         <module>jettra-engine-object</module>
+        <module>jettra-engine-geospatial</module>
+        <module>jettra-engine-files</module>
     </modules>
 </project>

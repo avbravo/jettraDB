@@ -1,26 +1,25 @@
 package io.jettra.shell;
 
-import java.util.Scanner;
-
 import io.quarkus.picocli.runtime.annotations.TopCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
+import jakarta.enterprise.context.ApplicationScoped;
+
 @TopCommand
-@Command(name = "jettra-shell", 
-         mixinStandardHelpOptions = true, 
-         description = "JettraDB Shell - Multi-model distributed database management%n" +
-                       "Supports SQL and MongoDB native queries.",
-         subcommands = {
-        ConnectCommand.class,
-        LoginCommand.class,
-        DatabaseCommands.class,
-        NodeCommands.class,
-        QueryCommand.class,
-        SqlCommand.class,
-        MongoCommand.class
-})
+@ApplicationScoped
+@Command(name = "jettra-shell", mixinStandardHelpOptions = true, description = "JettraDB Shell - Multi-model distributed database management%n"
+        +
+        "Supports SQL and MongoDB native queries.", subcommands = {
+                ConnectCommand.class,
+                LoginCommand.class,
+                DatabaseCommands.class,
+                NodeCommands.class,
+                QueryCommand.class,
+                SqlCommand.class,
+                MongoCommand.class
+        })
 public class JettraShell implements Runnable {
     public static String authToken;
     public static String pdAddress = "localhost:8081"; // Default to web dashboard port
@@ -38,32 +37,90 @@ public class JettraShell implements Runnable {
         System.out.println(" [SQL and MongoDB support enabled]");
         System.out.println(" Type 'help' for commands, 'exit' to quit.");
         System.out.println("---------------------------------------------------------");
-        
+
         CommandLine cmd = new CommandLine(new JettraShell());
-        
-        try (Scanner scanner = new Scanner(System.in)) {
+
+        try {
+            org.jline.terminal.Terminal terminal = org.jline.terminal.TerminalBuilder.builder().build();
+            org.jline.reader.LineReader reader = org.jline.reader.LineReaderBuilder.builder()
+                    .terminal(terminal)
+                    .variable(org.jline.reader.LineReader.HISTORY_FILE,
+                            System.getProperty("user.home") + "/.jettra_history")
+                    .build();
+
             while (true) {
-                String prompt = (authToken == null) ? "jettra> " : "jettra(" + (authToken.length() > 8 ? authToken.substring(0, 8) : authToken) + ")> ";
-                System.out.print(prompt);
-                
-                if (!scanner.hasNextLine()) break;
-                
-                String line = scanner.nextLine().trim();
-                if (line.isEmpty()) continue;
+                String prompt = (authToken == null) ? "jettra> "
+                        : "jettra(" + (authToken.length() > 8 ? authToken.substring(0, 8) : authToken) + ")> ";
+
+                String line;
+                try {
+                    line = reader.readLine(prompt);
+                } catch (org.jline.reader.UserInterruptException e) {
+                    continue;
+                } catch (org.jline.reader.EndOfFileException e) {
+                    break;
+                }
+
+                line = line.trim();
+                if (line.isEmpty())
+                    continue;
                 if ("exit".equalsIgnoreCase(line) || "quit".equalsIgnoreCase(line)) {
                     System.out.println("Goodbye!");
                     System.exit(0);
                     break;
                 }
                 if ("help".equalsIgnoreCase(line)) {
-                    cmd.usage(System.out);
+                    System.out
+                            .println("==============================================================================");
+                    System.out.println("                        JettraDB Shell Help");
+                    System.out
+                            .println("==============================================================================");
+
+                    System.out.println("@|bold,underline Connection & Session|@");
+                    System.out.printf("  %-35s %s%n", "connect <host>:<port>",
+                            "Connect to a JettraDB cluster (e.g., localhost:8081)");
+                    System.out.printf("  %-35s %s%n", "connect info",
+                            "Show current connection details and auth status");
+                    System.out.printf("  %-35s %s%n", "login <username>",
+                            "Log in to the cluster (interactive password)");
+                    System.out.printf("  %-35s %s%n", "exit, quit", "Exit the shell");
+                    System.out.println();
+
+                    System.out.println("@|bold,underline Database Management|@");
+                    System.out.printf("  %-35s %s%n", "db list", "List all databases");
+                    System.out.printf("  %-35s %s%n", "db create <name>",
+                            "Create a new database (default: Document/Store)");
+                    System.out.printf("  %-35s %s%n", "  --engine <type>",
+                            "  Types: Document, Graph, Key-Value, Time-Series, Vector");
+                    System.out.printf("  %-35s %s%n", "  --storage <mode>",
+                            "  Modes: STORE (Persistent), MEMORY (Volatile)");
+                    System.out.printf("  %-35s %s%n", "db delete <name>", "Delete a database");
+                    System.out.println();
+
+                    System.out.println("@|bold,underline Cluster Management|@");
+                    System.out.printf("  %-35s %s%n", "node list", "Show cluster nodes and resource usage");
+                    System.out.println();
+
+                    System.out.println("@|bold,underline Data & Querying|@");
+                    System.out.printf("  %-35s %s%n", "sql <query>",
+                            "Execute SQL queries (SELECT, INSERT, UPDATE, DELETE)");
+                    System.out.printf("  %-35s %s%n", "mongo <query>",
+                            "Execute MongoDB-style queries (db.col.find({...}))");
+                    System.out.printf("  %-35s %s%n", "query <command>", "Execute low-level engine commands");
+                    System.out.println();
+
+                    System.out
+                            .println("==============================================================================");
+                    System.out.println("For detailed help on specific syntax, use: sql --help, mongo --help");
+
                     continue;
                 }
-                
+
                 String[] args = line.split("\\s+");
                 cmd.execute(args);
-                System.out.println();
             }
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
         }
     }
 }
@@ -78,8 +135,17 @@ class ConnectCommand implements Runnable {
         if ("info".equalsIgnoreCase(arg)) {
             System.out.println("Current Connection Info:");
             System.out.println("  PD/Web Address: " + JettraShell.pdAddress);
-            System.out.println("  Auth Token: " + (JettraShell.authToken != null ? "Present (Logged In)" : "None (Logged Out)"));
+            System.out.println(
+                    "  Auth Token: " + (JettraShell.authToken != null ? "Present (Logged In)" : "None (Logged Out)"));
         } else {
+            // Sanitize: Remove http:// or https:// if user provided it
+            String sanitized = arg.toLowerCase();
+            if (sanitized.startsWith("http://")) {
+                arg = arg.substring(7);
+            } else if (sanitized.startsWith("https://")) {
+                arg = arg.substring(8);
+            }
+
             JettraShell.pdAddress = arg;
             System.out.println("Connecting to JettraDB cluster at " + JettraShell.pdAddress + "...");
             System.out.println("Successfully connected!");
@@ -92,25 +158,27 @@ class LoginCommand implements Runnable {
     @Parameters(index = "0", description = "Username")
     String username;
 
-    @picocli.CommandLine.Option(names = {"-p", "--password"}, description = "Password", interactive = true)
+    @picocli.CommandLine.Option(names = { "-p", "--password" }, description = "Password", interactive = true)
     String password;
 
     @Override
     public void run() {
         System.out.println("Logging in as " + username + "...");
-        
+
         try {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            String json = String.format("{\"username\":\"%s\", \"password\":\"%s\"}", username, password != null ? password : "");
-            
+            String json = String.format("{\"username\":\"%s\", \"password\":\"%s\"}", username,
+                    password != null ? password : "");
+
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://" + JettraShell.pdAddress + "/api/web-auth/login"))
                     .header("Content-Type", "application/json")
                     .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
                     .build();
-                    
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            
+
+            java.net.http.HttpResponse<String> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+
             if (response.statusCode() == 200) {
                 // Parse token from response (simple string lookup for now, or use Jackson)
                 String body = response.body();
@@ -128,8 +196,9 @@ class LoginCommand implements Runnable {
         } catch (Exception e) {
             String msg = (e.getMessage() != null) ? e.getMessage() : e.getClass().getSimpleName();
             System.err.println("Login failed: " + msg);
-            if (msg.contains("Connection refused")) {
+            if (msg.contains("Connection refused") || msg.contains("ConnectException")) {
                 System.err.println("Hint: Make sure JettraWeb is running at " + JettraShell.pdAddress);
+                System.err.println("      Start the stack with: docker-compose up -d");
             }
         }
     }
