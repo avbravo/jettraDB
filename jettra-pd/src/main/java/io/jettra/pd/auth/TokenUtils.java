@@ -16,11 +16,24 @@ public class TokenUtils {
     }
 
     public boolean validateToken(String token) {
-        // In a real application, using MP-JWT this validation is automatic via implicit
-        // container filter.
-        // But since we implemented a manual AuthFilter, we need to manually validate.
-        // For this demo, we can trust if it's not null and looks like a JWT (3 parts)
-        // Ideally we would parse and verify signature using public key.
         return token != null && token.split("\\.").length == 3;
+    }
+
+    public String getUsername(String token) {
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length < 2)
+                return null;
+            String payload = new String(java.util.Base64.getUrlDecoder().decode(parts[1]));
+            // Simple JSON parsing to find "upn":"username"
+            if (payload.contains("\"upn\":\"")) {
+                int start = payload.indexOf("\"upn\":\"") + 7;
+                int end = payload.indexOf("\"", start);
+                return payload.substring(start, end);
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        return null;
     }
 }

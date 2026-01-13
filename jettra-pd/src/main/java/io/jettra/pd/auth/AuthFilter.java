@@ -17,6 +17,9 @@ public class AuthFilter implements ContainerRequestFilter {
     @Inject
     TokenUtils tokenUtils;
 
+    @Inject
+    AuthService authService;
+
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String path = requestContext.getUriInfo().getPath();
@@ -35,12 +38,78 @@ public class AuthFilter implements ContainerRequestFilter {
 
         String token = authHeader.substring(7);
         try {
-            // Verify token (simple check for now, ideally verify signature/expiration)
             if (!tokenUtils.validateToken(token)) {
                 requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+                return;
+            }
+
+            String username = tokenUtils.getUsername(token);
+            if (username == null) {
+                requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+                return;
+            }
+
+            // Simple authorization check for database paths
+            if (path.startsWith("api/db/") || path.startsWith("/api/db/")) {
+                String subPath = path.startsWith("/") ? path.substring(8) : path.substring(7);
+                if (!subPath.isEmpty()) {
+                    String[] parts = subPath.split("/");
+                    String dbName = parts[0];
+
+                    String method = requestContext.getMethod();
+                    if (!hasAccess(username, dbName, method)) {
+                        requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                                .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
+                                .build());
+                    }
+                }
             }
         } catch (Exception e) {
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
         }
+    }
+
+    private boolean hasAccess(String username, String dbName, String method) {
+        // Admin user (system-pd) is always allowed
+        if ("admin".equals(username) || "system-pd".equals(username)) {
+            return true;
+        }
+
+        User user = authService.getUser(username);
+        if (user == null) {
+            return false;
+        }
+
+        java.util.List<Role> userRoles = authService.getRolesForUser(user);
+        String requiredPrivilege = method.equals("GET") ? "READ" : "WRITE";
+
+        for (Role role : userRoles) {
+            if ("_all".equals(role.database()) || dbName.equals(role.database())) {
+                java.util.Set<String> privs = role.privileges();
+
+                // Direct privilege check (Legacy/Internal)
+                if (privs.contains("ADMIN") || privs.contains(requiredPrivilege)) {
+                    return true;
+                }
+
+                // Predefined role types mapping
+                String roleName = role.name();
+                if (roleName.startsWith("admin")) {
+                    return true;
+                }
+
+                if (method.equals("GET")) {
+                    if (roleName.startsWith("reader") || roleName.startsWith("writer-reader")
+                            || roleName.startsWith("guest")) {
+                        return true;
+                    }
+                } else {
+                    if (roleName.startsWith("writer-reader")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 }

@@ -39,11 +39,67 @@ public class AuthResource {
     @POST
     @Path("/change-password")
     public Response changePassword(ChangePasswordRequest request) {
-        // Here we ideally check the token too, but for simplicity we assume the user
-        // knows the old password
         if (authService.changePassword(request.username(), request.oldPassword(), request.newPassword())) {
             return Response.ok().build();
         }
         return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials").build();
+    }
+
+    // User Management API
+    @jakarta.ws.rs.GET
+    @Path("/users")
+    public Response listUsers() {
+        return Response.ok(authService.listUsers()).build();
+    }
+
+    @POST
+    @Path("/users")
+    public Response createUser(User user) {
+        authService.createUser(user);
+        return Response.ok().build();
+    }
+
+    @jakarta.ws.rs.PUT
+    @Path("/users/{username}")
+    public Response updateUser(@jakarta.ws.rs.PathParam("username") String username, User user) {
+        // Ensure the path username matches the record username, or just use the record
+        // one
+        authService.updateUser(user);
+        return Response.ok().build();
+    }
+
+    @jakarta.ws.rs.DELETE
+    @Path("/users/{username}")
+    public Response deleteUser(@jakarta.ws.rs.PathParam("username") String username) {
+        authService.deleteUser(username);
+        return Response.ok().build();
+    }
+
+    // Role Management API
+    @jakarta.ws.rs.GET
+    @Path("/roles")
+    public Response listRoles() {
+        return Response.ok(authService.listRoles()).build();
+    }
+
+    @POST
+    @Path("/roles")
+    public Response createRole(Role role) {
+        authService.createRole(role);
+        return Response.ok().build();
+    }
+
+    @jakarta.ws.rs.PUT
+    @Path("/roles/{name}")
+    public Response updateRole(@jakarta.ws.rs.PathParam("name") String name, Role role) {
+        authService.updateRole(role);
+        return Response.ok().build();
+    }
+
+    @jakarta.ws.rs.DELETE
+    @Path("/roles/{name}")
+    public Response deleteRole(@jakarta.ws.rs.PathParam("name") String name) {
+        authService.deleteRole(name);
+        return Response.ok().build();
     }
 }

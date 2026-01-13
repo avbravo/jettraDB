@@ -109,7 +109,30 @@ for (NodeInfo node : nodes) {
 System.out.println(client.connectionInfo());
 ```
 
-### 6. Data Operations
+### 6. User & Role Management ⭐
+Manage cluster access control.
+
+```java
+// Create a role for a specific database
+client.createRole("reader_db1", "db1", Set.of("READ"))
+      .await().indefinitely();
+
+// Create a new user with specific roles
+client.createUser("bob", "password123", Set.of("reader_db1", "admin_all"))
+      .await().indefinitely();
+
+// Update an existing user (Edit roles/password)
+client.updateUser("bob", "newpassword456", Set.of("writer-reader_all"))
+      .await().indefinitely();
+
+// List all users
+List<String> usernames = client.listUsers().await().indefinitely();
+
+// Delete a user
+client.deleteUser("bob").await().indefinitely();
+```
+
+### 7. Data Operations
 
 ```java
 // Save a document

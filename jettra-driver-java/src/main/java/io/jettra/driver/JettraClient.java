@@ -35,5 +35,22 @@ public interface JettraClient {
 
     Uni<String> login(String username, String password);
 
+    // Security Management
+    Uni<Void> createUser(String username, String password, java.util.Set<String> roles);
+
+    Uni<Void> updateUser(String username, String password, java.util.Set<String> roles);
+
+    Uni<java.util.List<String>> listUsers();
+
+    Uni<Void> deleteUser(String username);
+
+    Uni<Void> createRole(String name, String database, java.util.Set<String> privileges);
+
+    Uni<Void> updateRole(String name, String database, java.util.Set<String> privileges);
+
+    Uni<java.util.List<String>> listRoles();
+
+    Uni<Void> deleteRole(String name);
+
     String connectionInfo();
 }

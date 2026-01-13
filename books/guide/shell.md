@@ -197,19 +197,41 @@ query "SHOW NODES"
 query "SHOW GROUPS"
 ```
 
-### 10. Integrated Help System 📖
-Each language support has its own detailed help and examples:
+### 10. User & Role Management ⭐
+Manage users and their permissions across the cluster.
 
 ```bash
-# General help
-jettra> help
+# Create a new role for a specific database
+role create reader_db1 db1 READ
 
-# Specialized help for SQL
-jettra> sql --help
+# Create a new role with multiple privileges
+role create writer_db1 db1 READ,WRITE
 
-# Specialized help for MongoDB
-jettra> mongo --help
+# List all existing roles
+role list
+
+# Create a new user and assign roles
+# Note: Roles must be comma-separated
+user create bob password123 reader_db1,writer_db2
+
+# Edit an existing user (e.g., change roles or password)
+user edit bob newpassword456 reader_db1,admin_all
+
+# List all users
+user list
+
+# Delete a user
+user delete bob
 ```
+
+**Allowed Role Types:**
+While you can create custom roles with any name, the system optimized for the following predefined types:
+- `admin`: Full access (ADMIN, READ, WRITE).
+- `reader`: Read-only access.
+- `writer-reader`: Read and Write access.
+- `guest`: Read-only access (anonymous/restricted).
+
+### 11. Integrated Help System 📖
 
 ## Advanced Features
 

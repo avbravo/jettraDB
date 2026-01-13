@@ -485,6 +485,7 @@
         <!-- Sidebar Navigation -->
         <div class="nav-item active" onclick="showView('cluster')" id="nav-cluster">Cluster</div>
         <div class="nav-item" onclick="showView('databases')" id="nav-databases">Databases</div>
+        <div class="nav-item" onclick="showView('security')" id="nav-security">Security</div>
 
         <div class="tree-container">
             <div class="tree-header">
@@ -695,6 +696,74 @@
                         <button type="submit" class="btn" style="width: 100%; padding: 1rem;">Update Password</button>
                         <div id="password-msg" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></div>
                     </form>
+                </div>
+            </div>
+        </div>
+        <!-- Security View -->
+        <div id="view-security" class="hidden">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>Security & User Management</h2>
+            </header>
+
+            <div class="grid">
+                <!-- User Management Card -->
+                <div class="card" style="grid-column: span 2;">
+                    <h3 class="mb-4" id="user-form-title">Create / Edit User</h3>
+                    <div style="display: flex; gap: 1.5rem; flex-direction: column; margin-bottom: 1.5rem;">
+                        <input type="hidden" id="user-is-edit" value="false">
+                        <div style="display: flex; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <label class="text-xs text-gray-400 block mb-1">Username</label>
+                                <input type="text" id="user-username" placeholder="Username">
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="text-xs text-gray-400 block mb-1">Password</label>
+                                <input type="password" id="user-password" placeholder="Password">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs text-gray-400 block mb-2">Database Access & Roles</label>
+                            <div
+                                style="background: rgba(0,0,0,0.2); border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                    <thead style="background: rgba(255,255,255,0.05);">
+                                        <tr>
+                                            <th style="text-align: left; padding: 0.75rem;">Database</th>
+                                            <th style="text-align: left; padding: 0.75rem;">Role</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="user-db-roles-body">
+                                        <!-- Will be populated with all databases -->
+                                        <tr>
+                                            <td colspan="2" style="padding: 1rem; text-align: center; color: #475569;">
+                                                Loading databases...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn" id="user-save-btn" onclick="saveUser()" style="flex: 1;">Create
+                                User</button>
+                            <button class="btn hidden" id="user-cancel-btn" onclick="resetUserForm()"
+                                style="background: rgba(255,255,255,0.1); color: #94a3b8;">Cancel</button>
+                        </div>
+                    </div>
+
+                    <h3 class="mb-4 mt-8">Registered Users</h3>
+                    <div id="user-list-container">
+                        <p class="text-xs text-gray-400">Loading users...</p>
+                    </div>
+                </div>
+
+                <!-- Role Management Card (Hidden or secondary) -->
+                <div class="card hidden">
+                    <h3 class="mb-4">Roles (System)</h3>
+                    <div id="role-list-container" style="max-height: 400px; overflow-y: auto;">
+                        <p class="text-xs text-gray-400">Loading roles...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -933,10 +1002,12 @@
             currentView = viewId;
             document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
             document.getElementById('view-databases').classList.toggle('hidden', viewId !== 'databases');
+            document.getElementById('view-security').classList.toggle('hidden', viewId !== 'security');
             document.getElementById('view-password').classList.toggle('hidden', viewId !== 'password');
 
             document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
             document.getElementById('nav-databases').classList.toggle('active', viewId === 'databases');
+            document.getElementById('nav-security').classList.toggle('active', viewId === 'security');
             document.getElementById('nav-password').classList.toggle('active', viewId === 'password');
 
             // Close sidebar on mobile
@@ -953,6 +1024,12 @@
                 fetchGroups();
             } else if (currentView === 'databases') {
                 fetchDatabases();
+            } else if (currentView === 'security') {
+                fetchUsers();
+                fetchRoles();
+                if (document.getElementById('user-db-roles-body').innerHTML.includes('Loading')) {
+                    renderUserDbRoles();
+                }
             }
         }
 
@@ -1498,6 +1575,263 @@
             } catch (err) {
                 msg.style.color = '#ef4444';
                 msg.textContent = 'Error: ' + err.message;
+            }
+        }
+
+        const ALLOWED_ROLE_TYPES = ['none', 'admin', 'guest', 'reader', 'writer-reader'];
+        let allSystemRoles = [];
+
+        async function fetchUsers() {
+            try {
+                const response = await fetch('/api/web-auth/users', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.status === 401) return logout();
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const users = await response.json();
+                renderUsers(users);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                document.getElementById('user-list-container').innerHTML = `<p style="color: #ef4444;">Error: ${error.message}</p>`;
+            }
+        }
+
+        async function fetchRoles() {
+            try {
+                const response = await fetch('/api/web-auth/roles', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    allSystemRoles = await response.json();
+                }
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        }
+
+        function renderUsers(users) {
+            const container = document.getElementById('user-list-container');
+            if (!users || users.length === 0) {
+                container.innerHTML = '<p class="text-xs text-gray-400">No users found.</p>';
+                return;
+            }
+            container.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; overflow: hidden;">
+                    <thead style="background: rgba(255,255,255,0.05); font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">
+                        <tr>
+                            <th style="padding: 0.75rem; text-align: left;">Username</th>
+                            <th style="padding: 0.75rem; text-align: left;">Roles / DBs</th>
+                            <th style="padding: 0.75rem; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => {
+                const userRoles = user.roles || [];
+                const roleDetails = userRoles.map(rn => {
+                    const r = allSystemRoles.find(role => role.name === rn);
+                    return r ? `${r.name} (${r.database === '_all' ? '*' : r.database})` : rn;
+                }).join(', ');
+
+                return `
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <td style="padding: 0.75rem; font-weight: 500;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">${user.username[0].toUpperCase()}</div>
+                                        ${user.username}
+                                    </div>
+                                </td>
+                                <td style="padding: 0.75rem; font-size: 0.75rem; color: #94a3b8;">${roleDetails || 'no roles'}</td>
+                                <td style="padding: 0.75rem; text-align: right;">
+                                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                        <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.7rem;" onclick="handleEditUser('${user.username}')">Edit</button>
+                                        ${user.username !== 'admin' ? `
+                                        <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.7rem;" onclick="deleteUser('${user.username}')">Delete</button>
+                                        ` : ''}
+                                    </div>
+                                </td>
+                            </tr>
+                        `}).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function renderUserDbRoles(user = null) {
+            const body = document.getElementById('user-db-roles-body');
+            if (allDatabases.length === 0) {
+                await fetchDatabases();
+            }
+
+            const dbs = [{ name: '_all' }, ...allDatabases];
+
+            body.innerHTML = dbs.map(db => {
+                let currentRole = 'none';
+                if (user) {
+                    const userRoleNames = user.roles || [];
+                    for (let rn of userRoleNames) {
+                        const r = allSystemRoles.find(role => role.name === rn);
+                        if (r && r.database === db.name) {
+                            // Find which type it is
+                            if (rn.startsWith('admin')) currentRole = 'admin';
+                            else if (rn.startsWith('guest')) currentRole = 'guest';
+                            else if (rn.startsWith('reader')) currentRole = 'reader';
+                            else if (rn.startsWith('writer-reader')) currentRole = 'writer-reader';
+                            else currentRole = rn; // Fallback to raw role name if it's one of the defaults
+                        }
+                    }
+                }
+
+                return `
+                    <tr>
+                        <td style="padding: 0.75rem; color: ${db.name === '_all' ? 'var(--primary)' : 'inherit'}; font-weight: ${db.name === '_all' ? '600' : '400'};">
+                            ${db.name === '_all' ? '🌐 Global Access' : db.name}
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <select class="user-db-role-select" data-db="${db.name}">
+                                ${ALLOWED_ROLE_TYPES.map(type => `
+                                    <option value="${type}" ${currentRole === type ? 'selected' : ''}>${type.charAt(0).toUpperCase() + type.slice(1)}</option>
+                                `).join('')}
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function handleEditUser(username) {
+            try {
+                const response = await fetch('/api/web-auth/users', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const users = await response.json();
+                const user = users.find(u => u.username === username);
+                if (!user) return;
+
+                document.getElementById('user-is-edit').value = "true";
+                document.getElementById('user-username').value = user.username;
+                document.getElementById('user-username').disabled = true;
+                document.getElementById('user-password').value = ""; // Empty password means keep current
+                document.getElementById('user-password').placeholder = "(Leave blank to keep current)";
+                document.getElementById('user-form-title').textContent = "Edit User: " + username;
+                document.getElementById('user-save-btn').textContent = "Save Changes";
+                document.getElementById('user-cancel-btn').classList.remove('hidden');
+
+                await renderUserDbRoles(user);
+                window.scrollTo({ top: document.getElementById('view-security').offsetTop, behavior: 'smooth' });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function resetUserForm() {
+            document.getElementById('user-is-edit').value = "false";
+            document.getElementById('user-username').value = "";
+            document.getElementById('user-username').disabled = false;
+            document.getElementById('user-password').value = "";
+            document.getElementById('user-password').placeholder = "Password";
+            document.getElementById('user-form-title').textContent = "Create / Edit User";
+            document.getElementById('user-save-btn').textContent = "Create User";
+            document.getElementById('user-cancel-btn').classList.add('hidden');
+            renderUserDbRoles();
+        }
+
+        async function saveUser() {
+            const username = document.getElementById('user-username').value.trim();
+            const password = document.getElementById('user-password').value.trim();
+            const isEdit = document.getElementById('user-is-edit').value === "true";
+
+            if (!username) return showAlert('Error', 'Username is required');
+            if (!isEdit && !password) return showAlert('Error', 'Password is required for new users');
+
+            const selects = document.querySelectorAll('.user-db-role-select');
+            const selectedRoles = [];
+
+            for (let s of selects) {
+                const db = s.dataset.db;
+                const roleType = s.value;
+
+                if (roleType !== 'none') {
+                    // Normalize role name: reader_db1, writer-reader_all, etc.
+                    const roleName = `${roleType}_${db.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    selectedRoles.push(roleName);
+
+                    // Ensure this role exists in the PD
+                    await ensureRoleExists(roleName, db, roleType);
+                }
+            }
+
+            const userData = {
+                username,
+                password: password || undefined,
+                roles: selectedRoles,
+                forcePasswordChange: false
+            };
+
+            const url = isEdit ? `/api/web-auth/users/${username}` : '/api/web-auth/users';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    resetUserForm();
+                    await fetchUsers();
+                    showAlert('Success', `User ${isEdit ? 'updated' : 'created'} successfully`, 'success');
+                } else {
+                    showAlert('Error', await response.text());
+                }
+            } catch (e) {
+                showAlert('Error', 'Connection error');
+            }
+        }
+
+        async function ensureRoleExists(roleName, db, roleType) {
+            // Check if already in our cache
+            if (allSystemRoles.some(r => r.name === roleName)) return;
+
+            // Map roleType to privileges
+            let privileges = ['READ'];
+            if (roleType === 'admin') privileges = ['ADMIN', 'READ', 'WRITE'];
+            else if (roleType === 'writer-reader') privileges = ['READ', 'WRITE'];
+            else if (roleType === 'guest') privileges = ['READ'];
+
+            try {
+                await fetch('/api/web-auth/roles', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: roleName, database: db, privileges })
+                });
+                await fetchRoles(); // Refresh cache
+            } catch (e) {
+                console.error("Error ensuring role exists:", e);
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm(`Are you sure you want to delete user ${username}?`)) return;
+            try {
+                const response = await fetch(`/api/web-auth/users/${username}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    await fetchUsers();
+                    showAlert('Success', 'User deleted', 'success');
+                } else {
+                    showAlert('Error', 'Failed to delete user');
+                }
+            } catch (e) {
+                showAlert('Error', 'Connection error');
             }
         }
 

@@ -207,6 +207,60 @@ curl -X POST http://localhost:8082/stop -H "Authorization: Bearer $TOKEN"
 curl -X POST http://localhost:8081/stop -H "Authorization: Bearer $TOKEN"
 ```
 
+## Gestión de Usuarios y Roles ⭐
+
+### 1. Crear un Rol
+Define permisos para una base de datos específica o para todas (`_all`).
+
+```bash
+curl -X POST http://localhost:8081/api/web-auth/roles \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "lector_ventas",
+    "database": "sales_db",
+    "privileges": ["READ"]
+  }'
+```
+
+### 2. Crear un Usuario
+Asigna uno o varios roles al usuario.
+
+```bash
+curl -X POST http://localhost:8081/api/web-auth/users \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "bob",
+    "password": "password123",
+    "roles": ["lector_ventas", "reader_all"],
+    "forcePasswordChange": false
+  }'
+```
+
+### 3. Editar un Usuario
+Actualiza los roles o la contraseña de un usuario existente.
+
+```bash
+curl -X PUT http://localhost:8081/api/web-auth/users/bob \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "bob",
+    "password": "newpassword456",
+    "roles": ["admin_all"]
+  }'
+```
+
+### 4. Listar Usuarios y Roles
+```bash
+# Listar todos los usuarios
+curl -s http://localhost:8081/api/web-auth/users -H "Authorization: Bearer $TOKEN"
+
+# Listar todos los roles
+curl -s http://localhost:8081/api/web-auth/roles -H "Authorization: Bearer $TOKEN"
+```
+
 ## Ejemplo Completo: Base de Datos y Colección (Document)
 Este ejemplo muestra el flujo completo para crear una base de datos persistente y una colección usando el motor **Document** vía cURL.
 

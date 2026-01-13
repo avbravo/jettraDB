@@ -50,7 +50,18 @@ Gestión completa del ciclo de vida de las bases de datos:
     - **Refrescar**: Sincronizar la lista de colecciones de ese motor específico.
     - **Renombrar/Eliminar**: Opciones rápidas para el ciclo de vida de la colección.
 
-### 4. Consola de Consultas (Query Console)
+### 4. Seguridad y Gestión de Usuarios ⭐
+Control centralizado de acceso y roles para todo el cluster:
+- **Gestión de Usuarios**: Formulario avanzado para crear y editar cuentas de usuario.
+- **Asignación de Roles por Base de Datos** ⭐: El formulario de usuario lista todas las bases de datos disponibles y permite seleccionar un rol específico para cada una (ej: `bob` es `reader` en `db1` pero `writer-reader` en `db2`).
+- **Edición de Usuarios**: Permite cambiar la contraseña y los roles de usuarios existentes de forma visual.
+- **Roles Predefinidos**:
+    - `admin`: Acceso total (Global).
+    - `reader`: Lectura únicamente.
+    - `writer-reader`: Lectura y escritura.
+    - `guest`: Acceso restringido de invitado.
+
+### 5. Consola de Consultas (Query Console)
 Permite ejecutar operaciones multi-modelo directamente desde el navegador:
 1.  **Selección de Motor**: Conmuta entre Document, Key-Value, Graph, Columnar, Time-Series, Vector y Geospatial.
 2.  **Editor JSON**: Entrada de comandos en formato JSON estandarizado de Jettra.

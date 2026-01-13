@@ -99,9 +99,29 @@ public class Main {
             LOG.info("Añadiendo colección con motor Graph: " + graphCol);
             client.addCollection(dbName, graphCol, "Graph").await().indefinitely();
 
-            // 5. Inspección de recursos
+            // 5. Gestión de Seguridad (Roles y Usuarios) ⭐
+            LOG.info("Configurando seguridad...");
+            
+            // 5.1 Crear un rol específico para la base de datos demo
+            String roleName = "lector_demo";
+            LOG.info("Creando rol: " + roleName);
+            client.createRole(roleName, dbName, Set.of("READ")).await().indefinitely();
+
+            // 5.2 Crear un nuevo usuario con este rol
+            String newUsername = "developer_se";
+            LOG.info("Creando nuevo usuario: " + newUsername);
+            client.createUser(newUsername, "secret123", Set.of(roleName)).await().indefinitely();
+
+            // 5.3 Editar el usuario (por ejemplo, añadir rol admin global)
+            LOG.info("Actualizando roles del usuario...");
+            client.updateUser(newUsername, null, Set.of(roleName, "admin")).await().indefinitely();
+
+            // 6. Inspección de recursos
             List<String> dbs = client.listDatabases().await().indefinitely();
             LOG.info("Bases de datos actuales: " + dbs);
+
+            List<String> users = client.listUsers().await().indefinitely();
+            LOG.info("Usuarios registrados: " + users);
 
             List<String> cols = client.listCollections(dbName).await().indefinitely();
             LOG.info("Colecciones en " + dbName + ": " + cols);

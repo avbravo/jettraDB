@@ -20,6 +20,12 @@ public class WebAuthResource {
     @ConfigProperty(name = "jettra.pd.url")
     String pdUrl;
 
+    @jakarta.ws.rs.core.Context
+    jakarta.ws.rs.core.HttpHeaders headers;
+
+    private String getAuthHeader() {
+        return headers.getHeaderString(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION);
+    }
 
     @POST
     @Path("/login")
@@ -58,6 +64,96 @@ public class WebAuthResource {
             e.printStackTrace();
             return Response.serverError().type(MediaType.APPLICATION_JSON)
                     .entity("{\"error\":\"Change password proxy failed\"}").build();
+        }
+    }
+
+    // User Management Proxy
+    @jakarta.ws.rs.GET
+    @Path("/users")
+    public Response proxyListUsers() {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/users")
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .get();
+        }
+    }
+
+    @POST
+    @Path("/users")
+    public Response proxyCreateUser(String json) {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/users")
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .post(Entity.json(json));
+        }
+    }
+
+    @jakarta.ws.rs.PUT
+    @Path("/users/{username}")
+    public Response proxyUpdateUser(@jakarta.ws.rs.PathParam("username") String username, String json) {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/users/" + username)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .put(Entity.json(json));
+        }
+    }
+
+    @jakarta.ws.rs.DELETE
+    @Path("/users/{username}")
+    public Response proxyDeleteUser(@jakarta.ws.rs.PathParam("username") String username) {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/users/" + username)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .delete();
+        }
+    }
+
+    // Role Management Proxy
+    @jakarta.ws.rs.GET
+    @Path("/roles")
+    public Response proxyListRoles() {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/roles")
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .get();
+        }
+    }
+
+    @POST
+    @Path("/roles")
+    public Response proxyCreateRole(String json) {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/roles")
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .post(Entity.json(json));
+        }
+    }
+
+    @jakarta.ws.rs.PUT
+    @Path("/roles/{name}")
+    public Response proxyUpdateRole(@jakarta.ws.rs.PathParam("name") String name, String json) {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/roles/" + name)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .put(Entity.json(json));
+        }
+    }
+
+    @jakarta.ws.rs.DELETE
+    @Path("/roles/{name}")
+    public Response proxyDeleteRole(@jakarta.ws.rs.PathParam("name") String name) {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/roles/" + name)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .delete();
         }
     }
 }
