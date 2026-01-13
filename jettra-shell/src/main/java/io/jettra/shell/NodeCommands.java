@@ -10,10 +10,26 @@ import picocli.CommandLine.Parameters;
 
 @Command(name = "node", description = "Node management and monitoring commands", subcommands = {
                 ListNodeResourcesCommand.class,
-                StopNodeCommand.class,
-                NodeDetailCommand.class
+                StopNodeCommand.class
 })
-public class NodeCommands {
+public class NodeCommands implements Runnable {
+        @Parameters(index = "0..*", arity = "0..*", hidden = true)
+        private java.util.List<String> args;
+
+        @Override
+        public void run() {
+                if (args != null && args.size() == 2 && "stop".equalsIgnoreCase(args.get(1))) {
+                        String nodeId = args.get(0);
+                        new StopNodeCommand(nodeId).run();
+                } else if (args != null && !args.isEmpty()) {
+                         System.out.println("Unknown node command or invalid arguments: " + args);
+                         System.out.println("Usage: node list, node stop <id>, or node <id> stop");
+                } else {
+                        // If no args and no subcommand matched (though picocli handles subcommands first)
+                        // this might be reached if user just types 'node'
+                         System.out.println("Usage: node list, node stop <id>, or node <id> stop");
+                }
+        }
 }
 
 @Command(name = "list", description = "List all nodes and their resource consumption")
@@ -77,6 +93,9 @@ class StopNodeCommand implements Runnable {
         @Parameters(index = "0", description = "The ID of the node to stop.")
         private String nodeId;
 
+        public StopNodeCommand() {}
+        public StopNodeCommand(String nodeId) { this.nodeId = nodeId; }
+
         @Override
         public void run() {
                 if (JettraShell.authToken == null) {
@@ -104,18 +123,5 @@ class StopNodeCommand implements Runnable {
                 } catch (Exception e) {
                         System.err.println("Unexpected failure: " + e.getMessage());
                 }
-        }
-}
-
-@Command(name = "node-id-placeholder", description = "Node-specific commands", subcommands = {
-                StopNodeCommand.class
-})
-class NodeDetailCommand implements Runnable {
-        @Parameters(index = "0", description = "The ID of the node")
-        private String nodeId;
-
-        @Override
-        public void run() {
-                System.out.println("Node: " + nodeId + ". Use 'node " + nodeId + " stop' to stop it.");
         }
 }

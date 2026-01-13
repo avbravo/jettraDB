@@ -1,9 +1,11 @@
 package io.jettra.pd;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.logging.Logger;
+
+import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class PlacementDriverService {
@@ -115,14 +117,23 @@ public class PlacementDriverService {
 
         // Use a background thread or asynchronous call to notify the node to stop
         // We'll use a simple JAX-RS client call here
-        try (jakarta.ws.rs.client.Client client = jakarta.ws.rs.client.ClientBuilder.newClient()) {
+        try {
             String targetUrl = String.format("http://%s/api/internal/node/stop", node.address());
             LOG.infof("Sending internal stop request to: %s", targetUrl);
-            jakarta.ws.rs.core.Response response = client.target(targetUrl)
-                    .request()
-                    .post(jakarta.ws.rs.client.Entity.json("{}"));
-            LOG.infof("Node %s responded with status: %d", nodeId, response.getStatus());
-            response.close();
+
+            String token = io.jettra.pd.auth.TokenUtils.generateToken("system-pd", java.util.Set.of("admin", "system"));
+
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(targetUrl))
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString("{}"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + token)
+                    .build();
+
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+
+            LOG.infof("Node %s responded with status: %d", nodeId, response.statusCode());
         } catch (Exception e) {
             LOG.errorf("Error notifying node %s to stop at %s: %s", nodeId, node.address(), e.getMessage());
         }

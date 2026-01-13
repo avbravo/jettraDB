@@ -1,30 +1,36 @@
 package io.jettra.store;
 
-import io.quarkus.runtime.Quarkus;
+import org.jboss.logging.Logger;
+
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.Response;
-import org.jboss.logging.Logger;
 
 @Path("/api/internal/node")
 public class NodeManagementResource {
     private static final Logger LOG = Logger.getLogger(NodeManagementResource.class);
 
-    @jakarta.annotation.security.PermitAll
+    @jakarta.inject.Inject
+    PDConnector pdConnector;
+
+    @jakarta.annotation.security.RolesAllowed({"system", "admin"})
     @POST
     @Path("/stop")
+    @jakarta.ws.rs.Consumes(jakarta.ws.rs.core.MediaType.WILDCARD)
     public Response stopNode() {
         LOG.info("Received stop request from PD. Shutting down...");
-        // Schedule shutdown in a separate thread so we can return the 200 OK response
+        pdConnector.stop();
+        
+        // Execute async exit to stop the container/node
         new Thread(() -> {
-            try {
-                Thread.sleep(500); // Small delay to allow response to be sent
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            LOG.info("Initiating Quarkus shutdown...");
-            Quarkus.asyncExit();
+             try {
+                 Thread.sleep(500); 
+                 io.quarkus.runtime.Quarkus.asyncExit(0);
+             } catch (InterruptedException e) {
+                 Thread.currentThread().interrupt();
+             }
         }).start();
+
         return Response.ok("{\"status\":\"stopping\"}").build();
     }
 }

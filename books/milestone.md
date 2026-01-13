@@ -16,6 +16,11 @@ Terminados
 [184](https://github.com/avbravo/jettraDB/issues/184)
 [186](https://github.com/avbravo/jettraDB/issues/186)
 [187](https://github.com/avbravo/jettraDB/issues/187)
+[188](https://github.com/avbravo/jettraDB/issues/188)
+[189](https://github.com/avbravo/jettraDB/issues/189)
+[190](https://github.com/avbravo/jettraDB/issues/190)
+[191](https://github.com/avbravo/jettraDB/issues/191)
+[192](https://github.com/avbravo/jettraDB/issues/192)
 
 # Pendientes
 

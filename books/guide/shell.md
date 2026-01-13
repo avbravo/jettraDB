@@ -147,7 +147,8 @@ node list
 # jettra-store-1  | jettra-store-1:8080| STORAGE    | ONLINE   | 4.2    | 120.5 MB        / 4096.0 MB
 ```
 - `node list`: Shows CPU/Memory and Raft Role of each node.
-- `node stop <node-id>`: Gracefully shuts down the specified node.
+- `node stop <node-id>`: Gracefully shuts down the specified node (e.g., `node stop jettra-store-2`).
+- `node <node-id> stop`: Alternative syntax for shutdown (e.g., `node jettra-store-2 stop`).
 - `database list`: List all multi-model databases.
 
 ```bash

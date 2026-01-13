@@ -5,17 +5,17 @@ import java.util.List;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
+import io.jettra.consensus.MultiRaftManager;
+import io.jettra.consensus.RaftState;
 import io.jettra.pd.NodeMetadata;
 import io.jettra.pd.RaftGroupMetadata;
 import io.quarkus.runtime.StartupEvent;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
-import io.jettra.consensus.MultiRaftManager;
-import io.jettra.consensus.RaftState;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
 
 @ApplicationScoped
@@ -64,8 +64,17 @@ public class PDConnector {
         }
     }
 
+    private volatile boolean stopped = false;
+
+    public void stop() {
+        LOG.warn("Simulating node stop: Stopping PD heartbeats and reports.");
+        this.stopped = true;
+    }
+
     @Scheduled(every = "5s")
     void reportStatus() {
+        if (stopped) return;
+
         String host = pdAddress.split(":")[0];
         String pdUrl = String.format("http://%s:8080/api/internal/pd/register", host);
         String selfAddress = nodeId + ":" + port;
@@ -103,6 +112,8 @@ public class PDConnector {
 
     @Scheduled(every = "10s")
     void reportGroups() {
+        if (stopped) return;
+
         LOG.debugf("Node %s reporting Raft groups status to PD...", nodeId);
         String host = pdAddress.split(":")[0];
         String pdUrl = String.format("http://%s:8080/api/internal/pd/groups", host);
