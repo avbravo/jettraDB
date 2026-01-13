@@ -99,6 +99,14 @@ curl -X DELETE http://localhost:8081/api/db/sales_db \
   -H "Authorization: Bearer $TOKEN"
 ```
 
+### Consultar Información de la Base de Datos
+Obtiene los metadatos y la configuración de una base de datos específica.
+
+```bash
+curl -s http://localhost:8081/api/db/sales_db \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ## Gestión de Colecciones
 Operaciones para gestionar colecciones dentro de una base de datos específica.
 
@@ -177,6 +185,9 @@ Response:
 ]
 ```
 
+> [!IMPORTANT]
+> La detención de nodos está restringida a usuarios con rol **admin**.
+
 ## Detener un Nodo
 
 Para detener un nodo de forma segura, puedes usar el proxy de monitorización (puerto 8081) o directamente el PD (puerto 8080).
@@ -208,6 +219,9 @@ curl -X POST http://localhost:8081/stop -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Gestión de Usuarios y Roles ⭐
+
+> [!IMPORTANT]
+> La gestión de usuarios y roles está restringida exclusivamente a usuarios con rol **admin**.
 
 ### 1. Crear un Rol
 Define permisos para una base de datos específica o para todas (`_all`).

@@ -56,6 +56,10 @@ System.out.println("Databases: " + dbs);
 
 // Delete a database
 client.deleteDatabase("sales_v2").await().indefinitely();
+
+// Get detailed database metadata (returns JSON String)
+String info = client.getDatabaseInfo("sales_v2").await().indefinitely();
+System.out.println("Metadata: " + info);
 ```
 
 ### 4. Collection Management
@@ -92,6 +96,7 @@ Uni<List<NodeInfo>> nodesUni = client.listNodes();
 List<NodeInfo> nodes = nodesUni.await().indefinitely();
 
 // Stop a specific node (Sends a remote stop request via PD)
+// NOTE: Only allowed for users with 'admin' role.
 Uni<Void> stopResult = client.stopNode("jettra-store-2");
 stopResult.await().indefinitely(); // Blocking wait for demo
 
@@ -110,7 +115,10 @@ System.out.println(client.connectionInfo());
 ```
 
 ### 6. User & Role Management ⭐
-Manage cluster access control.
+Manage cluster access control. 
+
+> [!IMPORTANT]
+> These methods are restricted to users with the **admin** role.
 
 ```java
 // Create a role for a specific database

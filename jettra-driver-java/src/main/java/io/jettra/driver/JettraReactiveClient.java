@@ -109,6 +109,24 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
+    public Uni<String> getDatabaseInfo(String name) {
+        LOG.log(Level.INFO, "Getting info for database {0}", name);
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/db/" + name))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                return response.body();
+            }
+            throw new RuntimeException("Failed to get database info. Status: " + response.statusCode());
+        });
+    }
+
+    @Override
     public Uni<List<String>> listDatabases() {
         return Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()

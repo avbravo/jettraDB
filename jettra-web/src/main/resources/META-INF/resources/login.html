@@ -139,6 +139,7 @@
                     const data = await response.json();
                     localStorage.setItem('jettra_token', data.token);
                     localStorage.setItem('jettra_username', username);
+                    localStorage.setItem('jettra_is_admin', data.isAdmin);
 
                     if (data.mustChangePassword && username !== 'admin') {
                         window.location.href = '/change-password.html';

@@ -29,9 +29,11 @@ public class AuthResource {
         User user = authService.authenticate(request.username(), request.password());
         if (user != null) {
             String token = TokenUtils.generateToken(user.username(), user.roles());
+            boolean isAdmin = "admin".equals(user.username()) || user.roles().contains("admin");
             return Response.ok(Map.of(
                     "token", token,
-                    "mustChangePassword", user.forcePasswordChange())).build();
+                    "mustChangePassword", user.forcePasswordChange(),
+                    "isAdmin", isAdmin)).build();
         }
         return Response.status(Response.Status.UNAUTHORIZED).build();
     }

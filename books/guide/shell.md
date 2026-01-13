@@ -90,6 +90,9 @@ show dbs # improved
 
 # Delete a database
 db delete retail_db
+
+# Show detailed information for a database (aliases: info, database info)
+db info retail_db
 ```
 
 ### 4. Navigation & Context
@@ -198,7 +201,10 @@ query "SHOW GROUPS"
 ```
 
 ### 10. User & Role Management ⭐
-Manage users and their permissions across the cluster.
+Manage users and their permissions across the cluster. 
+
+> [!IMPORTANT]
+> User and Role management commands are restricted to users with the **admin** role.
 
 ```bash
 # Create a new role for a specific database

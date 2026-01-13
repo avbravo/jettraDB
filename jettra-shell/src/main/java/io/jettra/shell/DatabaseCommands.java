@@ -9,12 +9,14 @@ import java.net.http.HttpResponse;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "db", description = "Database management commands", subcommands = {
-        CreateDatabaseCommand.class,
-        DeleteDatabaseCommand.class,
-        RenameDatabaseCommand.class,
-        ListDatabasesCommand.class
-})
+@Command(name = "db", aliases = {
+        "database" }, description = "Database management commands", subcommands = {
+                CreateDatabaseCommand.class,
+                DeleteDatabaseCommand.class,
+                RenameDatabaseCommand.class,
+                ListDatabasesCommand.class,
+                DatabaseInfoCommand.class
+        })
 public class DatabaseCommands {
 }
 
@@ -144,6 +146,39 @@ class ListDatabasesCommand implements Runnable {
                 System.out.println(response.body());
             } else
                 System.out.println("Error retrieving databases: " + response.statusCode());
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Execution failed: " + e.getMessage());
+            if (e instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+        }
+    }
+}
+
+@Command(name = "info", description = "Show database information")
+class DatabaseInfoCommand implements Runnable {
+    @Parameters(index = "0", description = "Database name")
+    String name;
+
+    @Override
+    public void run() {
+        if (JettraShell.authToken == null) {
+            System.out.println("Error: Not logged in.");
+            return;
+        }
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db/" + name))
+                    .header("Authorization", "Bearer " + JettraShell.authToken)
+                    .GET()
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                System.out.println("Database Information for '" + name + "':");
+                System.out.println(response.body());
+            } else {
+                System.out.println("Error retrieving info: " + response.statusCode() + " " + response.body());
+            }
         } catch (IOException | InterruptedException e) {
             System.err.println("Execution failed: " + e.getMessage());
             if (e instanceof InterruptedException)

@@ -23,13 +23,21 @@ public class AuthFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String path = requestContext.getUriInfo().getPath();
-        if (path.startsWith("api/auth/") || path.startsWith("/api/auth/") ||
-                path.startsWith("api/web-auth/") || path.startsWith("/api/web-auth/") ||
-                path.startsWith("api/internal/pd/") || path.startsWith("/api/internal/pd/") ||
-                path.equals("health") || path.equals("/health")) {
-            return; // Allow public and internal endpoints
+        if (path.startsWith("/")) {
+            path = path.substring(1);
         }
 
+        // 1. Truly public endpoints
+        if (path.equals("api/auth/login") || path.equals("api/web-auth/login") ||
+                path.equals("api/internal/pd/health") ||
+                path.equals("api/internal/pd/register") ||
+                path.equals("api/internal/pd/groups") ||
+                path.equals("api/internal/pd/nodes") ||
+                path.equals("health") || path.equals("/health")) {
+            return;
+        }
+
+        // 2. Token Validation for everything else
         String authHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
@@ -49,9 +57,30 @@ public class AuthFilter implements ContainerRequestFilter {
                 return;
             }
 
-            // Simple authorization check for database paths
+            // 3. Authorization (Role-based access)
+            boolean isAdmin = "admin".equals(username) || "system-pd".equals(username);
+            if (!isAdmin) {
+                User user = authService.getUser(username);
+                if (user != null && user.roles().contains("admin")) {
+                    isAdmin = true;
+                }
+            }
+
+            // A. Admin-only endpoints: User/Role management and Node stop
+            if (path.startsWith("api/auth/users") || path.startsWith("api/auth/roles") ||
+                    path.startsWith("api/web-auth/users") || path.startsWith("api/web-auth/roles") ||
+                    path.contains("/stop")) { // Covers /api/internal/pd/nodes/{id}/stop and /api/internal/pd/stop
+                if (!isAdmin) {
+                    requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                            .entity("{\"error\":\"Action restricted to administrative users.\"}")
+                            .build());
+                    return;
+                }
+            }
+
+            // B. Database access filtering
             if (path.startsWith("api/db/") || path.startsWith("/api/db/")) {
-                String subPath = path.startsWith("/") ? path.substring(8) : path.substring(7);
+                String subPath = path.startsWith("api/db/") ? path.substring(7) : path.substring(8);
                 if (!subPath.isEmpty()) {
                     String[] parts = subPath.split("/");
                     String dbName = parts[0];

@@ -945,11 +945,18 @@
         const token = localStorage.getItem('jettra_token');
         if (!token) window.location.href = '/login.html';
 
+        const isAdmin = localStorage.getItem('jettra_is_admin') === 'true' || localStorage.getItem('jettra_username') === 'admin';
         let currentView = 'cluster';
         let allNodes = [];
         let allDatabases = [];
         let selectedNodeId = null;
         let dbToDelete = null;
+
+        // Apply initial role-based UI restrictions
+        const navSecurity = document.getElementById('nav-security');
+        if (navSecurity) {
+            navSecurity.style.display = isAdmin ? 'block' : 'none';
+        }
 
         const SUPPORTED_ENGINES = [
             { name: 'Document', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
@@ -1312,8 +1319,10 @@
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                         <button class="btn" style="flex: 1; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);" 
                                 onclick="showNodeResources('${node.id}')">🔍 Resources</button>
-                        <button class="btn" style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" 
+                        ${isAdmin ? `
+                        <button class="btn" id="stop-btn-${node.id}" style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" 
                                 onclick="stopNode('${node.id}')">🛑 Stop</button>
+                        ` : ''}
                     </div>
                 </div>
             `).join('');

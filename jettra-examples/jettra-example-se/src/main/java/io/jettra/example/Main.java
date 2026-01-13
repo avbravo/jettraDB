@@ -72,6 +72,11 @@ public class Main {
             List<String> dbs = client.listDatabases().await().indefinitely();
             LOG.info("Bases de datos actuales: " + dbs);
 
+            // 7. Obtener información detallada de una base de datos
+            LOG.info("Consultando metadatos de la base de datos: " + dbName);
+            String dbInfo = client.getDatabaseInfo(dbName).await().indefinitely();
+            System.out.println("Metadata: " + dbInfo);
+
             List<String> users = client.listUsers().await().indefinitely();
             LOG.info("Usuarios registrados: " + users);
 

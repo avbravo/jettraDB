@@ -19,6 +19,8 @@ public interface JettraClient {
 
     Uni<Void> renameDatabase(String oldName, String newName);
 
+    Uni<String> getDatabaseInfo(String name);
+
     Uni<java.util.List<String>> listDatabases();
 
     Uni<java.util.List<String>> listCollections(String dbName);
