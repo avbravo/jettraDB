@@ -43,7 +43,7 @@
         <module>jettra-driver-java</module>
         <module>jettra-web</module>
         <module>jettra-shell</module>
-        <module>jettra-tx</module>
+        <module>jettra-examples</module>
     </modules>
 
     <build>

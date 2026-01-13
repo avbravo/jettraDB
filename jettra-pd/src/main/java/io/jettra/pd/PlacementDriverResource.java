@@ -70,6 +70,51 @@ public class PlacementDriverResource {
         return Response.ok().build();
     }
 
+    @GET
+    @Path("/databases/{name}")
+    public Response getDatabaseInfo(@jakarta.ws.rs.PathParam("name") String name) {
+        DatabaseMetadata db = pdService.getDatabaseInfo(name);
+        if (db == null)
+            return Response.status(Response.Status.NOT_FOUND).build();
+        return Response.ok(db).build();
+    }
+
+    @GET
+    @Path("/databases/{name}/collections")
+    public Response listCollections(@jakarta.ws.rs.PathParam("name") String name) {
+        DatabaseMetadata db = pdService.getDatabaseInfo(name);
+        if (db == null)
+            return Response.status(Response.Status.NOT_FOUND).build();
+        return Response.ok(db.collections()).build();
+    }
+
+    @POST
+    @Path("/databases/{name}/collections/{colName}")
+    public Response addCollection(@jakarta.ws.rs.PathParam("name") String name,
+            @jakarta.ws.rs.PathParam("colName") String colName,
+            java.util.Map<String, String> body) {
+        String engine = (body != null && body.containsKey("engine")) ? body.get("engine") : "Document";
+        pdService.addCollection(name, colName, engine);
+        return Response.ok().build();
+    }
+
+    @jakarta.ws.rs.DELETE
+    @Path("/databases/{name}/collections/{colName}")
+    public Response removeCollection(@jakarta.ws.rs.PathParam("name") String name,
+            @jakarta.ws.rs.PathParam("colName") String colName) {
+        pdService.removeCollection(name, colName);
+        return Response.ok().build();
+    }
+
+    @jakarta.ws.rs.PUT
+    @Path("/databases/{name}/collections/{oldName}/{newName}")
+    public Response renameCollection(@jakarta.ws.rs.PathParam("name") String name,
+            @jakarta.ws.rs.PathParam("oldName") String oldName,
+            @jakarta.ws.rs.PathParam("newName") String newName) {
+        pdService.renameCollection(name, oldName, newName);
+        return Response.ok().build();
+    }
+
     @POST
     @Path("/nodes/{id}/stop")
     public Response stopNode(@jakarta.ws.rs.PathParam("id") String id) {

@@ -2,7 +2,7 @@
 Base de datos realizar operaciones creacion, actualizar nombre o tipo o engine-store(storag o memory)
 eliminar base de datos.
 
-Terminados
+# Terminados
 
 # Pendientes
 
@@ -14,12 +14,10 @@ Terminados
 [64](https://github.com/avbravo/jettraDB/issues/64)
 [65](https://github.com/avbravo/jettraDB/issues/65)
 [88](https://github.com/avbravo/jettraDB/issues/88)
-[89](https://github.com/avbravo/jettraDB/issues/89)
-[92](https://github.com/avbravo/jettraDB/issues/92)
+
 [96](https://github.com/avbravo/jettraDB/issues/96)
 
-[100](https://github.com/avbravo/jettraDB/issues/100)
-[101](https://github.com/avbravo/jettraDB/issues/101)
+
 [111](https://github.com/avbravo/jettraDB/issues/111)   
 [122](https://github.com/avbravo/jettraDB/issues/122)
 [123](https://github.com/avbravo/jettraDB/issues/123)

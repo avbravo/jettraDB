@@ -88,4 +88,78 @@ public class WebDbResource {
             return Response.serverError().build();
         }
     }
+
+    @GET
+    @Path("/{name}")
+    public Response getDatabaseInfo(@PathParam("name") String name) {
+        try (Client client = ClientBuilder.newClient()) {
+            Response response = client.target(pdUrl + "/api/internal/pd/databases/" + name)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .get();
+            return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+        } catch (Exception e) {
+            return Response.serverError().build();
+        }
+    }
+
+    @GET
+    @Path("/{name}/collections")
+    public Response listCollections(@PathParam("name") String name) {
+        try (Client client = ClientBuilder.newClient()) {
+            Response response = client.target(pdUrl + "/api/internal/pd/databases/" + name + "/collections")
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .get();
+            return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+        } catch (Exception e) {
+            return Response.serverError().build();
+        }
+    }
+
+    @POST
+    @Path("/{name}/collections/{colName}")
+    public Response addCollection(@PathParam("name") String name, @PathParam("colName") String colName,
+            java.util.Map<String, String> body) {
+        try (Client client = ClientBuilder.newClient()) {
+            Response response = client.target(pdUrl + "/api/internal/pd/databases/" + name + "/collections/" + colName)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .post(Entity.json(body != null ? body : "{}"));
+            return Response.status(response.getStatus()).build();
+        } catch (Exception e) {
+            return Response.serverError().build();
+        }
+    }
+
+    @DELETE
+    @Path("/{name}/collections/{colName}")
+    public Response removeCollection(@PathParam("name") String name, @PathParam("colName") String colName) {
+        try (Client client = ClientBuilder.newClient()) {
+            Response response = client.target(pdUrl + "/api/internal/pd/databases/" + name + "/collections/" + colName)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .delete();
+            return Response.status(response.getStatus()).build();
+        } catch (Exception e) {
+            return Response.serverError().build();
+        }
+    }
+
+    @jakarta.ws.rs.PUT
+    @Path("/{name}/collections/{oldName}/{newName}")
+    public Response renameCollection(@PathParam("name") String name,
+            @PathParam("oldName") String oldName,
+            @PathParam("newName") String newName) {
+        try (Client client = ClientBuilder.newClient()) {
+            Response response = client
+                    .target(pdUrl + "/api/internal/pd/databases/" + name + "/collections/" + oldName + "/" + newName)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .put(Entity.json("{}"));
+            return Response.status(response.getStatus()).build();
+        } catch (Exception e) {
+            return Response.serverError().build();
+        }
+    }
 }

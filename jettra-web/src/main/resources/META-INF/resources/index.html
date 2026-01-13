@@ -534,8 +534,89 @@
 
             <div class="card mb-6" style="border-left: 4px solid var(--primary);">
                 <h3 class="mb-2" id="dbFormTitle">Nueva Base de Datos</h3>
-                <p class="text-sm text-gray-400 mb-6" id="dbFormDescription">Provisionar una nueva base de datos
-                    multi-modelo que soporta tipos Document, Column, Graph, Vector, Object y File.</p>
+                <p class="text-sm text-gray-400 mb-4" id="dbFormDescription">Provisionar una nueva base de datos
+                    multi-modelo que soporta tipos Document, Column, Graph, Vector, Object, Key-value, Geospatial,
+                    Time-Series y Files.</p>
+
+                <div id="db-engines-preview" class="mb-6"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
+                        </svg>
+                        Document
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Column
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                        </svg>
+                        Graph
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Vector
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                        Object
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z">
+                            </path>
+                        </svg>
+                        Key-value
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        Geospatial
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Time-Series
+                    </div>
+                    <div class="engine-badge"
+                        style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                        Files
+                    </div>
+                </div>
                 <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
                     <input type="hidden" id="dbOldName">
                     <div style="flex: 2; min-width: 200px; display: flex; flex-direction: column; gap: 0.5rem;">
@@ -728,17 +809,66 @@
         </div>
     </div>
 
-    <!-- Generic Alert Modal -->
-    <div id="alert-modal" class="modal-overlay hidden">
-        <div class="card"
-            style="width: 100%; max-width: 400px; text-align: center; border-top: 4px solid var(--primary);">
-            <div id="alert-icon-container"
-                style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
-                <!-- Icon will be injected -->
+    <!-- Collection Modal -->
+    <div id="collection-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 400px; border-top: 4px solid var(--secondary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="col-modal-title" style="margin: 0;">Nueva Colección</h2>
+                <button onclick="closeCollectionModal()"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
-            <h3 id="alert-title" class="mb-2">Aviso</h3>
-            <p id="alert-message" class="text-sm text-gray-400 mb-6"></p>
-            <button class="btn" onclick="closeAlertModal()" style="width: 100%;">Entendido</button>
+            <input type="hidden" id="col-db-name">
+            <input type="hidden" id="col-old-name">
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 block mb-2">Nombre de la Colección:</label>
+                <input type="text" id="col-name-input" placeholder="Ej: usuarios">
+            </div>
+            <div class="mb-6 hidden">
+                <label class="text-xs text-gray-400 block mb-2">Engine (Motor):</label>
+                <select id="col-engine-select">
+                    <option value="Document">Document</option>
+                    <option value="Column">Column</option>
+                    <option value="Graph">Graph</option>
+                    <option value="Vector">Vector</option>
+                    <option value="Object">Object</option>
+                    <option value="Key-value">Key-value</option>
+                    <option value="Geospatial">Geospatial</option>
+                    <option value="Time-Series">Time-Series</option>
+                    <option value="Files">Files</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="closeCollectionModal()"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">Cancelar</button>
+                <button class="btn" onclick="handleSubmitCollection()" id="col-submit-btn">Crear Colección</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collection Delete Confirmation Modal -->
+    <div id="col-delete-modal" class="modal-overlay hidden">
+        <div class="card"
+            style="width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3);">
+            <div
+                style="background: rgba(239, 68, 68, 0.1); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg style="width: 30px; height: 30px; color: #ef4444;" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+            <h2 class="mb-2">¿Eliminar Colección?</h2>
+            <p class="text-sm text-gray-400 mb-6">Esta acción eliminará permanentemente la colección <span
+                    id="delete-col-name-label" style="color: white; font-weight: 600;"></span>.</p>
+            <input type="hidden" id="delete-col-db-hidden">
+            <input type="hidden" id="delete-col-name-hidden">
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="closeColDeleteModal()"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">Cancelar</button>
+                <button class="btn" onclick="confirmDeleteCol()"
+                    style="background: #ef4444; border: 1px solid #ef4444;">Sí, Eliminar</button>
+            </div>
         </div>
     </div>
 
@@ -751,6 +881,18 @@
         let allDatabases = [];
         let selectedNodeId = null;
         let dbToDelete = null;
+
+        const SUPPORTED_ENGINES = [
+            { name: 'Document', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+            { name: 'Column', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
+            { name: 'Graph', icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
+            { name: 'Vector', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+            { name: 'Object', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
+            { name: 'Key-value', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
+            { name: 'Geospatial', icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { name: 'Time-Series', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { name: 'Files', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' }
+        ];
 
         function showAlert(title, message, type = 'error') {
             const modal = document.getElementById('alert-modal');
@@ -855,11 +997,157 @@
                 if (response.status === 401) return logout();
                 if (!response.ok) throw new Error('HTTP ' + response.status);
                 allDatabases = await response.json();
+
+                // Fetch collections for all databases to populate tree
+                for (let db of allDatabases) {
+                    try {
+                        const colRes = await fetch(`/api/db/${db.name}/collections`, {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if (colRes.ok) db.collections = await colRes.json();
+                    } catch (e) { console.error('Error fetching collections for ' + db.name, e); }
+                }
+
                 renderDatabases(allDatabases);
                 renderDbTree(allDatabases);
             } catch (error) {
                 console.error('Error fetching databases:', error);
                 dbGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
+            }
+        }
+
+        function renderCollectionItems(dbName, collections, engine) {
+            if (!collections || collections.length === 0) return '<div style="color: #475569; font-size: 0.75rem; padding-left: 1rem;">Sin colecciones</div>';
+            return collections.map(col => `
+                <div class="tree-type-item" style="justify-content: space-between; padding-right: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"></path></svg>
+                        <span>${col}</span>
+                    </div>
+                    <div style="display: flex; gap: 4px;">
+                        <div class="action-icon" style="width:16px; height:16px;" title="Renombrar" onclick="openCollectionModal('${dbName}', '${col}', '${engine}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </div>
+                        <div class="action-icon" style="width:16px; height:16px;" title="Eliminar" onclick="handleDeleteCol('${dbName}', '${col}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openCollectionModal(dbName, colName = '', engine = 'Document') {
+            document.getElementById('col-db-name').value = dbName;
+            document.getElementById('col-old-name').value = colName;
+            document.getElementById('col-name-input').value = colName;
+
+            const engineSelect = document.getElementById('col-engine-select');
+            engineSelect.value = engine;
+
+            // Lock engine selection if context is provided
+            if (engine) {
+                engineSelect.disabled = true;
+                engineSelect.style.opacity = '0.7';
+                engineSelect.style.cursor = 'not-allowed';
+            } else {
+                engineSelect.disabled = false;
+                engineSelect.style.opacity = '1';
+                engineSelect.style.cursor = 'pointer';
+            }
+
+            document.getElementById('col-modal-title').textContent = colName ? 'Editar Colección' : 'Nueva Colección';
+            document.getElementById('col-submit-btn').textContent = colName ? 'Guardar Cambios' : 'Crear Colección';
+            document.getElementById('collection-modal').classList.remove('hidden');
+        }
+
+        function closeCollectionModal() {
+            document.getElementById('collection-modal').classList.add('hidden');
+        }
+
+        async function handleSubmitCollection() {
+            const dbName = document.getElementById('col-db-name').value;
+            const oldName = document.getElementById('col-old-name').value;
+            const colName = document.getElementById('col-name-input').value.trim();
+            const engine = document.getElementById('col-engine-select').value;
+
+            if (!colName) return showAlert('Error', 'El nombre es obligatorio');
+
+            const isEdit = !!oldName;
+            const url = isEdit ? `/api/db/${dbName}/collections/${oldName}/${colName}` : `/api/db/${dbName}/collections/${colName}`;
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ engine })
+                });
+                if (response.ok) {
+                    closeCollectionModal();
+                    fetchDatabases();
+                    showAlert('Success', `Colección ${isEdit ? 'actualizada' : 'creada'} correctamente`, 'success');
+                } else {
+                    showAlert('Error', 'Error al procesar la colección');
+                }
+            } catch (e) {
+                showAlert('Error', 'Error de conexión');
+            }
+        }
+
+        function handleDeleteCol(dbName, colName) {
+            document.getElementById('delete-col-db-hidden').value = dbName;
+            document.getElementById('delete-col-name-hidden').value = colName;
+            document.getElementById('delete-col-name-label').textContent = colName;
+            document.getElementById('col-delete-modal').classList.remove('hidden');
+        }
+
+        function closeColDeleteModal() {
+            document.getElementById('col-delete-modal').classList.add('hidden');
+        }
+
+        async function confirmDeleteCol() {
+            const dbName = document.getElementById('delete-col-db-hidden').value;
+            const colName = document.getElementById('delete-col-name-hidden').value;
+
+            try {
+                const response = await fetch(`/api/db/${dbName}/collections/${colName}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    closeColDeleteModal();
+                    fetchDatabases();
+                    showAlert('Success', 'Colección eliminada', 'success');
+                } else {
+                    showAlert('Error', 'Error al eliminar');
+                }
+            } catch (e) {
+                showAlert('Error', 'Error de conexión');
+            }
+        }
+
+        async function refreshCollections(dbName, engine, btn) {
+            btn.style.animation = 'spin 1s linear infinite';
+            try {
+                const response = await fetch(`/api/db/${dbName}/collections`, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    const cols = await response.json();
+                    // If backend returns objects with engine info, filter. Otherwise, show all in "Document" for now.
+                    let filtered = cols;
+                    if (cols.length > 0 && typeof cols[0] === 'object') {
+                        filtered = cols.filter(c => c.engine === engine).map(c => c.name);
+                    } else if (engine !== 'Document') {
+                        filtered = []; // Default all to Document if no engine info
+                    }
+                    document.getElementById(`col-list-${dbName}-${engine}`).innerHTML = renderCollectionItems(dbName, filtered, engine);
+                }
+            } finally {
+                btn.style.animation = '';
             }
         }
 
@@ -879,150 +1167,36 @@
                         <span>${db.name}</span>
                     </div>
                     <div class="tree-children">
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                Document
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Añadir Documento" onclick="showAlert('Info', 'Añadir Documento para ' + '${db.name}', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        ${SUPPORTED_ENGINES.map(eng => {
+                let collections = db.collections || [];
+                let filtered = collections;
+                if (collections.length > 0 && typeof collections[0] === 'object') {
+                    filtered = collections.filter(c => c.engine === eng.name).map(c => c.name);
+                } else if (eng.name !== 'Document') {
+                    filtered = [];
+                } else if (collections.length > 0 && typeof collections[0] === 'string') {
+                    // Keep original names if strings and engine is Document
+                }
+
+                return `
+                            <div class="tree-engine-node" id="engine-${db.name}-${eng.name}">
+                                <div class="tree-type-item" onclick="toggleEngineActions(this)">
+                                    <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path></svg>
+                                    ${eng.name}
                                 </div>
-                                <div class="action-icon" title="Índices" onclick="showAlert('Info', 'Gestionar Índices de Documentos', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
+                                <div class="tree-actions">
+                                    <div class="action-icon" title="Añadir Coleccion" onclick="openCollectionModal('${db.name}', '', '${eng.name}')">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                    </div>
+                                    <div class="action-icon" title="Refrescar" onclick="refreshCollections('${db.name}', '${eng.name}', this)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    </div>
                                 </div>
-                                <div class="action-icon" title="Reglas" onclick="showAlert('Info', 'Reglas de Validación de Documentos', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                                Column
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Añadir Registro" onclick="showAlert('Info', 'Añadir Registro Columnar', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Índices" onclick="showAlert('Info', 'Índices de Columna', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Reglas" onclick="showAlert('Info', 'Reglas de Columna', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                <div class="tree-children tree-collection-list show" id="col-list-${db.name}-${eng.name}">
+                                    ${renderCollectionItems(db.name, filtered, eng.name)}
                                 </div>
                             </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
-                                Graph
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Añadir Vértice" onclick="showAlert('Info', 'Añadir Vértice/Arista', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Índices" onclick="showAlert('Info', 'Índices de Grafo', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Reglas" onclick="showAlert('Info', 'Reglas de Grafo', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                Vector
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Añadir Vector" onclick="showAlert('Info', 'Añadir Vector/Embedding', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Índices" onclick="showAlert('Info', 'Índices HNSW/Flat', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Reglas" onclick="showAlert('Info', 'Reglas Vectoriales', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-                                Object
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Subir Objeto" onclick="showAlert('Info', 'Subir nuevo Objeto/Blob', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Metadatos" onclick="showAlert('Info', 'Gestionar Metadatos de Objetos', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Reglas" onclick="showAlert('Info', 'Políticas de Acceso', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
-                                Key-Value
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Set Key" onclick="showAlert('Info', 'Set Key-Value Pair', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Get Key" onclick="showAlert('Info', 'Get Key Value', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Geospatial
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Add Point" onclick="showAlert('Info', 'Add Geo Point/Polygon', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Index Geo" onclick="showAlert('Info', 'Geospatial Index', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0121 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Time-Series
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Add Data" onclick="showAlert('Info', 'Add Time Series Data', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Rollups" onclick="showAlert('Info', 'Configure Rollups', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="tree-engine-node">
-                            <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-                                Files
-                            </div>
-                            <div class="tree-actions">
-                                <div class="action-icon" title="Subir Archivo" onclick="showAlert('Info', 'Subir Archivo al Sistema de Archivos', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Explorar" onclick="showAlert('Info', 'Explorar Directorios', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                </div>
-                                <div class="action-icon" title="Reglas" onclick="showAlert('Info', 'Permisos de Archivo', 'info')">
-                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                                </div>
-                            </div>
-                        </div>
+                        `}).join('')}
                     </div>
                 </div>
             `).join('');

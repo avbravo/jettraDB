@@ -69,29 +69,67 @@ login admin
 ```
 
 ### 3. Database Management
-Manage your databases directly from the shell, specifying the engine and storage type:
+Manage your databases directly from the shell, specifying the storage type. All databases are Multi-Model containers:
 
 ```bash
-# Create a new persistent Document database (Default)
+# Create a new persistent Multi-Model database (Default)
 db create sales_db
 
-# Create a new Graph database in memory
-db create social_graph --engine Graph --storage MEMORY
+# Create a new Multi-Model database in memory
+db create social_db --storage MEMORY
 
-# Options for --engine:
-# Document, Column, Key-Value, Graph, Vector, Object, File
+# Rename a database
+db rename sales_db retail_db
 
 # Options for --storage:
 # STORE (Persistent), MEMORY (In-Memory)
 
 # List all databases
-db list
+db list # legacy
+show dbs # improved
 
 # Delete a database
-db delete sales_db
+db delete retail_db
 ```
 
-### 4. Querying Data (Legacy)
+### 4. Navigation & Context
+JettraDB shell now supports context switching and detailed metadata inspection:
+
+```bash
+# List all available databases
+show dbs
+
+# Switch to a target database context
+use retail_db
+
+# Show collections in the current database
+show collections
+
+# Show detailed information for a database
+info retail_db
+```
+
+### 5. Collection Management
+Manage collections within your current database context, specifying the specialized engine:
+
+```bash
+# Add a new Document collection (Default)
+collection add users
+
+# Add a new Graph collection
+collection add friends --engine Graph
+
+# Add a new Vector collection for search
+collection add product_vectors --engine Vector
+
+# Rename a collection
+collection rename users customers
+
+# Delete a collection
+collection delete logs
+```
+
+### 6. Querying Data (Legacy)
 The `query` command provides low-level access to engine primitives:
 
 ```bash
@@ -99,7 +137,7 @@ query "INSERT DOCUMENT INTO users {name: 'John', age: 30}"
 query "SET config 'max_connections' '500'"
 ```
 
-### 5. Multi-Engine SQL Support 🚀
+### 7. Multi-Engine SQL Support 🚀
 JettraDB now supports a unified SQL interface that automatically routes operations to the specialized engines:
 
 ```bash
@@ -118,7 +156,7 @@ sql UPDATE analytics SET processed=true WHERE id='node_2'
 sql DELETE FROM logs WHERE date < '2023-01-01'
 ```
 
-### 6. MongoDB-style Support 🍃
+### 8. MongoDB-style Support 🍃
 JettraDB also understands MongoDB syntax for developers coming from document-oriented backgrounds.
 
 ```bash
@@ -135,7 +173,7 @@ mongo db.inventory.update({id: '123'}, {$set: {stock: 10}})
 mongo db.orders.aggregate([{$group: {_id: '$status', total: {$sum: '$amount'}}}])
 ```
 
-### 7. Cluster Administration & Monitoring ⭐
+### 9. Cluster Administration & Monitoring ⭐
 Monitor your cluster health and resource usage directly from the shell:
 
 ```bash
@@ -159,7 +197,7 @@ query "SHOW NODES"
 query "SHOW GROUPS"
 ```
 
-### 8. Integrated Help System 📖
+### 10. Integrated Help System 📖
 Each language support has its own detailed help and examples:
 
 ```bash

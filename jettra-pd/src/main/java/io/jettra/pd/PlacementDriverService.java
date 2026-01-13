@@ -80,6 +80,40 @@ public class PlacementDriverService {
         return databases.values();
     }
 
+    public DatabaseMetadata getDatabaseInfo(String name) {
+        return databases.get(name);
+    }
+
+    public void addCollection(String dbName, String collectionName, String engine) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            boolean exists = db.collections().stream().anyMatch(c -> c.name().equals(collectionName));
+            if (!exists) {
+                db.collections().add(new CollectionMetadata(collectionName, engine));
+            }
+        }
+    }
+
+    public void removeCollection(String dbName, String collectionName) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            db.collections().removeIf(c -> c.name().equals(collectionName));
+        }
+    }
+
+    public void renameCollection(String dbName, String oldName, String newName) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            for (int i = 0; i < db.collections().size(); i++) {
+                CollectionMetadata col = db.collections().get(i);
+                if (col.name().equals(oldName)) {
+                    db.collections().set(i, new CollectionMetadata(newName, col.engine()));
+                    break;
+                }
+            }
+        }
+    }
+
     public void registerNode(NodeMetadata node) {
         LOG.debugf("Registering node: %s at %s", node.id(), node.address());
         NodeMetadata updatedNode = new NodeMetadata(

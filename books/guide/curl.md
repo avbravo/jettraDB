@@ -66,7 +66,15 @@ curl -s http://localhost:8081/api/db \
 curl -X POST http://localhost:8081/api/db \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "sales_db", "storage": "STORE", "engine": "Multi-Model"}'
+  -d '{"name": "sales_db", "storage": "STORE"}'
+```
+
+### Crear Colección (Document)
+```bash
+curl -X POST http://localhost:8081/api/db/sales_db/collections/orders \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"engine": "Document"}'
 ```
 
 ### Crear Base de Datos (In-Memory Multi-Model)
@@ -74,12 +82,47 @@ curl -X POST http://localhost:8081/api/db \
 curl -X POST http://localhost:8081/api/db \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name": "user_graph", "storage": "MEMORY", "engine": "Multi-Model"}'
+  -d '{"name": "user_graph", "storage": "MEMORY"}'
+```
+
+### Renombrar Base de Datos
+```bash
+curl -X PUT http://localhost:8081/api/db/sales_db \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "sales_v2"}'
 ```
 
 ### Eliminar Base de Datos
 ```bash
 curl -X DELETE http://localhost:8081/api/db/sales_db \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## Gestión de Colecciones
+Operaciones para gestionar colecciones dentro de una base de datos específica.
+
+### Listar Colecciones
+```bash
+curl -s http://localhost:8081/api/db/sales_db/collections \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Añadir Colección
+```bash
+curl -X POST http://localhost:8081/api/db/sales_db/collections/users \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Renombrar Colección
+```bash
+curl -X PUT http://localhost:8081/api/db/sales_db/collections/users/customers \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Eliminar Colección
+```bash
+curl -X DELETE http://localhost:8081/api/db/sales_db/collections/customers \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -162,4 +205,21 @@ curl -X POST http://localhost:8082/stop -H "Authorization: Bearer $TOKEN"
 
 # Detener Jettra Web
 curl -X POST http://localhost:8081/stop -H "Authorization: Bearer $TOKEN"
+```
+
+## Ejemplo Completo: Base de Datos y Colección (Document)
+Este ejemplo muestra el flujo completo para crear una base de datos persistente y una colección usando el motor **Document** vía cURL.
+
+```bash
+# 1. Crear la base de datos (Persistent Multi-Model)
+curl -X POST http://localhost:8081/api/db \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "mi_base_datos", "storage": "STORE"}'
+
+# 2. Crear la colección con el motor Document
+curl -X POST http://localhost:8081/api/db/mi_base_datos/collections/usuarios \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"engine": "Document"}'
 ```

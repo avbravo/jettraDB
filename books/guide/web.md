@@ -37,14 +37,18 @@ Gestión completa del ciclo de vida de las bases de datos:
         - **Añadir**: Insertar nuevos documentos, registros, vértices, etc.
         - **Índices**: Gestionar índices específicos para ese modelo de datos.
         - **Reglas**: Configurar reglas de validación y seguridad.
-- **Crear**: Provisiona nuevas bases de datos lógicas instantáneamente. Se debe seleccionar:
+- **Crear**: Provisiona nuevas bases de datos lógicas instantáneamente.
     - **Nombre**: Identificador único de la base de datos.
-    - **Multi-modelo**: Permite crear dentro de ellas tipos Document, Column, Graph, Vector, Object y File de manera integrada.
+    - **Contenedor Multi-modelo**: Todas las bases de datos creadas son contenedores multi-modelo por definición, permitiendo alojar colecciones de diferentes tipos (Document, Graph, Vector, etc.).
     - **Tipo de Almacenamiento (Storage)**:
         - **Persistent (Store)**: Los datos se guardan en disco (jettra-store).
         - **In-Memory**: Los datos residen exclusivamente en RAM para baja latencia.
 - **Listar**: Visualiza todas las bases de datos registradas indicando su **Motor** y tipo de **Almacenamiento**.
 - **Eliminar**: Borra bases de datos y todos sus datos asociados tras confirmación.
+- **Gestión de Colecciones (Document Explorer)** ⭐: Dentro del árbol de la base de datos, en cada sección de motor (ej: **Document, Graph, Vector**), ahora puede:
+    - **Añadir Colección**: Al dar clic en `+`, se abrirá un modal para ingresar el nombre y confirmar el **Motor (Engine)** especializado. Por defecto se sugiere el motor de la sección desde la que se invoca.
+    - **Refrescar**: Sincronizar la lista de colecciones de ese motor específico.
+    - **Renombrar/Eliminar**: Opciones rápidas para el ciclo de vida de la colección.
 
 ### 4. Consola de Consultas (Query Console)
 Permite ejecutar operaciones multi-modelo directamente desde el navegador:

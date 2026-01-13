@@ -1,6 +1,9 @@
 package io.jettra.shell;
 
 import io.quarkus.picocli.runtime.annotations.TopCommand;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.io.IOException;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -15,6 +18,10 @@ import jakarta.enterprise.context.ApplicationScoped;
                 ConnectCommand.class,
                 LoginCommand.class,
                 DatabaseCommands.class,
+                CollectionCommands.class,
+                ShowCommand.class,
+                UseCommand.class,
+                InfoCommand.class,
                 NodeCommands.class,
                 QueryCommand.class,
                 SqlCommand.class,
@@ -23,6 +30,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class JettraShell implements Runnable {
     public static String authToken;
     public static String pdAddress = "localhost:8081"; // Default to web dashboard port
+    public static String currentDatabase;
 
     @Override
     public void run() {
@@ -49,8 +57,10 @@ public class JettraShell implements Runnable {
                     .build();
 
             while (true) {
-                String prompt = (authToken == null) ? "jettra> "
-                        : "jettra(" + (authToken.length() > 8 ? authToken.substring(0, 8) : authToken) + ")> ";
+                String dbIndicator = (currentDatabase == null) ? "" : "(" + currentDatabase + ")";
+                String prompt = (authToken == null) ? "jettra" + dbIndicator + "> "
+                        : "jettra" + dbIndicator + "("
+                                + (authToken.length() > 8 ? authToken.substring(0, 8) : authToken) + ")> ";
 
                 String line;
                 try {
@@ -86,15 +96,32 @@ public class JettraShell implements Runnable {
                     System.out.printf("  %-35s %s%n", "exit, quit", "Exit the shell");
                     System.out.println();
 
+                    System.out.println("@|bold,underline Navigation & Discovery|@");
+                    System.out.printf("  %-35s %s%n", "show dbs", "List all available databases");
+                    System.out.printf("  %-35s %s%n", "show collections", "List collections in current database");
+                    System.out.printf("  %-35s %s%n", "use <database>", "Switch to target database context");
+                    System.out.printf("  %-35s %s%n", "info <database>", "Show detailed settings for a database");
+                    System.out.println();
+
                     System.out.println("@|bold,underline Database Management|@");
-                    System.out.printf("  %-35s %s%n", "db list", "List all databases");
+                    System.out.printf("  %-35s %s%n", "db list", "List all databases (legacy)");
                     System.out.printf("  %-35s %s%n", "db create <name>",
-                            "Create a new database (default: Document/Store)");
-                    System.out.printf("  %-35s %s%n", "  --engine <type>",
-                            "  Types: Document, Graph, Key-Value, Time-Series, Vector");
+                            "Create a new database (default: STORE)");
                     System.out.printf("  %-35s %s%n", "  --storage <mode>",
                             "  Modes: STORE (Persistent), MEMORY (Volatile)");
+                    System.out.printf("  %-35s %s%n", "db rename <old> <new>", "Rename an existing database");
                     System.out.printf("  %-35s %s%n", "db delete <name>", "Delete a database");
+                    System.out.println();
+
+                    System.out.println("@|bold,underline Collection Management|@");
+                    System.out.printf("  %-35s %s%n", "collection add <name>",
+                            "Create a new collection in current DB");
+                    System.out.printf("  %-35s %s%n", "  --engine <type>",
+                            "  Types: Document, Column, Graph, Vector, Object, Key-value, Geospatial, Time-Series, Files");
+                    System.out.printf("  %-35s %s%n", "collection rename <old> <new>",
+                            "Rename a collection in current DB");
+                    System.out.printf("  %-35s %s%n", "collection delete <name>",
+                            "Delete a collection from current DB");
                     System.out.println();
 
                     System.out.println("@|bold,underline Cluster Management|@");
@@ -103,11 +130,11 @@ public class JettraShell implements Runnable {
                     System.out.printf("  %-35s %s%n", "node <id> stop", "Alternative syntax for shutdown");
                     System.out.println();
 
-                    System.out.println("@|bold,underline Data & Querying|@");
+                    System.out.println("@|bold,underline Native Language Support|@");
                     System.out.printf("  %-35s %s%n", "sql <query>",
-                            "Execute SQL queries (SELECT, INSERT, UPDATE, DELETE)");
+                            "Execute SQL queries (e.g., SELECT * FROM users)");
                     System.out.printf("  %-35s %s%n", "mongo <query>",
-                            "Execute MongoDB-style queries (db.col.find({...}))");
+                            "Execute MongoDB queries (e.g., db.users.find({}))");
                     System.out.printf("  %-35s %s%n", "query <command>", "Execute low-level engine commands");
                     System.out.println();
 
@@ -208,7 +235,7 @@ class LoginCommand implements Runnable {
 
 @Command(name = "query", description = "Execute a query")
 class QueryCommand implements Runnable {
-    @Parameters(index = "0", description = "The query string")
+    @picocli.CommandLine.Parameters(index = "0", description = "The query string")
     String query;
 
     @Override
@@ -218,5 +245,231 @@ class QueryCommand implements Runnable {
             return;
         }
         System.out.println("Executing query: " + query + " [Auth: " + JettraShell.authToken + "]");
+    }
+}
+
+@Command(name = "show", description = "Discovery commands")
+class ShowCommand implements Runnable {
+    @picocli.CommandLine.Parameters(index = "0", description = "What to show: dbs, collections")
+    String target;
+
+    @Override
+    public void run() {
+        if ("dbs".equalsIgnoreCase(target)) {
+            new ListDatabasesCommand().run();
+        } else if ("collections".equalsIgnoreCase(target)) {
+            if (JettraShell.currentDatabase == null) {
+                System.out.println("Error: No database selected. Use 'use <database>' first.");
+                return;
+            }
+            new ListCollectionsCommand(JettraShell.currentDatabase).run();
+        } else {
+            System.out.println("Unknown target: " + target + ". Supported: dbs, collections");
+        }
+    }
+}
+
+@Command(name = "use", description = "Switch database context")
+class UseCommand implements Runnable {
+    @picocli.CommandLine.Parameters(index = "0", description = "Database name")
+    String name;
+
+    @Override
+    public void run() {
+        if (JettraShell.authToken == null) {
+            System.out.println("Error: Not logged in.");
+            return;
+        }
+        System.out.println("Switching to database: " + name);
+        JettraShell.currentDatabase = name;
+    }
+}
+
+@Command(name = "info", description = "Show database information")
+class InfoCommand implements Runnable {
+    @picocli.CommandLine.Parameters(index = "0", description = "Database name")
+    String name;
+
+    @Override
+    public void run() {
+        if (JettraShell.authToken == null) {
+            System.out.println("Error: Not logged in.");
+            return;
+        }
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db/" + name))
+                    .header("Authorization", "Bearer " + JettraShell.authToken)
+                    .GET()
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                System.out.println("Database Information: " + name);
+                System.out.println(response.body());
+            } else {
+                System.out.println("Error retrieving info: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Execution failed: " + e.getMessage());
+        }
+    }
+}
+
+@Command(name = "collection", description = "Collection management commands", subcommands = {
+        AddCollectionCommand.class,
+        RenameCollectionCommand.class,
+        DeleteCollectionCommand.class
+})
+class CollectionCommands {
+}
+
+@Command(name = "add", description = "Add a new collection")
+class AddCollectionCommand implements Runnable {
+    @picocli.CommandLine.Parameters(index = "0", description = "Collection name")
+    String name;
+
+    @picocli.CommandLine.Option(names = { "-e",
+            "--engine" }, description = "Engine: Document, Column, Graph, Vector, Object, Key-value, Geospatial, Time-Series, Files", defaultValue = "Document")
+    String engine;
+
+    @Override
+    public void run() {
+        if (JettraShell.authToken == null) {
+            System.out.println("Error: Not logged in.");
+            return;
+        }
+        if (JettraShell.currentDatabase == null) {
+            System.out.println("Error: No database selected.");
+            return;
+        }
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            String json = String.format("{\"engine\": \"%s\"}", engine);
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db/" + JettraShell.currentDatabase
+                            + "/collections/" + name))
+                    .header("Authorization", "Bearer " + JettraShell.authToken)
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                System.out.println("Collection '" + name + "' [Engine: " + engine + "] added to database '"
+                        + JettraShell.currentDatabase + "'.");
+            } else {
+                System.out.println("Error: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Execution failed: " + e.getMessage());
+        }
+    }
+}
+
+@Command(name = "rename", description = "Rename a collection")
+class RenameCollectionCommand implements Runnable {
+    @picocli.CommandLine.Parameters(index = "0", description = "Old collection name")
+    String oldName;
+    @picocli.CommandLine.Parameters(index = "1", description = "New collection name")
+    String newName;
+
+    @Override
+    public void run() {
+        if (JettraShell.authToken == null) {
+            System.out.println("Error: Not logged in.");
+            return;
+        }
+        if (JettraShell.currentDatabase == null) {
+            System.out.println("Error: No database selected.");
+            return;
+        }
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db/" + JettraShell.currentDatabase
+                            + "/collections/" + oldName + "/" + newName))
+                    .header("Authorization", "Bearer " + JettraShell.authToken)
+                    .PUT(java.net.http.HttpRequest.BodyPublishers.noBody())
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                System.out.println("Collection '" + oldName + "' renamed to '" + newName + "' in database '"
+                        + JettraShell.currentDatabase + "'.");
+            } else {
+                System.out.println("Error: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Execution failed: " + e.getMessage());
+        }
+    }
+}
+
+@Command(name = "delete", description = "Delete a collection")
+class DeleteCollectionCommand implements Runnable {
+    @picocli.CommandLine.Parameters(index = "0", description = "Collection name")
+    String name;
+
+    @Override
+    public void run() {
+        if (JettraShell.authToken == null) {
+            System.out.println("Error: Not logged in.");
+            return;
+        }
+        if (JettraShell.currentDatabase == null) {
+            System.out.println("Error: No database selected.");
+            return;
+        }
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db/" + JettraShell.currentDatabase
+                            + "/collections/" + name))
+                    .header("Authorization", "Bearer " + JettraShell.authToken)
+                    .DELETE()
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                System.out.println(
+                        "Collection '" + name + "' deleted from database '" + JettraShell.currentDatabase + "'.");
+            } else {
+                System.out.println("Error: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Execution failed: " + e.getMessage());
+        }
+    }
+}
+
+class ListCollectionsCommand implements Runnable {
+    String dbName;
+
+    public ListCollectionsCommand(String dbName) {
+        this.dbName = dbName;
+    }
+
+    @Override
+    public void run() {
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/db/" + dbName + "/collections"))
+                    .header("Authorization", "Bearer " + JettraShell.authToken)
+                    .GET()
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                System.out.println("Collections in '" + dbName + "':");
+                System.out.println(response.body());
+            } else {
+                System.out.println("Error retrieving collections: " + response.statusCode());
+            }
+        } catch (Exception e) {
+            System.err.println("Execution failed: " + e.getMessage());
+        }
     }
 }
