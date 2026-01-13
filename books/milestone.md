@@ -3,24 +3,6 @@ Base de datos realizar operaciones creacion, actualizar nombre o tipo o engine-s
 eliminar base de datos.
 
 Terminados
-[131](https://github.com/avbravo/jettraDB/issues/131)
-[173](https://github.com/avbravo/jettraDB/issues/173)
-[177](https://github.com/avbravo/jettraDB/issues/177)
-[99](https://github.com/avbravo/jettraDB/issues/99)
-[178](https://github.com/avbravo/jettraDB/issues/178
-[179](https://github.com/avbravo/jettraDB/issues/178)
-[180](https://github.com/avbravo/jettraDB/issues/180)
-[181](https://github.com/avbravo/jettraDB/issues/181)
-[182](https://github.com/avbravo/jettraDB/issues/182)
-[183](https://github.com/avbravo/jettraDB/issues/183)
-[184](https://github.com/avbravo/jettraDB/issues/184)
-[186](https://github.com/avbravo/jettraDB/issues/186)
-[187](https://github.com/avbravo/jettraDB/issues/187)
-[188](https://github.com/avbravo/jettraDB/issues/188)
-[189](https://github.com/avbravo/jettraDB/issues/189)
-[190](https://github.com/avbravo/jettraDB/issues/190)
-[191](https://github.com/avbravo/jettraDB/issues/191)
-[192](https://github.com/avbravo/jettraDB/issues/192)
 
 # Pendientes
 

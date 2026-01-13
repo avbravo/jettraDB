@@ -22,12 +22,13 @@ public class NodeCommands implements Runnable {
                         String nodeId = args.get(0);
                         new StopNodeCommand(nodeId).run();
                 } else if (args != null && !args.isEmpty()) {
-                         System.out.println("Unknown node command or invalid arguments: " + args);
-                         System.out.println("Usage: node list, node stop <id>, or node <id> stop");
+                        System.out.println("Unknown node command or invalid arguments: " + args);
+                        System.out.println("Usage: node list, node stop <id>, or node <id> stop");
                 } else {
-                        // If no args and no subcommand matched (though picocli handles subcommands first)
+                        // If no args and no subcommand matched (though picocli handles subcommands
+                        // first)
                         // this might be reached if user just types 'node'
-                         System.out.println("Usage: node list, node stop <id>, or node <id> stop");
+                        System.out.println("Usage: node list, node stop <id>, or node <id> stop");
                 }
         }
 }
@@ -90,11 +91,19 @@ class ListNodeResourcesCommand implements Runnable {
 
 @Command(name = "stop", description = "Stop a specific node")
 class StopNodeCommand implements Runnable {
-        @Parameters(index = "0", description = "The ID of the node to stop.")
+        @Parameters(index = "0", description = "The ID of the node (or address) to stop.")
         private String nodeId;
 
-        public StopNodeCommand() {}
-        public StopNodeCommand(String nodeId) { this.nodeId = nodeId; }
+        @picocli.CommandLine.Option(names = {
+                        "--direct" }, description = "Stop the node directly via its address instead of through PD.")
+        private boolean direct;
+
+        public StopNodeCommand() {
+        }
+
+        public StopNodeCommand(String nodeId) {
+                this.nodeId = nodeId;
+        }
 
         @Override
         public void run() {
@@ -104,17 +113,23 @@ class StopNodeCommand implements Runnable {
                 }
                 try {
                         HttpClient client = HttpClient.newHttpClient();
+                        String url = direct
+                                        ? "http://" + nodeId + "/stop"
+                                        : "http://" + JettraShell.pdAddress + "/api/monitor/nodes/" + nodeId + "/stop";
+
                         HttpRequest request = HttpRequest.newBuilder()
-                                        .uri(URI.create("http://" + JettraShell.pdAddress + "/api/monitor/nodes/"
-                                                        + nodeId + "/stop"))
+                                        .uri(URI.create(url))
                                         .header("Authorization", "Bearer " + JettraShell.authToken)
                                         .POST(HttpRequest.BodyPublishers.noBody())
                                         .build();
+
+                        System.out.println("Sending stop request to: " + url);
                         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                         if (response.statusCode() == 200) {
-                                System.out.println("Stop request sent for node: " + nodeId);
+                                System.out.println("Stop request sent successfuly.");
                         } else {
-                                System.out.println("Error ( " + response.statusCode() + "): Failed to stop node.");
+                                System.out.println("Error ( " + response.statusCode() + "): Failed to stop node. "
+                                                + response.body());
                         }
                 } catch (java.io.IOException | java.lang.InterruptedException e) {
                         System.err.println("Execution failed: " + e.getMessage());

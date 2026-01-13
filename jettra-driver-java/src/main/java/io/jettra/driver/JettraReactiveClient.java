@@ -118,6 +118,31 @@ public class JettraReactiveClient implements JettraClient {
         });
     }
 
+    /**
+     * Stops a node directly using its network address.
+     * 
+     * @param address The address of the node (host:port)
+     * @return Uni<Void>
+     */
+    public Uni<Void> stopNodeDirect(String address) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + address + "/stop"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200) {
+                return Uni.createFrom().voidItem();
+            } else {
+                return Uni.createFrom()
+                        .failure(new RuntimeException(
+                                "Failed to stop node at " + address + ". Status: " + response.statusCode()));
+            }
+        });
+    }
+
     // Specific Vector Engine Method
     public Uni<List<String>> searchVector(float[] query, int k) {
         LOG.info("Performing vector similarity search...");

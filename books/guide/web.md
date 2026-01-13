@@ -25,7 +25,7 @@ Muestra una topología detallada de la red JettraDB en tiempo real:
     - **Uso de CPU**: Porcentaje de carga del procesador del nodo.
     - **Uso de Memoria**: Memoria RAM consumida vs Memoria RAM disponible.
     - **Latencia de Señal**: Tiempo transcurrido desde el último latido (heartbeat).
-    - **Detener Nodo** 🛑: Botón para enviar una petición remota de parada al nodo, lo que lo marcará como OFFLINE sin reiniciar el contenedor inmediatamente.
+    - **Detener Nodo** 🛑: Botón para enviar una petición remota de parada al nodo (vía PD o directamente al endpoint `/stop`), lo que lo marcará como OFFLINE de forma segura.
 
 ### 3. Administración de Bases de Datos (Database Management)
 Gestión completa del ciclo de vida de las bases de datos:

@@ -149,3 +149,17 @@ curl -X POST http://localhost:8081/api/monitor/nodes/jettra-store-3/stop \
 curl -X POST http://localhost:8080/api/internal/pd/nodes/jettra-store-3/stop \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+### Invocación Directa al Nodo (Nuevo) ⭐
+Ahora cada nodo (PD, Store, Web) expone un endpoint `/stop` directo en la raíz para facilitar su detención.
+
+```bash
+# Detener Placement Driver
+curl -X POST http://localhost:8080/stop -H "Authorization: Bearer $TOKEN"
+
+# Detener Jettra Store
+curl -X POST http://localhost:8082/stop -H "Authorization: Bearer $TOKEN"
+
+# Detener Jettra Web
+curl -X POST http://localhost:8081/stop -H "Authorization: Bearer $TOKEN"
+```

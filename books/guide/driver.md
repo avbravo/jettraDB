@@ -67,9 +67,12 @@ import io.jettra.driver.NodeInfo;
 Uni<List<NodeInfo>> nodesUni = client.listNodes();
 List<NodeInfo> nodes = nodesUni.await().indefinitely();
 
-// Stop a specific node (Sends a remote stop request)
+// Stop a specific node (Sends a remote stop request via PD)
 Uni<Void> stopResult = client.stopNode("jettra-store-2");
 stopResult.await().indefinitely(); // Blocking wait for demo
+
+// Alternatively, any node can be stopped directly via HTTP POST to /stop if the address is known.
+```
 
 for (NodeInfo node : nodes) {
     System.out.println("Node: " + node.id());

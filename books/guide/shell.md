@@ -209,7 +209,13 @@ To gracefully shut down a node via API Proxy (Recommended):
 curl -X POST http://localhost:8081/api/monitor/nodes/<node-id>/stop -H "Authorization: Bearer <token>"
 ```
 
-Or directly via PD (if exposed):
+Or directly via the new root endpoint on any node:
+
+```bash
+curl -X POST http://localhost:<port>/stop -H "Authorization: Bearer <token>"
+```
+
+Or directly via PD (legacy):
 
 ```bash
 curl -X POST http://localhost:8080/api/internal/pd/nodes/<node-id>/stop -H "Authorization: Bearer <token>"

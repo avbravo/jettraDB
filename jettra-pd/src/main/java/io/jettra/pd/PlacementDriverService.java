@@ -118,7 +118,7 @@ public class PlacementDriverService {
         // Use a background thread or asynchronous call to notify the node to stop
         // We'll use a simple JAX-RS client call here
         try {
-            String targetUrl = String.format("http://%s/api/internal/node/stop", node.address());
+            String targetUrl = String.format("http://%s/stop", node.address());
             LOG.infof("Sending internal stop request to: %s", targetUrl);
 
             String token = io.jettra.pd.auth.TokenUtils.generateToken("system-pd", java.util.Set.of("admin", "system"));
@@ -131,7 +131,8 @@ public class PlacementDriverService {
                     .header("Authorization", "Bearer " + token)
                     .build();
 
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            java.net.http.HttpResponse<String> response = client.send(request,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
 
             LOG.infof("Node %s responded with status: %d", nodeId, response.statusCode());
         } catch (Exception e) {

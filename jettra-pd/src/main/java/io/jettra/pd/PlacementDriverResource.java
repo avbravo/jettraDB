@@ -77,6 +77,21 @@ public class PlacementDriverResource {
         return Response.ok().build();
     }
 
+    @jakarta.annotation.security.RolesAllowed({ "system", "admin" })
+    @POST
+    @Path("/stop")
+    public Response stop() {
+        new Thread(() -> {
+            try {
+                Thread.sleep(500);
+                io.quarkus.runtime.Quarkus.asyncExit(0);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
+        return Response.ok("{\"status\":\"stopping\"}").build();
+    }
+
     @GET
     @Path("/health")
     public Response health() {
