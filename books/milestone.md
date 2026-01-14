@@ -30,7 +30,7 @@ eliminar base de datos.
 [253](https://github.com/avbravo/jettraDB/issues/253)
 [254](https://github.com/avbravo/jettraDB/issues/254)
 [256](https://github.com/avbravo/jettraDB/issues/256)
-[257](https://github.com/avbravo/jettraDB/issues/257)
+
 [258](https://github.com/avbravo/jettraDB/issues/258)
 [259](https://github.com/avbravo/jettraDB/issues/259)
 [260](https://github.com/avbravo/jettraDB/issues/260)
