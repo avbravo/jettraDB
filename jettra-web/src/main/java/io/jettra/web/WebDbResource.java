@@ -21,7 +21,6 @@ import jakarta.ws.rs.core.Response;
 
 @Path("/api/db")
 @Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class WebDbResource {
 
     @ConfigProperty(name = "jettra.pd.url")
@@ -49,6 +48,7 @@ public class WebDbResource {
     }
 
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response createDatabase(io.jettra.pd.DatabaseMetadata db) {
         try (Client client = ClientBuilder.newClient()) {
             Response response = client.target(pdUrl + "/api/internal/pd/databases")
@@ -63,6 +63,7 @@ public class WebDbResource {
 
     @jakarta.ws.rs.PUT
     @Path("/{oldName}")
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response updateDatabase(@PathParam("oldName") String oldName, io.jettra.pd.DatabaseMetadata db) {
         try (Client client = ClientBuilder.newClient()) {
             Response response = client.target(pdUrl + "/api/internal/pd/databases/" + oldName)
@@ -119,6 +120,7 @@ public class WebDbResource {
 
     @POST
     @Path("/{name}/collections/{colName}")
+    @Consumes(MediaType.APPLICATION_JSON)
     public Response addCollection(@PathParam("name") String name, @PathParam("colName") String colName,
             java.util.Map<String, String> body) {
         try (Client client = ClientBuilder.newClient()) {
@@ -126,6 +128,9 @@ public class WebDbResource {
                     .request(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                     .post(Entity.json(body != null ? body : "{}"));
+            if (response.hasEntity()) {
+                 return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+            }
             return Response.status(response.getStatus()).build();
         } catch (Exception e) {
             return Response.serverError().build();

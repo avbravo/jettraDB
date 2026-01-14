@@ -104,7 +104,8 @@ Obtiene los metadatos y la configuración de una base de datos específica.
 
 ```bash
 curl -s http://localhost:8081/api/db/sales_db \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json"
 ```
 
 ## Gestión de Colecciones

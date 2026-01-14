@@ -84,14 +84,17 @@ public class PlacementDriverService {
         return databases.get(name);
     }
 
-    public void addCollection(String dbName, String collectionName, String engine) {
+    public boolean addCollection(String dbName, String collectionName, String engine) {
         DatabaseMetadata db = databases.get(dbName);
+        LOG.infof("addCollection called for DB: %s, Collection: %s. DB Found: %s", dbName, collectionName, (db != null));
         if (db != null) {
             boolean exists = db.collections().stream().anyMatch(c -> c.name().equals(collectionName));
             if (!exists) {
                 db.collections().add(new CollectionMetadata(collectionName, engine));
             }
+            return true;
         }
+        return false;
     }
 
     public void removeCollection(String dbName, String collectionName) {

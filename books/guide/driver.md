@@ -23,7 +23,7 @@ Initialize the client with the Placement Driver (PD) address and your Authentica
 import io.jettra.driver.JettraReactiveClient;
 
 // ...
-String pdAddress = "localhost:9000"; 
+String pdAddress = "localhost:8081"; 
 String authToken = "eyJh... (your JWT token)"; // Obtain via Auth API
 
 JettraReactiveClient client = new JettraReactiveClient(pdAddress, authToken);
@@ -162,7 +162,7 @@ import java.util.List;
 
 public class DocumentExample {
     public static void main(String[] args) {
-        String pdAddress = "localhost:9000";
+        String pdAddress = "localhost:8081";
         String token = "YOUR_TOKEN";
         
         JettraReactiveClient client = new JettraReactiveClient(pdAddress, token);

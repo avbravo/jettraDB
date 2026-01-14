@@ -75,7 +75,7 @@ public class PlacementDriverResource {
     public Response getDatabaseInfo(@jakarta.ws.rs.PathParam("name") String name) {
         DatabaseMetadata db = pdService.getDatabaseInfo(name);
         if (db == null)
-            return Response.status(Response.Status.NOT_FOUND).build();
+            return Response.status(Response.Status.NOT_FOUND).entity("{\"error\":\"Database not found\"}").build();
         return Response.ok(db).build();
     }
 
@@ -94,8 +94,10 @@ public class PlacementDriverResource {
             @jakarta.ws.rs.PathParam("colName") String colName,
             java.util.Map<String, String> body) {
         String engine = (body != null && body.containsKey("engine")) ? body.get("engine") : "Document";
-        pdService.addCollection(name, colName, engine);
-        return Response.ok().build();
+        if (pdService.addCollection(name, colName, engine)) {
+            return Response.ok().build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).entity("{\"error\":\"Database not found\"}").build();
     }
 
     @jakarta.ws.rs.DELETE

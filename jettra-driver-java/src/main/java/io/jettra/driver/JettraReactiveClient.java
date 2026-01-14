@@ -193,8 +193,9 @@ public class JettraReactiveClient implements JettraClient {
         }).onItem().transformToUni(response -> {
             if (response.statusCode() == 200)
                 return Uni.createFrom().voidItem();
+            String url = "http://" + pdAddress + "/api/db/" + dbName + "/collections/" + colName;
             return Uni.createFrom()
-                    .failure(new RuntimeException("Failed to add collection. Status: " + response.statusCode()));
+                    .failure(new RuntimeException("Failed to add collection. Status: " + response.statusCode() + " URL: " + url));
         });
     }
 

@@ -9,6 +9,11 @@ eliminar base de datos.
 [233](https://github.com/avbravo/jettraDB/issues/233)   
 [234](https://github.com/avbravo/jettraDB/issues/234)
 [235](https://github.com/avbravo/jettraDB/issues/235)
+[236](https://github.com/avbravo/jettraDB/issues/236)
+[237](https://github.com/avbravo/jettraDB/issues/237)
+[238](https://github.com/avbravo/jettraDB/issues/238)
+[239](https://github.com/avbravo/jettraDB/issues/239)
+[240](https://github.com/avbravo/jettraDB/issues/240)
 
 # Pendientes
    
