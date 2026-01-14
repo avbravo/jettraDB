@@ -70,10 +70,16 @@ public class AuthFilter implements ContainerRequestFilter {
             }
 
             // A. Admin-only endpoints: User/Role management and Node stop
+            // Exception: Allow GET (listing) for authenticated users to support UI
+            // rendering
             if (path.startsWith("api/auth/users") || path.startsWith("api/auth/roles") ||
                     path.startsWith("api/web-auth/users") || path.startsWith("api/web-auth/roles") ||
-                    path.contains("/stop")) { // Covers /api/internal/pd/nodes/{id}/stop and /api/internal/pd/stop
-                if (!isAdmin) {
+                    path.contains("/stop")) {
+
+                String method = requestContext.getMethod();
+                boolean isListing = method.equals("GET") && !path.contains("/stop");
+
+                if (!isAdmin && !isListing) {
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Action restricted to administrative users.\"}")
                             .build());
