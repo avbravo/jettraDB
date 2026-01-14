@@ -555,7 +555,6 @@
     <div class="sidebar" id="sidebar">
         <!-- Sidebar Navigation -->
         <div class="nav-item active" onclick="showView('cluster')" id="nav-cluster">Cluster</div>
-        <div class="nav-item" onclick="showView('databases')" id="nav-databases">Databases</div>
         <div class="nav-item" onclick="showView('security')" id="nav-security">Security</div>
 
         <div class="tree-container">
@@ -599,18 +598,6 @@
             </div>
         </div>
 
-        <!-- Databases View -->
-        <div id="view-databases" class="hidden">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>Administración de Bases de Datos</h2>
-            </header>
-
-            <h2 class="mb-4">Bases de Datos Registradas</h2>
-            <div class="grid" id="db-grid">
-                <!-- DB cards injected here -->
-                <div style="color: #94a3b8; text-align: center; width: 100%;">Cargando bases de datos...</div>
-            </div>
-        </div>
         <!-- Password View -->
         <div id="view-password" class="hidden" style="height: 100%;">
             <div class="centered-view">
@@ -1089,7 +1076,6 @@
 
         const nodeGrid = document.getElementById('node-grid');
         const groupGrid = document.getElementById('group-grid');
-        const dbGrid = document.getElementById('db-grid');
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('show');
@@ -1098,12 +1084,10 @@
         function showView(viewId) {
             currentView = viewId;
             document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
-            document.getElementById('view-databases').classList.toggle('hidden', viewId !== 'databases');
             document.getElementById('view-security').classList.toggle('hidden', viewId !== 'security');
             document.getElementById('view-password').classList.toggle('hidden', viewId !== 'password');
 
             document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
-            document.getElementById('nav-databases').classList.toggle('active', viewId === 'databases');
             document.getElementById('nav-security').classList.toggle('active', viewId === 'security');
             document.getElementById('nav-password').classList.toggle('active', viewId === 'password');
 
@@ -1122,13 +1106,11 @@
             if (currentView === 'cluster') {
                 fetchNodes();
                 fetchGroups();
-            } else if (currentView === 'databases' || currentView === 'security') {
-                if (currentView === 'security') {
-                    fetchUsers();
-                    fetchRoles();
-                    if (document.getElementById('user-db-roles-body').innerHTML.includes('Loading')) {
-                        renderUserDbRoles();
-                    }
+            } else if (currentView === 'security') {
+                fetchUsers();
+                fetchRoles();
+                if (document.getElementById('user-db-roles-body').innerHTML.includes('Loading')) {
+                    renderUserDbRoles();
                 }
             }
         }
@@ -1189,11 +1171,9 @@
                     } catch (e) { console.error('Error fetching collections for ' + db.name, e); }
                 }
 
-                renderDatabases(allDatabases);
                 renderDbTree(allDatabases);
             } catch (error) {
                 console.error('Error fetching databases:', error);
-                dbGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
             }
         }
 
@@ -1530,64 +1510,6 @@
             `).join('');
         }
 
-        function renderDatabases(dbs) {
-            if (!dbs || dbs.length === 0) {
-                dbGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No se encontraron bases de datos.</div>';
-                return;
-            }
-            dbGrid.innerHTML = dbs.map(db => `
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid ${db.storage === 'MEMORY' ? '#10b981' : 'var(--secondary)'};">
-                    <div>
-                        <h3 style="margin: 0;">${db.name}</h3>
-                        <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 0.2rem;">
-                             Motor: <span style="color: white; font-weight: 600;">Multi-modelo (Col, Doc, Gra, Vec, Obj, Fil)</span> |
-                             Almacenamiento: <span style="color: white;">${db.storage === 'MEMORY' ? 'En Memoria (RAM)' : 'Persistente (Disco)'}</span>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                         <button class="btn" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.3);" 
-                                onclick="handleEditDb('${db.name}')">Editar</button>
-                         <button class="btn" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);" 
-                                onclick="handleDeleteDb('${db.name}')">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function handleEditDb(name) {
-            const db = allDatabases.find(d => d.name === name);
-            if (!db) return;
-
-            // Populate Form
-            document.getElementById('dbOldName').value = name;
-            document.getElementById('dbNameInput').value = db.name;
-            document.getElementById('dbEngineSelect').value = 'Multi-Model';
-            document.getElementById('dbStorageSelect').value = db.storage;
-
-            // UI Changes
-            document.getElementById('dbFormTitle').textContent = 'Editar Base de Datos';
-            document.getElementById('dbFormDescription').textContent = 'Modifique los parámetros de la base de datos seleccionada.';
-            document.getElementById('dbFormSubmitBtn').textContent = 'Guardar Cambios';
-            document.getElementById('dbFormCancelBtn').classList.remove('hidden');
-
-            // Scroll to form
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function resetDbForm() {
-            document.getElementById('dbOldName').value = '';
-            document.getElementById('dbNameInput').value = '';
-            document.getElementById('dbEngineSelect').value = 'Multi-Model';
-            document.getElementById('dbStorageSelect').selectedIndex = 0;
-
-            document.getElementById('dbFormTitle').textContent = 'Nueva Base de Datos';
-            document.getElementById('dbFormDescription').textContent = 'Provisionar una nueva base de datos multi-modelo.';
-            document.getElementById('dbFormSubmitBtn').textContent = 'Crear Base de Datos';
-
-            // Re-render empty roles
-            renderRoleAssignments('');
-        }
-
         function getRolesForUser(username) {
             const user = allUsers.find(u => u.username === username);
             if (!user || !user.roles) return [];
@@ -1678,7 +1600,6 @@
             document.getElementById('dbFormTitle').textContent = 'Nueva Base de Datos';
             document.getElementById('dbFormDescription').textContent = 'Provisionar una nueva base de datos multi-modelo que soporta tipos Document, Column, Graph, Vector, Object, Key-value, Geospatial, Time-Series y Files.';
             document.getElementById('dbFormSubmitBtn').textContent = 'Crear Base de Datos';
-            document.getElementById('dbFormCancelBtn').classList.add('hidden');
             renderRoleAssignments('');
         }
 

@@ -5,6 +5,11 @@ eliminar base de datos.
 # Terminados
 
 
+# Pendientes
+
+
+
+
 [202](https://github.com/avbravo/jettraDB/issues/202)  
 [203](https://github.com/avbravo/jettraDB/issues/203)  
 [204](https://github.com/avbravo/jettraDB/issues/204)
