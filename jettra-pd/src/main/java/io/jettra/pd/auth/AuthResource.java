@@ -104,4 +104,12 @@ public class AuthResource {
         authService.deleteRole(name);
         return Response.ok().build();
     }
+
+    @POST
+    @Path("/databases/{dbName}/sync-roles")
+    public Response syncDatabaseRoles(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            Map<String, String> userRoleMapping) {
+        authService.syncDatabaseRoles(dbName, userRoleMapping);
+        return Response.ok().build();
+    }
 }

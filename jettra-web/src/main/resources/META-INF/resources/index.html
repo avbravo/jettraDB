@@ -427,6 +427,67 @@
             background: #10b981;
             box-shadow: 0 0 8px #10b981;
         }
+
+        .db-tree-actions {
+            display: flex;
+            gap: 4px;
+            position: absolute;
+            right: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .tree-db-name:hover .db-tree-actions {
+            opacity: 1;
+        }
+
+        .db-action-btn {
+            width: 20px;
+            height: 20px;
+            padding: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #64748b;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .db-action-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .db-action-btn.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .role-assignment-list {
+            margin-top: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .role-assignment-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .role-assignment-item select {
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 
@@ -513,10 +574,10 @@
         </div>
 
         <div style="margin-top: auto; padding-top: 2rem;">
-            <div class="nav-item">Consensus</div>
-            <div class="nav-item">Storage</div>
+            <!--            <div class="nav-item">Consensus</div>
+            <div class="nav-item">Storage</div>-->
             <div class="nav-item" onclick="showView('password')" id="nav-password">Password</div>
-            <div class="nav-item">Rule Engine</div>
+            <!--<div class="nav-item"           >Rule Engine</div>-->
         </div>
     </div>
     <div class="main-content">
@@ -647,11 +708,23 @@
                         </select>
                     </div>
 
-                    <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn" id="dbFormSubmitBtn" onclick="handleSubmitDb()" style="height: 44px;">Crear
+                    <div id="role-assignment-panel" class="mt-6" style="width: 100%;">
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Asignación de
+                            Roles de Usuario</h4>
+                        <div id="db-role-assignment-list" class="role-assignment-list">
+                            <!-- Dynamic list of users with role selection -->
+                            <div style="color: #475569; font-size: 0.75rem; text-align: center; padding: 1rem;">
+                                Cargando usuarios...
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem; width: 100%;">
+                        <button class="btn" id="dbFormSubmitBtn" onclick="handleSubmitDb()"
+                            style="height: 36px; flex: 1; font-size: 0.85rem;">Crear
                             Base de Datos</button>
                         <button class="btn hidden" id="dbFormCancelBtn" onclick="resetDbForm()"
-                            style="height: 44px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                            style="height: 36px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 0.85rem;">
                             Cancelar
                         </button>
                     </div>
@@ -851,39 +924,44 @@
 
     <!-- Delete Confirmation Modal -->
     <div id="delete-modal" class="modal-overlay hidden">
-        <div class="card"
-            style="width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3);">
-            <div
-                style="background: rgba(239, 68, 68, 0.1); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
-                <svg style="width: 30px; height: 30px; color: #ef4444;" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                    </path>
-                </svg>
+        <div class="modal-content"
+            style="max-width: 450px; border: 1px solid rgba(239, 68, 68, 0.3); background: var(--bg); padding: 2rem; border-radius: 1rem; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0; color: #ef4444; background: none; -webkit-text-fill-color: #ef4444;">🗑️ Eliminar
+                    Base de Datos</h2>
+                <button onclick="closeDeleteModal()"
+                    style="background: none; border: none; color: #64748b; cursor: pointer;">
+                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
             </div>
-            <h2 class="mb-2">¿Eliminar Base de Datos?</h2>
-            <p class="text-sm text-gray-400 mb-6">Esta acción eliminará permanentemente la base de datos <span
-                    id="delete-db-name-label" style="color: white; font-weight: 600;"></span> y todos sus datos
-                asociados.</p>
+
+            <div
+                style="background: rgba(239, 68, 68, 0.1); border-radius: 0.75rem; padding: 1.2rem; margin-bottom: 1.5rem; border: 1px solid rgba(239, 68, 68, 0.2);">
+                <p style="margin: 0; color: #fca5a5; font-size: 0.95rem; line-height: 1.5;">
+                    <strong style="color: #ef4444;">¡ADVERTENCIA!</strong> Esta acción eliminará permanentemente la base
+                    de datos <span id="delete-db-name-label" style="color: white; font-weight: 700;"></span> y todos sus
+                    datos asociados.
+                </p>
+            </div>
 
             <input type="hidden" id="delete-db-name-hidden">
 
             <div class="mb-6" style="text-align: left;">
-                <label class="text-xs text-gray-400 block mb-2">Para confirmar, escriba el nombre de la base de
-                    datos:</label>
+                <label class="text-xs text-gray-400 block mb-2 font-semibold uppercase tracking-wider">Para confirmar,
+                    escriba el nombre de la base de datos:</label>
                 <input type="text" id="delete-confirm-input" placeholder="Nombre de la BD"
-                    style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1px solid rgba(239, 68, 68, 0.3);">
+                    style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem; border-radius: 0.5rem; color: white;">
             </div>
 
-            <div style="display: flex; gap: 1rem; justify-content: center;">
+            <div style="display: flex; gap: 1rem;">
                 <button class="btn" onclick="closeDeleteModal()"
-                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">
-                    Cancelar
-                </button>
-                <button class="btn" onclick="confirmDeleteDb()" style="background: #ef4444; border: 1px solid #ef4444;">
-                    Sí, Eliminar
-                </button>
+                    style="flex: 1; background: rgba(255, 255, 255, 0.05); color: white; border: 1px solid rgba(255,255,255,0.1);">Cancelar</button>
+                <button class="btn" onclick="confirmDeleteDb()"
+                    style="flex: 1; background: #ef4444; border: none; color: white; font-weight: 600;">Sí,
+                    Eliminar</button>
             </div>
         </div>
     </div>
@@ -1040,11 +1118,13 @@
         }
 
         function refreshData() {
+            // Always fetch databases to keep the tree explorer updated
+            fetchDatabases();
+
             if (currentView === 'cluster') {
                 fetchNodes();
                 fetchGroups();
             } else if (currentView === 'databases' || currentView === 'security') {
-                fetchDatabases();
                 if (currentView === 'security') {
                     fetchUsers();
                     fetchRoles();
@@ -1299,6 +1379,17 @@
                     <div class="tree-db-name" onclick="toggleTreeChildren(this)">
                         <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
                         <span>${db.name}</span>
+                        <div class="db-tree-actions">
+                            <div class="db-action-btn" onclick="showDbInfo('${db.name}'); event.stopPropagation();" title="Information">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div class="db-action-btn" onclick="editDb('${db.name}'); event.stopPropagation();" title="Edit">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <div class="db-action-btn delete" onclick="handleDeleteDb('${db.name}'); event.stopPropagation();" title="Delete">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </div>
+                        </div>
                     </div>
                     <div class="tree-children">
                         <!-- Users Subtree -->
@@ -1497,6 +1588,106 @@
             document.getElementById('dbFormCancelBtn').classList.add('hidden');
         }
 
+        function getRolesForUser(username) {
+            const user = allUsers.find(u => u.username === username);
+            if (!user || !user.roles) return [];
+            return user.roles.map(rn => allSystemRoles.find(r => r.name === rn)).filter(r => r);
+        }
+
+        async function renderRoleAssignments(dbName = '') {
+            const list = document.getElementById('db-role-assignment-list');
+
+            // ALWAYS fetch fresh users and roles to avoid stale cache
+            await fetchUsers();
+            await fetchRoles();
+
+            if (!allUsers || allUsers.length === 0) {
+                list.innerHTML = '<div style="color: #475569; font-size: 0.75rem; text-align: center; padding: 1rem;">No hay usuarios disponibles</div>';
+                return;
+            }
+
+            list.innerHTML = allUsers.map(user => {
+                const isAdminUser = user.username === 'admin';
+                const roles = getRolesForUser(user.username);
+                const dbRole = roles.find(r => r.database === dbName);
+                let currentType = isAdminUser ? 'admin' : 'none';
+
+                if (dbRole) {
+                    if (dbRole.name.startsWith('admin_')) currentType = 'admin';
+                    else if (dbRole.name.startsWith('writer-reader_')) currentType = 'writer-reader';
+                    else if (dbRole.name.startsWith('reader_')) currentType = 'reader';
+                }
+
+                return `
+                    <div class="role-assignment-item" ${isAdminUser ? 'style="opacity: 0.8; background: rgba(99, 102, 241, 0.05);"' : ''}>
+                        <span class="text-sm font-medium">${user.username}${isAdminUser ? ' <span class="text-xs text-indigo-400">(Default)</span>' : ''}</span>
+                        <select class="role-type-select" data-username="${user.username}" ${isAdminUser ? 'disabled' : ''}>
+                            <option value="none" ${currentType === 'none' ? 'selected' : ''}>Sin Acceso</option>
+                            <option value="admin" ${currentType === 'admin' ? 'selected' : ''}>Administrador</option>
+                            <option value="writer-reader" ${currentType === 'writer-reader' ? 'selected' : ''}>Escritura/Lectura</option>
+                            <option value="reader" ${currentType === 'reader' ? 'selected' : ''}>Solo Lectura</option>
+                        </select>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editDb(name) {
+            const db = allDatabases.find(d => d.name === name);
+            if (!db) return;
+
+            document.getElementById('dbOldName').value = name;
+            document.getElementById('dbNameInput').value = name;
+            document.getElementById('dbStorageSelect').value = db.storage;
+            document.getElementById('dbFormTitle').textContent = 'Editar Base de Datos: ' + name;
+            document.getElementById('dbFormDescription').textContent = 'Modifique el nombre, tipo de almacenamiento o los roles de usuario para esta base de datos.';
+            document.getElementById('dbFormSubmitBtn').textContent = 'Guardar Cambios';
+            document.getElementById('dbFormCancelBtn').classList.remove('hidden');
+
+            renderRoleAssignments(name);
+            showView('databases');
+        }
+
+
+        function showDbInfo(name) {
+            const db = allDatabases.find(d => d.name === name);
+            if (!db) return;
+
+            let info = `
+                <div style="display: flex; flex-direction: column; gap: 1rem; text-align: left;">
+                    <div>
+                        <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase;">Nombre</div>
+                        <div style="font-size: 1.1rem; font-weight: 600;">${db.name}</div>
+                    </div>
+                    <div>
+                        <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase;">Almacenamiento</div>
+                        <div>${db.storage === 'STORE' ? 'Persistente (Disco)' : 'En Memoria (RAM)'}</div>
+                    </div>
+                    <div>
+                        <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase;">Motor</div>
+                        <div>${db.engine || 'Multi-Model'}</div>
+                    </div>
+                    <div>
+                        <div style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase;">Colecciones</div>
+                        <div>${(db.collections || []).length}</div>
+                    </div>
+                </div>
+            `;
+
+            showAlert(`Información: ${db.name}`, info, 'info');
+        }
+
+        function resetDbForm() {
+            document.getElementById('dbOldName').value = '';
+            document.getElementById('dbNameInput').value = '';
+            document.getElementById('dbStorageSelect').value = 'STORE';
+            document.getElementById('dbFormTitle').textContent = 'Nueva Base de Datos';
+            document.getElementById('dbFormDescription').textContent = 'Provisionar una nueva base de datos multi-modelo que soporta tipos Document, Column, Graph, Vector, Object, Key-value, Geospatial, Time-Series y Files.';
+            document.getElementById('dbFormSubmitBtn').textContent = 'Crear Base de Datos';
+            document.getElementById('dbFormCancelBtn').classList.add('hidden');
+            renderRoleAssignments('');
+        }
+
         async function handleSubmitDb() {
             const oldName = document.getElementById('dbOldName').value;
             const name = document.getElementById('dbNameInput').value.trim();
@@ -1505,7 +1696,17 @@
 
             if (!name) return showAlert('Error', 'El nombre de la base de datos es obligatorio');
 
-            const isEdit = !!oldName;
+            const isEdit = document.getElementById('dbFormSubmitBtn').textContent.includes('Guardar');
+
+            if (isEdit && !oldName) {
+                return showAlert('Error', 'No se ha seleccionado ninguna base de datos para editar', 'warning');
+            }
+
+            // Duplicate check for new databases
+            if (!isEdit && allDatabases.some(db => db.name.toLowerCase() === name.toLowerCase())) {
+                return showAlert('Error', 'Ya existe una base de datos con ese nombre');
+            }
+
             const url = isEdit ? '/api/db/' + oldName : '/api/db';
             const method = isEdit ? 'PUT' : 'POST';
 
@@ -1520,6 +1721,28 @@
                 });
 
                 if (response.ok) {
+                    // Sync roles: collect all selections including 'none'
+                    const roleMappings = {};
+                    document.querySelectorAll('.role-type-select').forEach(select => {
+                        const username = select.dataset.username;
+                        const type = select.value;
+                        roleMappings[username] = type;
+                    });
+
+                    // We need an endpoint to sync roles
+                    await fetch(`/api/web-auth/databases/${name}/sync-roles`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': 'Bearer ' + token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(roleMappings)
+                    });
+
+                    // Refresh global caches after role sync
+                    await fetchUsers();
+                    await fetchRoles();
+
                     resetDbForm();
                     fetchDatabases();
                     showAlert('Éxito', `Base de datos ${isEdit ? 'actualizada' : 'creada'} correctamente`, 'success');

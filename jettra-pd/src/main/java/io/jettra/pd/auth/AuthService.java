@@ -131,4 +131,80 @@ public class AuthService {
             LOG.infof("Role %s assigned to user %s", roleName, username);
         }
     }
+
+    public void renameDatabaseRoles(String oldName, String newName) {
+        if (oldName == null || newName == null || oldName.equals(newName))
+            return;
+
+        LOG.infof("Renaming database roles from %s to %s", oldName, newName);
+        java.util.List<Role> dbRoles = roles.values().stream()
+                .filter(r -> oldName.equals(r.database()))
+                .toList();
+
+        for (Role oldRole : dbRoles) {
+            String rolePrefix = oldRole.name();
+            if (rolePrefix.endsWith("_" + oldName)) {
+                rolePrefix = rolePrefix.substring(0, rolePrefix.length() - (oldName.length() + 1));
+            }
+            String newRoleName = rolePrefix + "_" + newName;
+
+            createRole(new Role(newRoleName, newName, oldRole.privileges()));
+
+            // Update users
+            for (User user : users.values()) {
+                if (user.roles().contains(oldRole.name())) {
+                    java.util.Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
+                    updatedRoles.remove(oldRole.name());
+                    updatedRoles.add(newRoleName);
+                    updateUser(new User(user.username(), user.password(), updatedRoles, user.forcePasswordChange()));
+                }
+            }
+            deleteRole(oldRole.name());
+        }
+    }
+
+    public void syncDatabaseRoles(String dbName, java.util.Map<String, String> userRoleMapping) {
+        LOG.infof("Syncing database roles for %s: %s", dbName, userRoleMapping);
+
+        // 1. Identify all roles belonging to this database
+        java.util.Set<String> dbRoleNames = roles.values().stream()
+                .filter(r -> dbName.equals(r.database()))
+                .map(Role::name)
+                .collect(java.util.stream.Collectors.toSet());
+
+        // 2. Clear these roles from ALL users first (except for mandatory admin logic)
+        users.values().forEach(user -> {
+            java.util.Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
+            if (updatedRoles.removeIf(dbRoleNames::contains)) {
+                updateUser(new User(user.username(), user.password(), updatedRoles, user.forcePasswordChange()));
+            }
+        });
+
+        // 3. Apply the new mapping
+        userRoleMapping.forEach((username, roleType) -> {
+            if ("none".equals(roleType))
+                return;
+
+            String roleName = roleType + "_" + dbName;
+
+            // Ensure role exists
+            if (!roles.containsKey(roleName)) {
+                java.util.Set<String> privileges = switch (roleType) {
+                    case "admin" -> java.util.Set.of("ADMIN", "READ", "WRITE");
+                    case "writer-reader" -> java.util.Set.of("READ", "WRITE");
+                    default -> java.util.Set.of("READ");
+                };
+                createRole(new Role(roleName, dbName, privileges));
+            }
+
+            assignRoleToUser(username, roleName);
+        });
+
+        // 4. Ensure global admin always has admin role for this database
+        String adminRoleName = "admin_" + dbName;
+        if (!roles.containsKey(adminRoleName)) {
+            createRole(new Role(adminRoleName, dbName, java.util.Set.of("ADMIN", "READ", "WRITE")));
+        }
+        assignRoleToUser("admin", adminRoleName);
+    }
 }

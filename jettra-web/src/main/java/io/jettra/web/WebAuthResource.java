@@ -156,4 +156,15 @@ public class WebAuthResource {
                     .delete();
         }
     }
+
+    @POST
+    @Path("/databases/{dbName}/sync-roles")
+    public Response proxySyncDatabaseRoles(@jakarta.ws.rs.PathParam("dbName") String dbName, String json) {
+        try (Client client = ClientBuilder.newClient()) {
+            return client.target(pdUrl + "/api/auth/databases/" + dbName + "/sync-roles")
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION, getAuthHeader())
+                    .post(Entity.json(json));
+        }
+    }
 }

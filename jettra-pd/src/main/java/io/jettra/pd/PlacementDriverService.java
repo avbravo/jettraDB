@@ -74,6 +74,9 @@ public class PlacementDriverService {
         LOG.infof("Updating database: %s -> %s", oldName, db.name());
         if (!oldName.equals(db.name())) {
             databases.remove(oldName);
+            if (authService != null) {
+                authService.renameDatabaseRoles(oldName, db.name());
+            }
         }
         databases.put(db.name(), db);
     }
