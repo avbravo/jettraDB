@@ -57,6 +57,9 @@ public class AuthFilter implements ContainerRequestFilter {
                 return;
             }
 
+            // Store username for resource access
+            requestContext.setProperty("auth.username", username);
+
             // 3. Authorization (Role-based access)
             boolean isAdmin = "admin".equals(username) || "system-pd".equals(username);
             if (!isAdmin) {

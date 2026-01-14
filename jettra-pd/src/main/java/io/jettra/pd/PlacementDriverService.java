@@ -15,6 +15,9 @@ public class PlacementDriverService {
     private final Map<Long, RaftGroupMetadata> groups = new ConcurrentHashMap<>();
     private final Map<String, DatabaseMetadata> databases = new ConcurrentHashMap<>();
 
+    @jakarta.inject.Inject
+    io.jettra.pd.auth.AuthService authService;
+
     @io.quarkus.scheduler.Scheduled(every = "2s")
     void checkNodeHealth() {
         long now = System.currentTimeMillis();
@@ -58,9 +61,13 @@ public class PlacementDriverService {
         });
     }
 
-    public void createDatabase(DatabaseMetadata db) {
-        LOG.infof("Creating database: %s (Storage: %s, Engine: %s)", db.name(), db.storage(), db.engine());
+    public void createDatabase(DatabaseMetadata db, String creator) {
+        LOG.infof("Creating database: %s (Storage: %s, Engine: %s) by %s", db.name(), db.storage(), db.engine(),
+                creator);
         databases.put(db.name(), db);
+        if (authService != null) {
+            authService.setupDefaultDatabaseRoles(db.name(), creator);
+        }
     }
 
     public void updateDatabase(String oldName, DatabaseMetadata db) {
@@ -76,8 +83,25 @@ public class PlacementDriverService {
         databases.remove(name);
     }
 
-    public java.util.Collection<DatabaseMetadata> listDatabases() {
-        return databases.values();
+    public java.util.Collection<DatabaseMetadata> listDatabases(String username) {
+        if ("admin".equals(username) || "system-pd".equals(username) || "system".equals(username)) {
+            return databases.values();
+        }
+
+        if (authService == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        io.jettra.pd.auth.User user = authService.getUser(username);
+        if (user == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        java.util.List<io.jettra.pd.auth.Role> userRoles = authService.getRolesForUser(user);
+        return databases.values().stream()
+                .filter(db -> userRoles.stream()
+                        .anyMatch(r -> "_all".equals(r.database()) || db.name().equals(r.database())))
+                .toList();
     }
 
     public DatabaseMetadata getDatabaseInfo(String name) {
@@ -86,7 +110,8 @@ public class PlacementDriverService {
 
     public boolean addCollection(String dbName, String collectionName, String engine) {
         DatabaseMetadata db = databases.get(dbName);
-        LOG.infof("addCollection called for DB: %s, Collection: %s. DB Found: %s", dbName, collectionName, (db != null));
+        LOG.infof("addCollection called for DB: %s, Collection: %s. DB Found: %s", dbName, collectionName,
+                (db != null));
         if (db != null) {
             boolean exists = db.collections().stream().anyMatch(c -> c.name().equals(collectionName));
             if (!exists) {

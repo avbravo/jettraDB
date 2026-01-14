@@ -103,4 +103,32 @@ public class AuthService {
                 .filter(java.util.Objects::nonNull)
                 .toList();
     }
+
+    /**
+     * Set up default permissions for a newly created database.
+     * Assigns 'admin_<dbName>' role to the global 'admin' and the creator.
+     */
+    public void setupDefaultDatabaseRoles(String dbName, String creator) {
+        String roleName = "admin_" + dbName;
+        Role dbAdminRole = new Role(roleName, dbName, Set.of("ADMIN", "READ", "WRITE"));
+        createRole(dbAdminRole);
+
+        // 1. Assign to global admin
+        assignRoleToUser("admin", roleName);
+
+        // 2. Assign to creator (if different from admin)
+        if (creator != null && !creator.equals("admin") && !creator.equals("system-pd")) {
+            assignRoleToUser(creator, roleName);
+        }
+    }
+
+    private void assignRoleToUser(String username, String roleName) {
+        User user = users.get(username);
+        if (user != null) {
+            Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
+            updatedRoles.add(roleName);
+            updateUser(new User(user.username(), user.password(), updatedRoles, user.forcePasswordChange()));
+            LOG.infof("Role %s assigned to user %s", roleName, username);
+        }
+    }
 }

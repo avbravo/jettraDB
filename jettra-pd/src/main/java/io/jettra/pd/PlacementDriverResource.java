@@ -45,14 +45,19 @@ public class PlacementDriverResource {
 
     @GET
     @Path("/databases")
-    public java.util.Collection<DatabaseMetadata> listDatabases() {
-        return pdService.listDatabases();
+    public java.util.Collection<DatabaseMetadata> listDatabases(
+            @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext requestContext) {
+        String username = (String) requestContext.getProperty("auth.username");
+        return pdService.listDatabases(username != null ? username : "system");
     }
 
     @POST
     @Path("/databases")
-    public Response createDatabase(DatabaseMetadata db) {
-        pdService.createDatabase(db);
+    public Response createDatabase(
+            @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext requestContext,
+            DatabaseMetadata db) {
+        String creator = (String) requestContext.getProperty("auth.username");
+        pdService.createDatabase(db, creator != null ? creator : "system");
         return Response.ok().build();
     }
 
