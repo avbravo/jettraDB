@@ -1,5 +1,7 @@
 package io.jettra.pd.auth;
 
+import java.io.IOException;
+
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
@@ -8,7 +10,6 @@ import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
-import java.io.IOException;
 
 @Provider
 @Priority(Priorities.AUTHENTICATION)
@@ -87,14 +88,22 @@ public class AuthFilter implements ContainerRequestFilter {
                 }
             }
 
+
+
             // B. Database access filtering
-            if (path.startsWith("api/db/") || path.startsWith("/api/db/")) {
-                String subPath = path.startsWith("api/db/") ? path.substring(7) : path.substring(8);
+            if (path.startsWith("api/db/") || path.startsWith("/api/db/") || path.startsWith("api/auth/databases/") || path.startsWith("/api/auth/databases/")) {
+                String subPath = "";
+                if (path.contains("api/db/")) subPath = path.substring(path.indexOf("api/db/") + 7);
+                else if (path.contains("api/auth/databases/")) subPath = path.substring(path.indexOf("api/auth/databases/") + 19);
+                
                 if (!subPath.isEmpty()) {
                     String[] parts = subPath.split("/");
                     String dbName = parts[0];
 
                     String method = requestContext.getMethod();
+                    // sync-roles should require WRITE access
+                    if (path.contains("sync-roles")) method = "POST"; 
+
                     if (!hasAccess(username, dbName, method)) {
                         requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                                 .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")

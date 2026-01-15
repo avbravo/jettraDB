@@ -4,6 +4,8 @@ eliminar base de datos.
 
 # Terminados
 
+[262](https://github.com/avbravo/jettraDB/issues/262)   
+[264](https://github.com/avbravo/jettraDB/issues/264)   
 
 # Pendientes
 
@@ -40,9 +42,9 @@ eliminar base de datos.
 [259](https://github.com/avbravo/jettraDB/issues/259)
 [260](https://github.com/avbravo/jettraDB/issues/260)
 [261](https://github.com/avbravo/jettraDB/issues/261)
-[262](https://github.com/avbravo/jettraDB/issues/262)   
+
 [263](https://github.com/avbravo/jettraDB/issues/263)   
-[264](https://github.com/avbravo/jettraDB/issues/264)   
+
 [265](https://github.com/avbravo/jettraDB/issues/265)   
 [266](https://github.com/avbravo/jettraDB/issues/266)   
 [267](https://github.com/avbravo/jettraDB/issues/267)   
