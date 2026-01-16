@@ -941,20 +941,15 @@
                     </div>
                 </div>
 
-                <div>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <label style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;">ASIGNACIÓN DE ROLES DE
-                            USUARIO</label>
-                        <span style="font-size: 0.75rem; color: #64748b;">(Opcional)</span>
-                    </div>
-                    <div class="role-assignment-list"
-                        style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); max-height: 200px; padding: 0.5rem; border-radius: 4px;">
-                        <div id="db-role-assignment-list">
-                            <p style="text-align: center; color: #64748b; font-size: 0.8rem; padding: 1rem;">Cargando
-                                usuarios...</p>
-                        </div>
-                    </div>
+                <!-- Role assignment section removed per UI cleanup request. Centered in dedicated modal. -->
+                <div
+                    style="margin-top: 1.5rem; padding: 1.25rem; background: rgba(99, 102, 241, 0.05); border-radius: 0.75rem; border: 1px dashed rgba(99, 102, 241, 0.2); text-align: center;">
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                        <span style="display: block; font-weight: 600; color: #818cf8; margin-bottom: 0.25rem;">Gestión
+                            de Accesos</span>
+                        Use el icono de <strong>escudo</strong> en la lista de bases de datos para administrar usuarios
+                        y roles después de crear la base de datos.
+                    </p>
                 </div>
             </div>
 
@@ -2118,6 +2113,7 @@
                 if (response.ok) {
                     resetUserForm();
                     await fetchUsers();
+                    await fetchDatabases(); // REFRESH THE TREE to show user in DB subtrees
                     showAlert('Success', `User ${isEdit ? 'updated' : 'created'} successfully`, 'success');
                 } else {
                     showAlert('Error', await response.text());
@@ -2211,10 +2207,10 @@
                     <div class="role-assignment-item">
                         <span style="color: #e2e8f0; font-size: 0.9rem;">${user.username}</span>
                         <select class="perm-role-select" data-username="${user.username}" ${isAdminUser ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''}>
-                            <option value="none" ${currentRoleType === 'none' ? 'selected' : ''}>Sin Acceso</option>
+                            <option value="denied" ${currentRoleType === 'denied' || currentRoleType === 'none' ? 'selected' : ''}>Sin Acceso (Denied)</option>
                             <option value="admin" ${currentRoleType === 'admin' ? 'selected' : ''}>Admin</option>
-                            <option value="reader" ${currentRoleType === 'reader' || currentRoleType === 'read' ? 'selected' : ''}>Lectura</option>
-                            <option value="writer-reader" ${currentRoleType === 'writer-reader' || currentRoleType === 'write' ? 'selected' : ''}>Escritura / Lectura</option>
+                            <option value="reader" ${currentRoleType === 'reader' || currentRoleType === 'read' ? 'selected' : ''}>Lectura (Reader)</option>
+                            <option value="writer-reader" ${currentRoleType === 'writer-reader' || currentRoleType === 'write' ? 'selected' : ''}>Escritura / Lectura (Reader-Writer)</option>
                         </select>
                     </div>
                 `;
@@ -2288,6 +2284,7 @@
                     document.getElementById('db-permissions-modal').classList.add('hidden');
                     showAlert('Éxito', 'Permisos actualizados correctamente', 'success');
                     await fetchUsers();
+                    await fetchDatabases(); // REFRESH THE TREE to show updated roles/users in sidebar
                 }
             } catch (e) {
                 console.error('Exception saving permissions:', e);
