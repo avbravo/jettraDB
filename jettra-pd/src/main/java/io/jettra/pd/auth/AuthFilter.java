@@ -24,7 +24,8 @@ public class AuthFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String path = requestContext.getUriInfo().getPath();
-        if (path.startsWith("/")) {
+        // Robustly strip leading slashes
+        while (path.startsWith("/")) {
             path = path.substring(1);
         }
 
@@ -34,7 +35,7 @@ public class AuthFilter implements ContainerRequestFilter {
                 path.equals("api/internal/pd/register") ||
                 path.equals("api/internal/pd/groups") ||
                 path.equals("api/internal/pd/nodes") ||
-                path.equals("health") || path.equals("/health")) {
+                path.equals("health") || path.equals("health/box")) {
             return;
         }
 
@@ -88,30 +89,30 @@ public class AuthFilter implements ContainerRequestFilter {
                 }
             }
 
-
-
             // B. Database access filtering
-            if (path.startsWith("api/db/") || path.startsWith("/api/db/") || path.startsWith("api/auth/databases/") || path.startsWith("/api/auth/databases/")) {
-                String subPath = "";
-                if (path.contains("api/db/")) subPath = path.substring(path.indexOf("api/db/") + 7);
-                else if (path.contains("api/auth/databases/")) subPath = path.substring(path.indexOf("api/auth/databases/") + 19);
-                
-                if (!subPath.isEmpty()) {
-                    String[] parts = subPath.split("/");
-                    String dbName = parts[0];
+            String dbName = null;
+            if (path.contains("api/db/")) {
+                String sub = path.substring(path.indexOf("api/db/") + 7);
+                if (!sub.isEmpty()) dbName = sub.split("/")[0];
+            } else if (path.contains("api/auth/databases/")) {
+                String sub = path.substring(path.indexOf("api/auth/databases/") + 19);
+                if (!sub.isEmpty()) dbName = sub.split("/")[0];
+            }
 
-                    String method = requestContext.getMethod();
-                    // sync-roles should require WRITE access
-                    if (path.contains("sync-roles")) method = "POST"; 
+            if (dbName != null && !dbName.isEmpty()) { 
+                String method = requestContext.getMethod();
+                // sync-roles should require ADMIN access
+                if (path.contains("sync-roles")) method = "ADMIN"; 
 
-                    if (!hasAccess(username, dbName, method)) {
-                        requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-                                .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
-                                .build());
-                    }
+                if (!hasAccess(username, dbName, method)) {
+                    System.out.println("DEBUG: Access denied for " + username + " to db " + dbName + " using " + method);
+                    requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                            .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
+                            .build());
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
         }
     }
@@ -128,15 +129,20 @@ public class AuthFilter implements ContainerRequestFilter {
         }
 
         java.util.List<Role> userRoles = authService.getRolesForUser(user);
-        String requiredPrivilege = method.equals("GET") ? "READ" : "WRITE";
+        String requiredPrivilege;
+        if ("ADMIN".equals(method)) requiredPrivilege = "ADMIN";
+        else requiredPrivilege = method.equals("GET") ? "READ" : "WRITE";
 
         for (Role role : userRoles) {
             if ("_all".equals(role.database()) || dbName.equals(role.database())) {
                 java.util.Set<String> privs = role.privileges();
 
                 // Direct privilege check (Legacy/Internal)
-                if (privs.contains("ADMIN") || privs.contains(requiredPrivilege)) {
+                if (privs.contains("ADMIN")) {
                     return true;
+                }
+                if (!"ADMIN".equals(requiredPrivilege) && privs.contains(requiredPrivilege)) {
+                     return true;
                 }
 
                 // Predefined role types mapping
@@ -144,6 +150,9 @@ public class AuthFilter implements ContainerRequestFilter {
                 if (roleName.startsWith("admin")) {
                     return true;
                 }
+                
+                // If asking for ADMIN, only exact admin matches above would have returned true.
+                if ("ADMIN".equals(requiredPrivilege)) continue;
 
                 if (method.equals("GET")) {
                     if (roleName.startsWith("reader") || roleName.startsWith("writer-reader")

@@ -488,6 +488,10 @@
             padding: 2px 4px;
             border-radius: 3px;
         }
+
+        #alert-modal {
+            z-index: 200 !important;
+        }
     </style>
 </head>
 
@@ -1541,9 +1545,9 @@
                 }
 
                 return `
-                    <div class="role-assignment-item" ${isSystemAdminTarget ? 'style="opacity: 0.9; background: rgba(99, 102, 241, 0.05);"' : ''}>
+                    <div class="role-assignment-item" ${isSystemAdminTarget ? 'style="opacity: 0.8; background: rgba(99, 102, 241, 0.05);"' : ''}>
                         <span class="text-sm font-medium">${user.username}${isSystemAdminTarget ? ' <span class="text-xs text-indigo-400">(Built-in)</span>' : ''}</span>
-                        <select class="role-type-select" data-username="${user.username}">
+                        <select class="role-type-select" data-username="${user.username}" ${isSystemAdminTarget ? 'disabled' : ''}>
                             <option value="none" ${currentType === 'none' ? 'selected' : ''}>Sin Acceso</option>
                             <option value="admin" ${currentType === 'admin' ? 'selected' : ''}>Administrador</option>
                             <option value="writer-reader" ${currentType === 'writer-reader' ? 'selected' : ''}>Escritura/Lectura</option>
@@ -1566,6 +1570,8 @@
             document.getElementById('dbFormDescription').textContent = 'Modifique el nombre, tipo de almacenamiento o los roles de usuario para esta base de datos.';
             document.getElementById('dbFormSubmitBtn').textContent = 'Guardar Cambios';
 
+            await fetchUsers(); // Force refresh users to ensure we see everyone
+            await fetchRoles(); // Force refresh roles to ensure we see latest assignments
             await renderRoleAssignments(name);
             document.getElementById('db-modal').classList.remove('hidden');
             setTimeout(() => document.getElementById('dbNameInput').focus(), 50);
@@ -1645,7 +1651,7 @@
                     });
 
                     // We need an endpoint to sync roles
-                    await fetch(`/api/web-auth/databases/${name}/sync-roles`, {
+                    const syncResponse = await fetch(`/api/web-auth/databases/${name}/sync-roles`, {
                         method: 'POST',
                         headers: {
                             'Authorization': 'Bearer ' + token,
@@ -1654,12 +1660,23 @@
                         body: JSON.stringify(roleMappings)
                     });
 
-                    await fetchUsers();
-                    await fetchRoles();
+                    if (!syncResponse.ok) {
+                        const err = await syncResponse.text();
+                        console.error('Sync roles error:', err);
+                        showAlert('Advertencia', 'Base de datos guardada, pero error al sincronizar roles: ' + err, 'warning');
+                    }
+
+                    // Wrap refresh in try/catch to ensure modal closes even if refresh fails
+                    try {
+                        await fetchUsers();
+                        await fetchRoles();
+                        fetchDatabases();
+                    } catch (refreshErr) {
+                        console.error('Error refreshing data after save:', refreshErr);
+                    }
 
                     document.getElementById('db-modal').classList.add('hidden');
                     resetDbForm();
-                    fetchDatabases();
                     showAlert('Éxito', `Base de datos ${isEdit ? 'actualizada' : 'creada'} correctamente`, 'success');
                 } else {
                     showAlert('Error', 'No se pudo procesar la solicitud: ' + await response.text());
