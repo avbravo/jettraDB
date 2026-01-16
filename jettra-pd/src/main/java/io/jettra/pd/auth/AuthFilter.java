@@ -93,19 +93,31 @@ public class AuthFilter implements ContainerRequestFilter {
             String dbName = null;
             if (path.contains("api/db/")) {
                 String sub = path.substring(path.indexOf("api/db/") + 7);
-                if (!sub.isEmpty()) dbName = sub.split("/")[0];
+                if (!sub.isEmpty())
+                    dbName = sub.split("/")[0];
             } else if (path.contains("api/auth/databases/")) {
                 String sub = path.substring(path.indexOf("api/auth/databases/") + 19);
-                if (!sub.isEmpty()) dbName = sub.split("/")[0];
+                if (!sub.isEmpty())
+                    dbName = sub.split("/")[0];
+            } else if (path.contains("api/web-auth/databases/")) {
+                String sub = path.substring(path.indexOf("api/web-auth/databases/") + 23);
+                if (!sub.isEmpty())
+                    dbName = sub.split("/")[0];
+            } else if (path.contains("api/internal/pd/databases/")) {
+                String sub = path.substring(path.indexOf("api/internal/pd/databases/") + 26);
+                if (!sub.isEmpty())
+                    dbName = sub.split("/")[0];
             }
 
-            if (dbName != null && !dbName.isEmpty()) { 
+            if (dbName != null && !dbName.isEmpty()) {
                 String method = requestContext.getMethod();
                 // sync-roles should require ADMIN access
-                if (path.contains("sync-roles")) method = "ADMIN"; 
+                if (path.contains("sync-roles"))
+                    method = "ADMIN";
 
                 if (!hasAccess(username, dbName, method)) {
-                    System.out.println("DEBUG: Access denied for " + username + " to db " + dbName + " using " + method);
+                    System.out
+                            .println("DEBUG: Access denied for " + username + " to db " + dbName + " using " + method);
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
                             .build());
@@ -130,8 +142,10 @@ public class AuthFilter implements ContainerRequestFilter {
 
         java.util.List<Role> userRoles = authService.getRolesForUser(user);
         String requiredPrivilege;
-        if ("ADMIN".equals(method)) requiredPrivilege = "ADMIN";
-        else requiredPrivilege = method.equals("GET") ? "READ" : "WRITE";
+        if ("ADMIN".equals(method))
+            requiredPrivilege = "ADMIN";
+        else
+            requiredPrivilege = method.equals("GET") ? "READ" : "WRITE";
 
         for (Role role : userRoles) {
             if ("_all".equals(role.database()) || dbName.equals(role.database())) {
@@ -139,20 +153,25 @@ public class AuthFilter implements ContainerRequestFilter {
 
                 // Direct privilege check (Legacy/Internal)
                 if (privs.contains("ADMIN")) {
+                    System.out.println("DEBUG: Access granted (Legacy ADMIN) for " + username + " to " + dbName);
                     return true;
                 }
                 if (!"ADMIN".equals(requiredPrivilege) && privs.contains(requiredPrivilege)) {
-                     return true;
+                    System.out.println("DEBUG: Access granted (Privilege " + requiredPrivilege + ") for " + username
+                            + " to " + dbName);
+                    return true;
                 }
 
                 // Predefined role types mapping
                 String roleName = role.name();
                 if (roleName.startsWith("admin")) {
+                    System.out.println("DEBUG: Access granted (Role admin) for " + username + " to " + dbName);
                     return true;
                 }
-                
+
                 // If asking for ADMIN, only exact admin matches above would have returned true.
-                if ("ADMIN".equals(requiredPrivilege)) continue;
+                if ("ADMIN".equals(requiredPrivilege))
+                    continue;
 
                 if (method.equals("GET")) {
                     if (roleName.startsWith("reader") || roleName.startsWith("writer-reader")

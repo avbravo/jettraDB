@@ -3,124 +3,35 @@ Base de datos realizar operaciones creacion, actualizar nombre o tipo o engine-s
 eliminar base de datos.
 
 # Terminados
-
-[262](https://github.com/avbravo/jettraDB/issues/262)   
-[264](https://github.com/avbravo/jettraDB/issues/264)   
-
-# Pendientes
-
-
-
-
-[202](https://github.com/avbravo/jettraDB/issues/202)  
-[203](https://github.com/avbravo/jettraDB/issues/203)  
-[204](https://github.com/avbravo/jettraDB/issues/204)
-[233](https://github.com/avbravo/jettraDB/issues/233)   
-[234](https://github.com/avbravo/jettraDB/issues/234)
-[235](https://github.com/avbravo/jettraDB/issues/235)
-[236](https://github.com/avbravo/jettraDB/issues/236)
-[237](https://github.com/avbravo/jettraDB/issues/237)
-[238](https://github.com/avbravo/jettraDB/issues/238)
-[239](https://github.com/avbravo/jettraDB/issues/239)
-[240](https://github.com/avbravo/jettraDB/issues/240)
-[242](https://github.com/avbravo/jettraDB/issues/242)   
-[243](https://github.com/avbravo/jettraDB/issues/243)   
-[244](https://github.com/avbravo/jettraDB/issues/244)   
-[245](https://github.com/avbravo/jettraDB/issues/245) 
-[246](https://github.com/avbravo/jettraDB/issues/246)
-[247](https://github.com/avbravo/jettraDB/issues/247)
-[248](https://github.com/avbravo/jettraDB/issues/248)
-[249](https://github.com/avbravo/jettraDB/issues/249)
-[250](https://github.com/avbravo/jettraDB/issues/250)
-[251](https://github.com/avbravo/jettraDB/issues/251)
-[252](https://github.com/avbravo/jettraDB/issues/252)
-[253](https://github.com/avbravo/jettraDB/issues/253)
-[254](https://github.com/avbravo/jettraDB/issues/254)
-[256](https://github.com/avbravo/jettraDB/issues/256)
-
-[258](https://github.com/avbravo/jettraDB/issues/258)
-[259](https://github.com/avbravo/jettraDB/issues/259)
-[260](https://github.com/avbravo/jettraDB/issues/260)
-[261](https://github.com/avbravo/jettraDB/issues/261)
-
-[263](https://github.com/avbravo/jettraDB/issues/263)   
-
-[265](https://github.com/avbravo/jettraDB/issues/265)   
-[266](https://github.com/avbravo/jettraDB/issues/266)   
+[266](https://github.com/avbravo/jettraDB/issues/266) 
 [267](https://github.com/avbravo/jettraDB/issues/267)   
 [268](https://github.com/avbravo/jettraDB/issues/268)   
 [269](https://github.com/avbravo/jettraDB/issues/269)   
 [270](https://github.com/avbravo/jettraDB/issues/270)   
 [271](https://github.com/avbravo/jettraDB/issues/271)   
-[272](https://github.com/avbravo/jettraDB/issues/272)   
-[273](https://github.com/avbravo/jettraDB/issues/273)   
-[274](https://github.com/avbravo/jettraDB/issues/274)   
 [275](https://github.com/avbravo/jettraDB/issues/275)   
 [276](https://github.com/avbravo/jettraDB/issues/276)   
-[277](https://github.com/avbravo/jettraDB/issues/277)   
-[278](https://github.com/avbravo/jettraDB/issues/278)   
-[279](https://github.com/avbravo/jettraDB/issues/279)   
-[280](https://github.com/avbravo/jettraDB/issues/280)   
-[281](https://github.com/avbravo/jettraDB/issues/281)   
-[282](https://github.com/avbravo/jettraDB/issues/282)   
-[283](https://github.com/avbravo/jettraDB/issues/283)   
-[284](https://github.com/avbravo/jettraDB/issues/284)   
-[285](https://github.com/avbravo/jettraDB/issues/285)   
-[286](https://github.com/avbravo/jettraDB/issues/286)   
-[287](https://github.com/avbravo/jettraDB/issues/287)   
-[288](https://github.com/avbravo/jettraDB/issues/288)   
-[289](https://github.com/avbravo/jettraDB/issues/289)   
-[290](https://github.com/avbravo/jettraDB/issues/290)   
-[291](https://github.com/avbravo/jettraDB/issues/291)   
-[292](https://github.com/avbravo/jettraDB/issues/292)   
-[293](https://github.com/avbravo/jettraDB/issues/293)   
-[294](https://github.com/avbravo/jettraDB/issues/294)   
-[295](https://github.com/avbravo/jettraDB/issues/295)   
-[296](https://github.com/avbravo/jettraDB/issues/296)   
-[297](https://github.com/avbravo/jettraDB/issues/297)   
-[298](https://github.com/avbravo/jettraDB/issues/298)   
-[299](https://github.com/avbravo/jettraDB/issues/299)   
-[300](https://github.com/avbravo/jettraDB/issues/300)   
-[301](https://github.com/avbravo/jettraDB/issues/301)   
-[302](https://github.com/avbravo/jettraDB/issues/302)   
-[303](https://github.com/avbravo/jettraDB/issues/303)   
-[304](https://github.com/avbravo/jettraDB/issues/304)   
-[305](https://github.com/avbravo/jettraDB/issues/305)   
-[306](https://github.com/avbravo/jettraDB/issues/306)   
-[307](https://github.com/avbravo/jettraDB/issues/307)   
-[308](https://github.com/avbravo/jettraDB/issues/308)   
-[309](https://github.com/avbravo/jettraDB/issues/309)   
-[310](https://github.com/avbravo/jettraDB/issues/310)   
-[311](https://github.com/avbravo/jettraDB/issues/311)   
-[312](https://github.com/avbravo/jettraDB/issues/312)   
-[313](https://github.com/avbravo/jettraDB/issues/313)   
-[314](https://github.com/avbravo/jettraDB/issues/314)   
-[315](https://github.com/avbravo/jettraDB/issues/315)   
-[316](https://github.com/avbravo/jettraDB/issues/316)   
-[317](https://github.com/avbravo/jettraDB/issues/317)   
-[318](https://github.com/avbravo/jettraDB/issues/318)   
-[319](https://github.com/avbravo/jettraDB/issues/319)   
-[320](https://github.com/avbravo/jettraDB/issues/320)   
-[321](https://github.com/avbravo/jettraDB/issues/321)   
-[322](https://github.com/avbravo/jettraDB/issues/322)   
-[323](https://github.com/avbravo/jettraDB/issues/323)   
-[324](https://github.com/avbravo/jettraDB/issues/324)   
-[325](https://github.com/avbravo/jettraDB/issues/325)   
-[326](https://github.com/avbravo/jettraDB/issues/326)   
-[327](https://github.com/avbravo/jettraDB/issues/327)   
-[328](https://github.com/avbravo/jettraDB/issues/328
-   
-[18](https://github.com/avbravo/jettraDB/issues/18)
-[19](https://github.com/avbravo/jettraDB/issues/19)
-[20](https://github.com/avbravo/jettraDB/issues/20)
-[21](https://github.com/avbravo/jettraDB/issues/21)
-[64](https://github.com/avbravo/jettraDB/issues/64)
-[96](https://github.com/avbravo/jettraDB/issues/96)
-[111](https://github.com/avbravo/jettraDB/issues/111)   
-[122](https://github.com/avbravo/jettraDB/issues/122)
-[123](https://github.com/avbravo/jettraDB/issues/123)
-[124](https://github.com/avbravo/jettraDB/issues/124)
-[125](https://github.com/avbravo/jettraDB/issues/125)
-[126](https://github.com/avbravo/jettraDB/issues/126)
-[174](https://github.com/avbravo/jettraDB/issues/174)
 
+# Pendientes
+
+En el directorio resources/logo/ del proyecto jettra-web se añadio el logo llamado jettra-logo.png, usalo como logo en la interface web. Debe Mostrar el icono en el formulario login y en el footer .
+
+
+
+
+Un usuario con permisos puede logearse en el sistema web y ver solo las bases de datos a las que ha sido asignado,
+excepto el usuario admin que puede ver todas las bases de datos.
+Un usuario que no es admin y que fue asignado como administrador de una base de datos puede cambiar el nombre de la base de datos y administrar los usuarios y roles asignados a la base de datos en la opción editar.
+
+
+Las siguientes funcionalidades no estan implementadas en la interface web. 
+
+Por favor garantiza que el logo se muestre correctamente en la interface en login y footer    
+esta en el proyecto jettra-web
+No esta mostrando el logo en la interface web. solo aparece la ruta del logo. 
+<img src="logo/jettra-logo.png" alt="JettraDB Logo" style="width: 24px; height: 24px; opacity: 0.8;">
+puedes corregirlo.
+
+Por favor ajusta para que la siguiente funcionalidad se pueda realizar correctamente.
+
+Ajustar en la interface web la forma en que un usuario puede administrar los permisos de una base de datos. Es decir un usuario cualquiera que tenga permisos con el rol admin puede asignar permisos a otros usuarios y roles en la base de datos en la que el es el administrador.

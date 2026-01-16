@@ -48,7 +48,10 @@ public class PlacementDriverResource {
     public java.util.Collection<DatabaseMetadata> listDatabases(
             @jakarta.ws.rs.core.Context jakarta.ws.rs.container.ContainerRequestContext requestContext) {
         String username = (String) requestContext.getProperty("auth.username");
-        return pdService.listDatabases(username != null ? username : "system");
+        if (username == null) {
+            return java.util.Collections.emptyList();
+        }
+        return pdService.listDatabases(username);
     }
 
     @POST
