@@ -1077,6 +1077,35 @@
             </div>
         </div>
     </div>
+    <!-- Permission Change Confirmation Modal -->
+    <div id="perm-confirm-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 450px; border: 1px solid rgba(245, 158, 11, 0.3);">
+            <div
+                style="background: rgba(245, 158, 11, 0.1); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg style="width: 30px; height: 30px; color: #f59e0b;" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+            <h2 class="mb-2" style="text-align: center;">¿Estás seguro?</h2>
+            <p class="text-sm text-gray-400 mb-6" style="text-align: center; line-height: 1.6;">
+                Estás cambiando tus propios permisos.<br>Podrías perder acceso administrativo a esta base de datos.
+            </p>
+
+            <input type="hidden" id="perm-confirm-db">
+            <input type="hidden" id="perm-confirm-data">
+
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="closePermissionConfirmModal()"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">Cancelar</button>
+                <button class="btn" onclick="confirmSavePermissions()"
+                    style="background: #f59e0b; border: 1px solid #f59e0b; color: black; font-weight: 600;">Sí,
+                    Continuar</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const token = localStorage.getItem('jettra_token');
@@ -1603,8 +1632,8 @@
 
                 if (dbRole) {
                     if (dbRole.name.startsWith('admin_')) currentType = 'admin';
-                    else if (dbRole.name.startsWith('writer-reader_')) currentType = 'writer-reader';
-                    else if (dbRole.name.startsWith('reader_')) currentType = 'reader';
+                    else if (dbRole.name.startsWith('read-write_')) currentType = 'read-write';
+                    else if (dbRole.name.startsWith('read_')) currentType = 'read';
                 }
 
                 return `
@@ -1613,8 +1642,8 @@
                         <select class="role-type-select" data-username="${user.username}" ${isSystemAdminTarget ? 'disabled' : ''}>
                             <option value="none" ${currentType === 'none' ? 'selected' : ''}>Sin Acceso</option>
                             <option value="admin" ${currentType === 'admin' ? 'selected' : ''}>Administrador</option>
-                            <option value="writer-reader" ${currentType === 'writer-reader' ? 'selected' : ''}>Escritura/Lectura</option>
-                            <option value="reader" ${currentType === 'reader' ? 'selected' : ''}>Solo Lectura</option>
+                            <option value="read-write" ${currentType === 'read-write' || currentType === 'writer-reader' ? 'selected' : ''}>Escritura/Lectura</option>
+                            <option value="read" ${currentType === 'read' || currentType === 'reader' ? 'selected' : ''}>Solo Lectura</option>
                         </select>
                     </div>
                 `;
@@ -1859,8 +1888,8 @@
 
             const oldPass = document.getElementById('modal-old-password').value;
             const newPass = document.getElementById('modal-new-password').value;
-            // Assuming we stored username or use 'admin' as fallback/current
-            const user = localStorage.getItem('jettra_username') || 'admin';
+            // Assuming we stored username or use 'super-user' as fallback/current
+            const user = localStorage.getItem('jettra_username') || 'super-user';
 
             try {
                 const response = await fetch('/api/web-auth/change-password', {
@@ -1883,7 +1912,7 @@
             }
         }
 
-        const ALLOWED_ROLE_TYPES = ['none', 'admin', 'guest', 'reader', 'writer-reader'];
+        const ALLOWED_ROLE_TYPES = ['none', 'admin', 'read', 'read-write'];
         let allSystemRoles = [];
 
         async function fetchUsers() {
@@ -1948,8 +1977,7 @@
                                 <td style="padding: 0.75rem; font-size: 0.75rem; color: #94a3b8;">${roleDetails || 'no roles'}</td>
                                 <td style="padding: 0.75rem; text-align: right;">
                                     <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                        <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.7rem;" onclick="handleEditUser('${user.username}')">Edit</button>
-                                        ${user.username !== 'admin' ? `
+                                        ${user.username !== 'super-user' ? `
                                         <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.7rem;" onclick="deleteUser('${user.username}')">Delete</button>
                                         ` : ''}
                                     </div>
@@ -1978,9 +2006,8 @@
                         if (r && r.database === db.name) {
                             // Find which type it is
                             if (rn.startsWith('admin')) currentRole = 'admin';
-                            else if (rn.startsWith('guest')) currentRole = 'guest';
-                            else if (rn.startsWith('reader')) currentRole = 'reader';
-                            else if (rn.startsWith('writer-reader')) currentRole = 'writer-reader';
+                            else if (rn.startsWith('read-write')) currentRole = 'read-write';
+                            else if (rn.startsWith('read')) currentRole = 'read';
                             else currentRole = rn; // Fallback to raw role name if it's one of the defaults
                         }
                     }
@@ -2130,8 +2157,8 @@
             // Map roleType to privileges
             let privileges = ['READ'];
             if (roleType === 'admin') privileges = ['ADMIN', 'READ', 'WRITE'];
-            else if (roleType === 'writer-reader') privileges = ['READ', 'WRITE'];
-            else if (roleType === 'guest') privileges = ['READ'];
+            else if (roleType === 'read-write') privileges = ['READ', 'WRITE'];
+            else if (roleType === 'read') privileges = ['READ'];
 
             try {
                 await fetch('/api/web-auth/roles', {
@@ -2199,18 +2226,20 @@
                     }
                 }
 
-                // Protection for 'admin' user (Rule 1 & 5)
-                const isAdminUser = user.username === 'admin';
+                // Protection for 'admin' user (super-user)
+                const isAdminUser = user.username === 'super-user';
                 if (isAdminUser) currentRoleType = 'admin';
+
+                const isLocked = isAdminUser;
 
                 return `
                     <div class="role-assignment-item">
                         <span style="color: #e2e8f0; font-size: 0.9rem;">${user.username}</span>
-                        <select class="perm-role-select" data-username="${user.username}" ${isAdminUser ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''}>
+                        <select class="perm-role-select" data-username="${user.username}" ${isLocked ? 'disabled style="opacity: 0.6; cursor: not-allowed;" title="Super-user privileges cannot be changed"' : ''}>
                             <option value="denied" ${currentRoleType === 'denied' || currentRoleType === 'none' ? 'selected' : ''}>Sin Acceso (Denied)</option>
                             <option value="admin" ${currentRoleType === 'admin' ? 'selected' : ''}>Admin</option>
-                            <option value="reader" ${currentRoleType === 'reader' || currentRoleType === 'read' ? 'selected' : ''}>Lectura (Reader)</option>
-                            <option value="writer-reader" ${currentRoleType === 'writer-reader' || currentRoleType === 'write' ? 'selected' : ''}>Escritura / Lectura (Reader-Writer)</option>
+                            <option value="read" ${currentRoleType === 'read' || currentRoleType === 'reader' ? 'selected' : ''}>Solo Lectura (Read)</option>
+                            <option value="read-write" ${currentRoleType === 'read-write' || currentRoleType === 'writer-reader' ? 'selected' : ''}>Escritura / Lectura (Read-Write)</option>
                         </select>
                     </div>
                 `;
@@ -2221,20 +2250,18 @@
             console.log('savePermissions called');
             const dbNameInput = document.getElementById('perm-db-name-hidden');
             if (!dbNameInput) {
-                alert('CRITICAL ERROR: hidden input perm-db-name-hidden not found!');
+                showAlert('Error Crítico', 'No se encontró el campo oculto de nombre de BD.');
                 return;
             }
             const dbName = dbNameInput.value;
-            console.log('dbName:', dbName);
 
             if (!dbName) {
-                alert('Error: No database name found in hidden field.');
+                showAlert('Error', 'Nombre de base de datos no encontrado.');
                 return;
             }
 
             const roleMappings = {};
-            // To check for self-lockout
-            const currentUsername = localStorage.getItem('jettra_username') || 'unknown';
+            const currentUsername = (localStorage.getItem('jettra_username') || 'unknown').trim();
             let currentUserNewRole = 'unknown';
 
             document.querySelectorAll('.perm-role-select').forEach(select => {
@@ -2242,7 +2269,7 @@
                 const type = select.value;
                 if (username && type) {
                     roleMappings[username] = type;
-                    if (username === currentUsername) {
+                    if (username.toLowerCase() === currentUsername.toLowerCase()) {
                         currentUserNewRole = type;
                     }
                 }
@@ -2251,18 +2278,26 @@
             console.log('DEBUG: Permission mappings:', roleMappings);
 
             // Self-Lockout Prevention
-            const isGlobalAdmin = localStorage.getItem('jettra_username') === 'admin' || localStorage.getItem('jettra_is_admin') === 'true';
+            const isGlobalAdmin = (localStorage.getItem('jettra_username') === 'super-user') || (localStorage.getItem('jettra_is_admin') === 'true');
 
-            if (!isGlobalAdmin && currentUserNewRole !== 'admin' && currentUserNewRole !== 'unknown') {
+            // Check if user is demoting themselves
+            if (!isGlobalAdmin) {
                 if (currentUserNewRole === 'none') {
                     return showAlert('Acción Bloqueada', 'No puedes quitarte tu propio acceso completamente. Asigna otro administrador primero o contacta al administrador global.', 'error');
                 }
 
-                if (!confirm("Estás cambiando tus propios permisos. ¿Estás seguro de que quieres continuar? Podrías perder acceso administrativo.")) {
+                if (currentUserNewRole !== 'admin' && currentUserNewRole !== 'unknown') {
+                    // Warn only if demoting from Admin (presumed) to something else
+                    showPermissionConfirmModal(dbName, roleMappings);
                     return;
                 }
             }
 
+            // Proceed directly
+            await submitPermissions(dbName, roleMappings);
+        }
+
+        async function submitPermissions(dbName, roleMappings) {
             const syncUrl = `/api/web-auth/databases/${dbName}/sync-roles`;
 
             try {
@@ -2282,14 +2317,33 @@
                 } else {
                     console.log('Permissions saved successfully');
                     document.getElementById('db-permissions-modal').classList.add('hidden');
+                    document.getElementById('perm-confirm-modal').classList.add('hidden');
                     showAlert('Éxito', 'Permisos actualizados correctamente', 'success');
                     await fetchUsers();
-                    await fetchDatabases(); // REFRESH THE TREE to show updated roles/users in sidebar
+                    await fetchDatabases();
                 }
             } catch (e) {
                 console.error('Exception saving permissions:', e);
                 showAlert('Error', 'Error de conexión: ' + e.message);
             }
+        }
+
+        function showPermissionConfirmModal(dbName, roleMappings) {
+            document.getElementById('perm-confirm-db').value = dbName;
+            document.getElementById('perm-confirm-data').value = JSON.stringify(roleMappings);
+            document.getElementById('perm-confirm-modal').classList.remove('hidden');
+        }
+
+        function closePermissionConfirmModal() {
+            document.getElementById('perm-confirm-modal').classList.add('hidden');
+        }
+
+        function confirmSavePermissions() {
+            const dbName = document.getElementById('perm-confirm-db').value;
+            const dataStr = document.getElementById('perm-confirm-data').value;
+            if (!dbName || !dataStr) return;
+            const roleMappings = JSON.parse(dataStr);
+            submitPermissions(dbName, roleMappings);
         }
 
         function logout() {

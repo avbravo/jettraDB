@@ -13,6 +13,7 @@ services:
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=0.0.0.0:9000
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders -XX:+UseCompactObjectHeaders
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/api/internal/pd/health" ]
       interval: 5s
@@ -36,6 +37,7 @@ services:
     environment:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_URL=http://jettra-pd:8080
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders
     networks:
       - jettra-net
 
@@ -52,6 +54,7 @@ services:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
       - JETTRA_NODE_ID=jettra-store-1
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders
     networks:
       - jettra-net
 
@@ -68,6 +71,7 @@ services:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
       - JETTRA_NODE_ID=jettra-store-2
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders
     networks:
       - jettra-net
 
@@ -84,6 +88,7 @@ services:
       - QUARKUS_HTTP_PORT=8080
       - JETTRA_PD_ADDR=jettra-pd:9000
       - JETTRA_NODE_ID=jettra-store-3
+      - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders
     networks:
       - jettra-net
 

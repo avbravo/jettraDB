@@ -10,7 +10,7 @@ Todas las peticiones a la API requieren un token JWT válido. Primero debes aute
 # 1. Login para obtener el token
 TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"adminadmin"}' | jq -r .token)
+  -d '{"username":"super-user","password":"adminadmin"}' | jq -r .token)
 
 echo "Token: $TOKEN"
 ```
@@ -226,13 +226,14 @@ curl -X POST http://localhost:8081/stop -H "Authorization: Bearer $TOKEN"
 
 ### 1. Crear un Rol
 Define permisos para una base de datos específica o para todas (`_all`).
+**Nota:** Se recomienda seguir la convención de nombres: `<tipo>_<base_de_datos>` (ej: `read_sales_db`, `read-write_logs`).
 
 ```bash
 curl -X POST http://localhost:8081/api/web-auth/roles \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "lector_ventas",
+    "name": "read_sales_db",
     "database": "sales_db",
     "privileges": ["READ"]
   }'
@@ -240,6 +241,11 @@ curl -X POST http://localhost:8081/api/web-auth/roles \
 
 ### 2. Crear un Usuario
 Asigna uno o varios roles al usuario.
+JettraDB soporta 4 tipos de roles principales:
+1. **super-user**: Solo para `admin`.
+2. **admin**: Administrador de DB.
+3. **read**: Solo lectura.
+4. **read-write**: Lectura y Escritura.
 
 ```bash
 curl -X POST http://localhost:8081/api/web-auth/users \
@@ -248,7 +254,7 @@ curl -X POST http://localhost:8081/api/web-auth/users \
   -d '{
     "username": "bob",
     "password": "password123",
-    "roles": ["lector_ventas", "reader_all"],
+    "roles": ["read_sales_db", "read_all"],
     "forcePasswordChange": false
   }'
 ```

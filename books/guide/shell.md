@@ -42,7 +42,7 @@ connect 192.168.1.50:8081
 
 Once connected, you typically need to login:
 ```bash
-login admin -p
+login super-user -p
 # Enter password when prompted
 ```
 
@@ -64,7 +64,7 @@ connect localhost:9000
 Before performing operations, you must log in:
 
 ```bash
-login admin
+login super-user
 # Password prompt will appear
 ```
 
@@ -230,12 +230,12 @@ user list
 user delete bob
 ```
 
-**Allowed Role Types:**
-While you can create custom roles with any name, the system optimized for the following predefined types:
-- `admin`: Full access (ADMIN, READ, WRITE).
-- `reader`: Read-only access.
-- `writer-reader`: Read and Write access.
-- `guest`: Read-only access (anonymous/restricted).
+**Tipos de Roles Permitidos:**
+JettraDB implementa una jerarquía estricta de 4 roles principales:
+- `super-user`: Rol único del usuario `admin`. Acceso total global. Inmutable.
+- `admin`: Administrador de base de datos (CREATE, DROP, GRANT).
+- `read`: Solo lectura (SELECT/GET).
+- `read-write`: Lectura y Escritura (INSERT, UPDATE, DELETE), sin capacidades administrativas.
 
 ### 11. Integrated Help System 📖
 

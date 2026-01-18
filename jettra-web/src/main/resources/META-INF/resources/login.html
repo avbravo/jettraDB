@@ -151,11 +151,7 @@
                     localStorage.setItem('jettra_username', username);
                     localStorage.setItem('jettra_is_admin', data.isAdmin);
 
-                    if (data.mustChangePassword && username !== 'admin') {
-                        window.location.href = '/change-password.html';
-                    } else {
-                        window.location.href = '/index.html';
-                    }
+                    window.location.href = '/index.html';
                 } else {
                     const errorText = await response.text();
                     console.error('Login failed with status:', response.status, errorText);

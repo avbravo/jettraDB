@@ -1,5 +1,7 @@
 package io.jettra.pd.auth;
 
+import java.util.Map;
+
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -7,7 +9,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.Map;
 
 @Path("/api/auth")
 @Produces(MediaType.APPLICATION_JSON)
@@ -16,6 +17,8 @@ public class AuthResource {
 
     @Inject
     AuthService authService;
+
+    private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(AuthResource.class);
 
     public record LoginRequest(String username, String password) {
     }
@@ -41,10 +44,16 @@ public class AuthResource {
     @POST
     @Path("/change-password")
     public Response changePassword(ChangePasswordRequest request) {
+        LOG.infof("Change password request for: %s", request.username());
+        if (request.username() == null || request.oldPassword() == null || request.newPassword() == null) {
+            LOG.error("Invalid change password request: missing fields");
+            return Response.status(Response.Status.BAD_REQUEST).entity("Missing fields").build();
+        }
         if (authService.changePassword(request.username(), request.oldPassword(), request.newPassword())) {
             return Response.ok().build();
         }
-        return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials").build();
+        LOG.warnf("Failed to change password for user %s (Invalid old password or user not found)", request.username());
+        return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials (PD)").build(); // Distinct message
     }
 
     // User Management API

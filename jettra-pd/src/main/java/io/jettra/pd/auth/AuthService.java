@@ -1,10 +1,12 @@
 package io.jettra.pd.auth;
 
-import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.jboss.logging.Logger;
+
+import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class AuthService {
@@ -14,13 +16,13 @@ public class AuthService {
 
     public AuthService() {
         // Initialize default roles
+        roles.put("super-user", new Role("super-user", "_all", Set.of("ADMIN", "READ", "WRITE")));
         roles.put("admin", new Role("admin", "_all", Set.of("ADMIN", "READ", "WRITE")));
-        roles.put("guest", new Role("guest", "_all", Set.of("READ")));
-        roles.put("reader", new Role("reader", "_all", Set.of("READ")));
-        roles.put("writer-reader", new Role("writer-reader", "_all", Set.of("READ", "WRITE")));
+        roles.put("read", new Role("read", "_all", Set.of("READ")));
+        roles.put("read-write", new Role("read-write", "_all", Set.of("READ", "WRITE")));
 
-        // Initialize default admin
-        users.put("admin", new User("admin", "adminadmin", null, Set.of("admin"), true));
+        // Initialize default admin (super-user)
+        users.put("super-user", new User("super-user", "adminadmin", null, Set.of("super-user", "admin"), false));
     }
 
     public User authenticate(String username, String password) {
@@ -123,11 +125,11 @@ public class AuthService {
         Role dbAdminRole = new Role(roleName, dbName, Set.of("ADMIN", "READ", "WRITE"));
         createRole(dbAdminRole);
 
-        // 1. Assign to global admin
-        assignRoleToUser("admin", roleName);
+        // 1. Assign to global admin (super-user)
+        assignRoleToUser("super-user", roleName);
 
-        // 2. Assign to creator (if different from admin)
-        if (creator != null && !creator.equals("admin") && !creator.equals("system-pd")) {
+        // 2. Assign to creator (if different from super-user)
+        if (creator != null && !creator.equals("super-user") && !creator.equals("system-pd")) {
             assignRoleToUser(creator, roleName);
         }
     }
@@ -184,8 +186,10 @@ public class AuthService {
                 .map(Role::name)
                 .collect(java.util.stream.Collectors.toSet());
 
-        // 2. Clear these roles from ALL users first (except for mandatory admin logic)
+        // 2. Clear these roles from ALL users first (except 'super-user' who is super-user)
         users.values().forEach(user -> {
+            if (user.username().equals("super-user")) return; // PROTECT SUPER-USER
+
             java.util.Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
             if (updatedRoles.removeIf(dbRoleNames::contains)) {
                 updateUser(new User(user.username(), user.password(), user.email(), updatedRoles,
@@ -204,7 +208,9 @@ public class AuthService {
             if (!roles.containsKey(roleName)) {
                 java.util.Set<String> privileges = switch (roleType) {
                     case "admin" -> java.util.Set.of("ADMIN", "READ", "WRITE");
-                    case "writer-reader" -> java.util.Set.of("READ", "WRITE");
+                    case "read-write" -> java.util.Set.of("READ", "WRITE");
+                    case "read" -> java.util.Set.of("READ");
+                    case "denied" -> java.util.Collections.emptySet();
                     default -> java.util.Set.of("READ");
                 };
                 createRole(new Role(roleName, dbName, privileges));
@@ -219,7 +225,7 @@ public class AuthService {
             LOG.infof("Creating default admin role for %s", dbName);
             createRole(new Role(adminRoleName, dbName, java.util.Set.of("ADMIN", "READ", "WRITE")));
         }
-        assignRoleToUser("admin", adminRoleName);
+        assignRoleToUser("super-user", adminRoleName);
         LOG.infof("Sync database roles completed for %s", dbName);
     }
 }

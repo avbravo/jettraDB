@@ -122,15 +122,16 @@ Manage cluster access control.
 
 ```java
 // Create a role for a specific database
-client.createRole("reader_db1", "db1", Set.of("READ"))
+// Create a role for a specific database using standard prefixes
+client.createRole("read_db1", "db1", Set.of("READ"))
       .await().indefinitely();
 
 // Create a new user with specific roles
-client.createUser("bob", "password123", Set.of("reader_db1", "admin_all"))
+client.createUser("bob", "password123", Set.of("read_db1", "admin_all"))
       .await().indefinitely();
 
 // Update an existing user (Edit roles/password)
-client.updateUser("bob", "newpassword456", Set.of("writer-reader_all"))
+client.updateUser("bob", "newpassword456", Set.of("read-write_all"))
       .await().indefinitely();
 
 // List all users

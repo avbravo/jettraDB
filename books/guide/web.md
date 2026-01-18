@@ -6,8 +6,8 @@ El Dashboard de JettraDB es una aplicación de una sola página (SPA) moderna, e
 La interfaz web se despliega automáticamente con el componente `jettra-web`.
 - **URL**: `http://localhost:8081` (Puerto por defecto del componente web)
 - **Credenciales**: **Requerido**. El acceso está protegido por JWT.
-  - Usuario por defecto: `admin`
-  - Contraseña por defecto: `adminadmin` (Cambio obligatorio al primer inicio).
+  - Usuario por defecto: `super-user`
+  - Contraseña por defecto: `adminadmin`
 
 ## Secciones y Funcionalidades
 
@@ -56,10 +56,10 @@ Control centralizado de acceso y roles para todo el cluster:
 - **Asignación de Roles por Base de Datos** ⭐: El formulario de usuario lista todas las bases de datos disponibles y permite seleccionar un rol específico para cada una (ej: `bob` es `reader` en `db1` pero `writer-reader` en `db2`).
 - **Edición de Usuarios**: Permite cambiar la contraseña y los roles de usuarios existentes de forma visual.
 - **Roles Predefinidos**:
-    - `admin`: Acceso total (Global).
-    - `reader`: Lectura únicamente.
-    - `writer-reader`: Lectura y escritura.
-    - `guest`: Acceso restringido de invitado.
+    - `super-user`: Rol exclusivo del usuario `admin` (built-in). Tiene control total absoluto y no puede ser eliminado ni modificado.
+    - `admin`: Administrador de base de datos. Puede gestionar usuarios, crear/editar/eliminar sus bases de datos asignadas. 
+    - `read`: Acceso de solo lectura.
+    - `read-write`: Acceso de lectura y escritura (sin permisos administrativos).
 
 ### 5. Consola de Consultas (Query Console)
 Permite ejecutar operaciones multi-modelo directamente desde el navegador:
@@ -70,7 +70,7 @@ Permite ejecutar operaciones multi-modelo directamente desde el navegador:
 ## Procedimiento de Autenticación en la Web
 
 1. Al acceder a la URL, el sistema redirigirá automáticamente a `login.html`.
-2. Introduce tus credenciales (`admin` / `adminadmin`).
+2. Introduce tus credenciales (`super-user` / `adminadmin`).
 3. El sistema generará un token JWT que se almacenará en el `localStorage` del navegador.
 4. El token se enviará automáticamente en la cabecera `Authorization: Bearer <token>` en cada petición a la API.
 5. Si el token expira o es inválido, serás redirigido nuevamente al Login.

@@ -102,8 +102,18 @@ public class PlacementDriverService {
 
         java.util.List<io.jettra.pd.auth.Role> userRoles = authService.getRolesForUser(user);
         return databases.values().stream()
-                .filter(db -> userRoles.stream()
-                        .anyMatch(r -> "_all".equals(r.database()) || db.name().equals(r.database())))
+                .filter(db -> {
+                    java.util.List<io.jettra.pd.auth.Role> dbRoles = userRoles.stream()
+                            .filter(r -> "_all".equals(r.database()) || db.name().equals(r.database()))
+                            .toList();
+                    if (dbRoles.isEmpty()) {
+                        return false;
+                    }
+                    boolean isDenied = dbRoles.stream()
+                            .anyMatch(r -> r.name().startsWith("denied_") || "denied".equals(r.name())
+                                    || r.name().contains("denied"));
+                    return !isDenied;
+                })
                 .toList();
     }
 

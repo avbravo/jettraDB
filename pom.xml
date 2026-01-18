@@ -18,7 +18,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-        <quarkus.platform.version>3.15.1</quarkus.platform.version> <!-- Using latest stable Quarkus -->
+        <quarkus.platform.version>3.15.1</quarkus.platform.version> <!-- Using stable Quarkus 3.15.1 -->
         <grpc.version>1.68.0</grpc.version>
         <protobuf.version>3.25.5</protobuf.version>
     </properties>
