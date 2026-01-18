@@ -63,10 +63,10 @@ public class AuthFilter implements ContainerRequestFilter {
             requestContext.setProperty("auth.username", username);
 
             // 3. Authorization (Role-based access)
-            boolean isAdmin = "admin".equals(username) || "system-pd".equals(username);
+            boolean isAdmin = "super-user".equals(username) || "admin".equals(username) || "system-pd".equals(username);
             if (!isAdmin) {
                 User user = authService.getUser(username);
-                if (user != null && user.roles().contains("admin")) {
+                if (user != null && ("super-user".equals(user.profile()) || "management".equals(user.profile()))) {
                     isAdmin = true;
                 }
             }
@@ -130,14 +130,14 @@ public class AuthFilter implements ContainerRequestFilter {
     }
 
     private boolean hasAccess(String username, String dbName, String method) {
-        // Admin user (system-pd) is always allowed
-        if ("admin".equals(username) || "system-pd".equals(username)) {
-            return true;
-        }
-
         User user = authService.getUser(username);
         if (user == null) {
             return false;
+        }
+
+        // super-user profile has full access to everything
+        if ("super-user".equals(user.profile())) {
+            return true;
         }
 
         java.util.List<Role> userRoles = authService.getRolesForUser(user);

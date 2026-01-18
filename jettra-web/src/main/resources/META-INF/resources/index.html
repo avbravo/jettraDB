@@ -680,13 +680,13 @@
                                 <input type="password" id="user-password" placeholder="Password">
                             </div>
                         </div>
-                        <!-- Global User Role Type -->
+                        <!-- User Profile (Application Level) -->
                         <div>
-                            <label class="text-xs text-gray-400 block mb-1">Global User Role</label>
-                            <select id="user-global-role">
-                                <option value="none">Standard User (No Global Access)</option>
-                                <option value="admin">Global Admin (Full Access)</option>
-                                <option value="guest">Global Guest (Read Only)</option>
+                            <label class="text-xs text-gray-400 block mb-1">User Profile</label>
+                            <select id="user-profile">
+                                <option value="super-user" disabled>Super User (Full Access)</option>
+                                <option value="management">Management (Full Access except Stopping Nodes)</option>
+                                <option value="end-user">End User (Database Level Admin Only)</option>
                             </select>
                         </div>
                     </div>
@@ -1112,9 +1112,11 @@
         if (!token) window.location.href = '/login.html';
 
         const username = localStorage.getItem('jettra_username') || 'Unknown';
+        const userProfile = localStorage.getItem('jettra_profile') || 'end-user';
         document.getElementById('logged-username').textContent = username;
 
-        const isAdmin = localStorage.getItem('jettra_is_admin') === 'true' || username === 'admin';
+        const isAdmin = userProfile === 'super-user' || userProfile === 'management';
+        const isSuperUser = userProfile === 'super-user';
         let currentView = 'cluster';
         let allNodes = [];
         let allDatabases = [];
@@ -1440,12 +1442,27 @@
             const treeRoot = document.getElementById('db-tree-root');
             if (!treeRoot) return;
 
-            if (!dbs || dbs.length === 0) {
-                treeRoot.innerHTML = '<div style="color: #475569; font-size: 0.75rem; padding: 0.5rem;">No hay bases de datos</div>';
+            // Filter databases: super-user sees all, others only see where they have a role
+            let filteredDbs = dbs;
+            if (userProfile !== 'super-user') {
+                filteredDbs = dbs.filter(db => {
+                    // Check if current user has any role for this database
+                    const currentUser = allUsers.find(u => u.username === username);
+                    if (!currentUser || !currentUser.roles) return false;
+
+                    return currentUser.roles.some(rn => {
+                        const r = allSystemRoles.find(role => role.name === rn);
+                        return r && r.database === db.name;
+                    });
+                });
+            }
+
+            if (!filteredDbs || filteredDbs.length === 0) {
+                treeRoot.innerHTML = '<div style="color: #475569; font-size: 0.75rem; padding: 0.5rem;">No accessible databases</div>';
                 return;
             }
 
-            treeRoot.innerHTML = dbs.map(db => `
+            treeRoot.innerHTML = filteredDbs.map(db => `
                 <div class="tree-db-item">
                     <div class="tree-db-name" onclick="toggleTreeChildren(this)">
                         <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
@@ -1545,7 +1562,7 @@
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                         <button class="btn" style="flex: 1; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);" 
                                 onclick="showNodeResources('${node.id}')">🔍 Resources</button>
-                        ${isAdmin ? `
+                        ${isSuperUser ? `
                         <button class="btn" id="stop-btn-${node.id}" style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" 
                                 onclick="stopNode('${node.id}')">🛑 Stop</button>
                         ` : ''}
@@ -1954,6 +1971,7 @@
                     <thead style="background: rgba(255,255,255,0.05); font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">
                         <tr>
                             <th style="padding: 0.75rem; text-align: left;">Username</th>
+                            <th style="padding: 0.75rem; text-align: left;">Profile</th>
                             <th style="padding: 0.75rem; text-align: left;">Roles / DBs</th>
                             <th style="padding: 0.75rem; text-align: right;">Actions</th>
                         </tr>
@@ -1974,9 +1992,15 @@
                                         ${user.username}
                                     </div>
                                 </td>
+                                <td style="padding: 0.75rem; font-size: 0.75rem;">
+                                    <span style="padding: 0.2rem 0.5rem; border-radius: 999px; background: ${user.profile === 'super-user' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.05)'}; color: ${user.profile === 'super-user' ? 'var(--primary)' : '#94a3b8'}; border: 1px solid rgba(255,255,255,0.1);">
+                                        ${user.profile || 'end-user'}
+                                    </span>
+                                </td>
                                 <td style="padding: 0.75rem; font-size: 0.75rem; color: #94a3b8;">${roleDetails || 'no roles'}</td>
                                 <td style="padding: 0.75rem; text-align: right;">
                                     <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                        <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.7rem;" onclick="handleEditUser('${user.username}')">Editar</button>
                                         ${user.username !== 'super-user' ? `
                                         <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.7rem;" onclick="deleteUser('${user.username}')">Delete</button>
                                         ` : ''}
@@ -2050,14 +2074,9 @@
                 document.getElementById('user-cancel-btn').classList.remove('hidden');
 
                 // Set Global Role
-                const globalRoleSelect = document.getElementById('user-global-role');
-                if (user.roles && user.roles.includes('admin')) {
-                    globalRoleSelect.value = 'admin';
-                } else if (user.roles && user.roles.includes('guest')) {
-                    globalRoleSelect.value = 'guest';
-                } else {
-                    globalRoleSelect.value = 'none';
-                }
+                // Set User Profile
+                const profileSelect = document.getElementById('user-profile');
+                profileSelect.value = user.profile || 'end-user';
 
                 await renderUserDbRoles(user);
                 window.scrollTo({ top: document.getElementById('view-security').offsetTop, behavior: 'smooth' });
@@ -2076,7 +2095,7 @@
             document.getElementById('user-form-title').textContent = "Create / Edit User";
             document.getElementById('user-save-btn').textContent = "Create User";
             document.getElementById('user-cancel-btn').classList.add('hidden');
-            document.getElementById('user-global-role').value = 'none';
+            document.getElementById('user-profile').value = 'end-user';
             renderUserDbRoles();
         }
 
@@ -2085,7 +2104,7 @@
             const email = document.getElementById('user-email').value.trim();
             const password = document.getElementById('user-password').value.trim();
             const isEdit = document.getElementById('user-is-edit').value === "true";
-            const globalRole = document.getElementById('user-global-role').value;
+            const profile = document.getElementById('user-profile').value;
 
             if (!username) return showAlert('Error', 'Username is required');
             if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -2096,11 +2115,12 @@
             const selects = document.querySelectorAll('.user-db-role-select');
             const selectedRoles = [];
 
-            // Add Global Role if selected
-            if (globalRole !== 'none') {
-                selectedRoles.push(globalRole);
-                // Ensure global role exists (it should by default)
-            }
+            // Add Profile as a role for simplicity/compatibility if needed, 
+            // but the backend uses the profile field separately now.
+            // We still need to pass it in the JSON.
+            // ...
+            // Wait, the backend userData needs 'profile' field.
+            // ...
 
             for (let s of selects) {
                 const db = s.dataset.db;
@@ -2121,6 +2141,7 @@
                 password: password || undefined,
                 email: email || null,
                 roles: selectedRoles,
+                profile: profile,
                 forcePasswordChange: false
             };
 

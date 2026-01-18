@@ -15,14 +15,15 @@ public class AuthService {
     private final Map<String, Role> roles = new ConcurrentHashMap<>();
 
     public AuthService() {
-        // Initialize default roles
-        roles.put("super-user", new Role("super-user", "_all", Set.of("ADMIN", "READ", "WRITE")));
+        // Initialize default roles (Application level perfiles are just strings in profile field)
+        // Database level roles:
+        roles.put("super-user", new Role("super-user", "_all", Set.of("SUPER", "ADMIN", "READ", "WRITE")));
         roles.put("admin", new Role("admin", "_all", Set.of("ADMIN", "READ", "WRITE")));
         roles.put("read", new Role("read", "_all", Set.of("READ")));
         roles.put("read-write", new Role("read-write", "_all", Set.of("READ", "WRITE")));
 
-        // Initialize default admin (super-user)
-        users.put("super-user", new User("super-user", "adminadmin", null, Set.of("super-user", "admin"), false));
+        // Initialize default super-user
+        users.put("super-user", new User("super-user", "adminadmin", null, Set.of("super-user"), "super-user", false));
     }
 
     public User authenticate(String username, String password) {
@@ -36,7 +37,7 @@ public class AuthService {
     public boolean changePassword(String username, String oldPassword, String newPassword) {
         User user = users.get(username);
         if (user != null && user.password().equals(oldPassword)) {
-            users.put(username, new User(username, newPassword, user.email(), user.roles(), false));
+            users.put(username, new User(username, newPassword, user.email(), user.roles(), user.profile(), false));
             LOG.infof("Password changed for user: %s", username);
             return true;
         }
@@ -49,11 +50,20 @@ public class AuthService {
     }
 
     public void createUser(User user) {
+        // Prevent altering super-user privileges if somehow attempted through API
+        if ("super-user".equals(user.username())) {
+            LOG.warn("Attempt to create/overwrite super-user via API blocked.");
+            return;
+        }
         users.put(user.username(), user);
-        LOG.infof("User created: %s", user.username());
+        LOG.infof("User created: %s with profile: %s", user.username(), user.profile());
     }
 
     public void deleteUser(String username) {
+        if ("super-user".equals(username)) {
+            LOG.warn("Attempt to delete super-user blocked.");
+            return;
+        }
         users.remove(username);
         LOG.infof("User deleted: %s", username);
     }
@@ -63,22 +73,22 @@ public class AuthService {
     }
 
     public void updateUser(User user) {
+        if ("super-user".equals(user.username())) {
+             // Protect super-user from profile change or removal through general update
+             User existing = users.get("super-user");
+             if (existing != null) {
+                 String password = (user.password() == null || user.password().isEmpty()) ? existing.password() : user.password();
+                 users.put("super-user", new User("super-user", password, user.email(), existing.roles(), "super-user", user.forcePasswordChange()));
+                 LOG.info("Super-user updated (roles and profile protected)");
+                 return;
+             }
+        }
+
         if (users.containsKey(user.username())) {
             User existing = users.get(user.username());
-            // If password is null or empty in the update, keep the existing one
-            String password = (user.password() == null || user.password().isEmpty()) ? existing.password()
-                    : user.password();
-            // Preserve existing email if input is null/empty, or update it?
-            // Usually updates replace everything. Let's assume input user has the new
-            // state.
-            // But if input email is null, maybe we should keep existing?
-            // For now, let's trust the input user object carries the desired state
-            // (including null if intended).
-            // However, the `user` object passed in `updateUser` comes from JSON
-            // deserialization.
-            // If the frontend sends the whole object, it's fine.
+            String password = (user.password() == null || user.password().isEmpty()) ? existing.password() : user.password();
             users.put(user.username(),
-                    new User(user.username(), password, user.email(), user.roles(), user.forcePasswordChange()));
+                    new User(user.username(), password, user.email(), user.roles(), user.profile(), user.forcePasswordChange()));
             LOG.infof("User updated: %s", user.username());
         }
     }
@@ -118,19 +128,31 @@ public class AuthService {
 
     /**
      * Set up default permissions for a newly created database.
-     * Assigns 'admin_<dbName>' role to the global 'admin' and the creator.
+     * 1. Assigns 'super-user_<dbName>' role to 'super-user' user.
+     * 2. Assigns 'admin_<dbName>' role to the creator.
      */
     public void setupDefaultDatabaseRoles(String dbName, String creator) {
-        String roleName = "admin_" + dbName;
-        Role dbAdminRole = new Role(roleName, dbName, Set.of("ADMIN", "READ", "WRITE"));
-        createRole(dbAdminRole);
+        // 1. Create and Assign super-user role for this DB
+        String suRoleName = "super-user_" + dbName;
+        createRole(new Role(suRoleName, dbName, Set.of("SUPER", "ADMIN", "READ", "WRITE")));
+        
+        // Ensure the primary 'super-user' account always gets it
+        assignRoleToUser("super-user", suRoleName);
 
-        // 1. Assign to global admin (super-user)
-        assignRoleToUser("super-user", roleName);
-
-        // 2. Assign to creator (if different from super-user)
-        if (creator != null && !creator.equals("super-user") && !creator.equals("system-pd")) {
-            assignRoleToUser(creator, roleName);
+        // 2. Assign roles to creator
+        if (creator != null) {
+            User creatorUser = users.get(creator);
+            boolean isSuperProfile = creatorUser != null && "super-user".equals(creatorUser.profile());
+            
+            if (isSuperProfile || "super-user".equals(creator)) {
+                // If creator is a super-user, they already have (or just got) the su role
+                assignRoleToUser(creator, suRoleName);
+            } else if (!"system-pd".equals(creator)) {
+                // Normal creator gets admin role
+                String adminRoleName = "admin_" + dbName;
+                createRole(new Role(adminRoleName, dbName, Set.of("ADMIN", "READ", "WRITE")));
+                assignRoleToUser(creator, adminRoleName);
+            }
         }
     }
 
@@ -139,8 +161,7 @@ public class AuthService {
         if (user != null) {
             Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
             updatedRoles.add(roleName);
-            updateUser(
-                    new User(user.username(), user.password(), user.email(), updatedRoles, user.forcePasswordChange()));
+            updateUser(new User(user.username(), user.password(), user.email(), updatedRoles, user.profile(), user.forcePasswordChange()));
             LOG.infof("Role %s assigned to user %s", roleName, username);
         }
     }
@@ -169,7 +190,7 @@ public class AuthService {
                     java.util.Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
                     updatedRoles.remove(oldRole.name());
                     updatedRoles.add(newRoleName);
-                    updateUser(new User(user.username(), user.password(), user.email(), updatedRoles,
+                    updateUser(new User(user.username(), user.password(), user.email(), updatedRoles, user.profile(),
                             user.forcePasswordChange()));
                 }
             }
@@ -186,21 +207,21 @@ public class AuthService {
                 .map(Role::name)
                 .collect(java.util.stream.Collectors.toSet());
 
-        // 2. Clear these roles from ALL users first (except 'super-user' who is super-user)
+        // 2. Clear these roles from ALL users first (except 'super-user' who is protected)
         users.values().forEach(user -> {
-            if (user.username().equals("super-user")) return; // PROTECT SUPER-USER
+            if (user.username().equals("super-user")) return; 
 
             java.util.Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
             if (updatedRoles.removeIf(dbRoleNames::contains)) {
-                updateUser(new User(user.username(), user.password(), user.email(), updatedRoles,
+                updateUser(new User(user.username(), user.password(), user.email(), updatedRoles, user.profile(),
                         user.forcePasswordChange()));
             }
         });
 
         // 3. Apply the new mapping
         userRoleMapping.forEach((username, roleType) -> {
-            if ("none".equals(roleType))
-                return;
+            if ("none".equals(roleType) || "super-user".equals(roleType))
+                return; // super-user is handled separately/protected
 
             String roleName = roleType + "_" + dbName;
 
@@ -216,16 +237,17 @@ public class AuthService {
                 createRole(new Role(roleName, dbName, privileges));
             }
 
-            assignRoleToUser(username, roleName);
+            if (!"super-user".equals(username)) {
+                assignRoleToUser(username, roleName);
+            }
         });
 
-        // 4. Ensure global admin always has admin role for this database
-        String adminRoleName = "admin_" + dbName;
-        if (!roles.containsKey(adminRoleName)) {
-            LOG.infof("Creating default admin role for %s", dbName);
-            createRole(new Role(adminRoleName, dbName, java.util.Set.of("ADMIN", "READ", "WRITE")));
+        // 4. Ensure super-user ALWAYS has super-user role for this database
+        String suRoleName = "super-user_" + dbName;
+        if (!roles.containsKey(suRoleName)) {
+            createRole(new Role(suRoleName, dbName, java.util.Set.of("SUPER", "ADMIN", "READ", "WRITE")));
         }
-        assignRoleToUser("super-user", adminRoleName);
+        assignRoleToUser("super-user", suRoleName);
         LOG.infof("Sync database roles completed for %s", dbName);
     }
 }

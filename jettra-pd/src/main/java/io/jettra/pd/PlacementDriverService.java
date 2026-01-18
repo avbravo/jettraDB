@@ -87,7 +87,7 @@ public class PlacementDriverService {
     }
 
     public java.util.Collection<DatabaseMetadata> listDatabases(String username) {
-        if ("admin".equals(username) || "system-pd".equals(username) || "system".equals(username)) {
+        if ("super-user".equals(username) || "admin".equals(username) || "system-pd".equals(username) || "system".equals(username)) {
             return databases.values();
         }
 
@@ -98,6 +98,11 @@ public class PlacementDriverService {
         io.jettra.pd.auth.User user = authService.getUser(username);
         if (user == null) {
             return java.util.Collections.emptyList();
+        }
+
+        // super-user profile sees all databases
+        if ("super-user".equals(user.profile())) {
+            return databases.values();
         }
 
         java.util.List<io.jettra.pd.auth.Role> userRoles = authService.getRolesForUser(user);

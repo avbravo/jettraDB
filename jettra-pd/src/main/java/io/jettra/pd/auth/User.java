@@ -7,5 +7,6 @@ public record User(
                 String password, // Storing plain/hash (in logic)
                 String email,
                 Set<String> roles,
+                String profile,
                 boolean forcePasswordChange) {
 }

@@ -10,7 +10,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-@Path("/api/auth")
+@Path("/api/{type: (auth|web-auth)}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class AuthResource {
@@ -32,9 +32,13 @@ public class AuthResource {
         User user = authService.authenticate(request.username(), request.password());
         if (user != null) {
             String token = TokenUtils.generateToken(user.username(), user.roles());
-            boolean isAdmin = "admin".equals(user.username()) || user.roles().contains("admin");
+            // isAdmin usually refers to global admin capabilities (managing users, etc)
+            // super-user and management can manage users. end-user cannot.
+            boolean isAdmin = "super-user".equals(user.profile()) || "management".equals(user.profile());
+            
             return Response.ok(Map.of(
                     "token", token,
+                    "profile", user.profile(),
                     "mustChangePassword", user.forcePasswordChange(),
                     "isAdmin", isAdmin)).build();
         }
