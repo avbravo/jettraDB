@@ -684,7 +684,6 @@
                         <div>
                             <label class="text-xs text-gray-400 block mb-1">User Profile</label>
                             <select id="user-profile">
-                                <option value="super-user" disabled>Super User (Full Access)</option>
                                 <option value="management">Management (Full Access except Stopping Nodes)</option>
                                 <option value="end-user">End User (Database Level Admin Only)</option>
                             </select>
@@ -1117,6 +1116,7 @@
 
         const isAdmin = userProfile === 'super-user' || userProfile === 'management';
         const isSuperUser = userProfile === 'super-user';
+        const isEndUser = userProfile === 'end-user';
         let currentView = 'cluster';
         let allNodes = [];
         let allDatabases = [];
@@ -1127,7 +1127,7 @@
         // Apply initial role-based UI restrictions
         const navSecurity = document.getElementById('nav-security');
         if (navSecurity) {
-            navSecurity.style.display = isAdmin ? 'block' : 'none';
+            navSecurity.style.display = (username === 'super-user') ? 'block' : 'none';
         }
 
         const SUPPORTED_ENGINES = [
@@ -1444,12 +1444,10 @@
 
             // Filter databases: super-user sees all, others only see where they have a role
             let filteredDbs = dbs;
-            if (userProfile !== 'super-user') {
+            if (userProfile !== 'super-user' && userProfile !== 'management') {
                 filteredDbs = dbs.filter(db => {
-                    // Check if current user has any role for this database
                     const currentUser = allUsers.find(u => u.username === username);
                     if (!currentUser || !currentUser.roles) return false;
-
                     return currentUser.roles.some(rn => {
                         const r = allSystemRoles.find(role => role.name === rn);
                         return r && r.database === db.name;
@@ -1462,7 +1460,15 @@
                 return;
             }
 
-            treeRoot.innerHTML = filteredDbs.map(db => `
+            treeRoot.innerHTML = filteredDbs.map(db => {
+                const currentUser = allUsers.find(u => u.username === username);
+                const hasAdminRole = currentUser && currentUser.roles && currentUser.roles.some(rn => {
+                    const r = allSystemRoles.find(role => role.name === rn);
+                    return r && r.database === db.name && (rn.startsWith('admin_') || rn.startsWith('super-user_'));
+                });
+                const canManage = userProfile === 'super-user' || userProfile === 'management' || hasAdminRole;
+
+                return `
                 <div class="tree-db-item">
                     <div class="tree-db-name" onclick="toggleTreeChildren(this)">
                         <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
@@ -1471,6 +1477,7 @@
                             <div class="db-action-btn" onclick="showDbInfo('${db.name}'); event.stopPropagation();" title="Information">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
+                            ${canManage ? `
                             <div class="db-action-btn" onclick="managePermissions('${db.name}'); event.stopPropagation();" title="Security & Permissions">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                             </div>
@@ -1480,6 +1487,7 @@
                             <div class="db-action-btn delete" onclick="handleDeleteDb('${db.name}'); event.stopPropagation();" title="Delete">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </div>
+                            ` : ''}
                         </div>
                     </div>
                     <div class="tree-children">
@@ -1495,17 +1503,15 @@
                         </div>
 
                         ${SUPPORTED_ENGINES.map(eng => {
-                let collections = db.collections || [];
-                let filtered = collections;
-                if (collections.length > 0 && typeof collections[0] === 'object') {
-                    filtered = collections.filter(c => c.engine === eng.name).map(c => c.name);
-                } else if (eng.name !== 'Document') {
-                    filtered = [];
-                } else if (collections.length > 0 && typeof collections[0] === 'string') {
-                    // Keep original names if strings and engine is Document
-                }
+                    let collections = db.collections || [];
+                    let filtered = collections;
+                    if (collections.length > 0 && typeof collections[0] === 'object') {
+                        filtered = collections.filter(c => c.engine === eng.name).map(c => c.name);
+                    } else if (eng.name !== 'Document') {
+                        filtered = [];
+                    }
 
-                return `
+                    return `
                             <div class="tree-engine-node" id="engine-${db.name}-${eng.name}">
                                 <div class="tree-type-item" onclick="toggleEngineActions(this)">
                                     <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path></svg>
@@ -1526,7 +1532,8 @@
                         `}).join('')}
                     </div>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function toggleTreeChildren(el) {
@@ -1550,7 +1557,7 @@
                 return;
             }
             nodeGrid.innerHTML = nodes.map(node => `
-                <div class="card">
+                < div class="card" >
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <h3 style="margin:0">Node: ${node.id}</h3>
                         <span class="status-dot ${node.status === 'ONLINE' ? 'status-online' : 'status-offline'}" 
@@ -1567,8 +1574,8 @@
                                 onclick="stopNode('${node.id}')">🛑 Stop</button>
                         ` : ''}
                     </div>
-                </div>
-            `).join('');
+                </div >
+                `).join('');
         }
 
         let nodeToStop = null;
@@ -1590,7 +1597,7 @@
             if (!nodeId) return;
 
             try {
-                const response = await fetch(`/api/monitor/nodes/${nodeId}/stop`, {
+                const response = await fetch(`/ api / monitor / nodes / ${nodeId}/stop`, {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -1642,7 +1649,7 @@
             }
 
             list.innerHTML = allUsers.map(user => {
-                const isSystemAdminTarget = user.username === 'admin';
+                const isSystemAdminTarget = user.username === 'super-user';
                 const roles = getRolesForUser(user.username);
                 const dbRole = roles.find(r => r.database === dbName);
                 let currentType = isSystemAdminTarget ? 'admin' : 'none';
@@ -1658,6 +1665,7 @@
                         <span class="text-sm font-medium">${user.username}${isSystemAdminTarget ? ' <span class="text-xs text-indigo-400">(Built-in)</span>' : ''}</span>
                         <select class="role-type-select" data-username="${user.username}" ${isSystemAdminTarget ? 'disabled' : ''}>
                             <option value="none" ${currentType === 'none' ? 'selected' : ''}>Sin Acceso</option>
+                            <option value="super-user" ${currentType === 'super-user' ? 'selected' : ''} ${!isSystemAdminTarget ? 'disabled' : ''}>Super User (Reserved)</option>
                             <option value="admin" ${currentType === 'admin' ? 'selected' : ''}>Administrador</option>
                             <option value="read-write" ${currentType === 'read-write' || currentType === 'writer-reader' ? 'selected' : ''}>Escritura/Lectura</option>
                             <option value="read" ${currentType === 'read' || currentType === 'reader' ? 'selected' : ''}>Solo Lectura</option>
@@ -1681,7 +1689,6 @@
 
             await fetchUsers(); // Force refresh users to ensure we see everyone
             await fetchRoles(); // Force refresh roles to ensure we see latest assignments
-            await renderRoleAssignments(name);
             document.getElementById('db-modal').classList.remove('hidden');
             setTimeout(() => document.getElementById('dbNameInput').focus(), 50);
         }
@@ -1705,7 +1712,6 @@
             document.getElementById('dbFormTitle').textContent = 'Nueva Base de Datos';
             document.getElementById('dbFormDescription').textContent = 'Provisionar una nueva base de datos multi-modelo que soporta tipos Document, Column, Graph, Vector, Object, Key-value, Geospatial, Time-Series y Files.';
             document.getElementById('dbFormSubmitBtn').textContent = 'Crear Base de Datos';
-            renderRoleAssignments('');
         }
 
         async function handleSubmitDb() {
@@ -1929,7 +1935,7 @@
             }
         }
 
-        const ALLOWED_ROLE_TYPES = ['none', 'admin', 'read', 'read-write'];
+        const ALLOWED_ROLE_TYPES = ['none', 'super-user', 'admin', 'read', 'read-write'];
         let allSystemRoles = [];
 
         async function fetchUsers() {
@@ -2096,6 +2102,7 @@
             document.getElementById('user-save-btn').textContent = "Create User";
             document.getElementById('user-cancel-btn').classList.add('hidden');
             document.getElementById('user-profile').value = 'end-user';
+
             renderUserDbRoles();
         }
 
@@ -2258,6 +2265,7 @@
                         <span style="color: #e2e8f0; font-size: 0.9rem;">${user.username}</span>
                         <select class="perm-role-select" data-username="${user.username}" ${isLocked ? 'disabled style="opacity: 0.6; cursor: not-allowed;" title="Super-user privileges cannot be changed"' : ''}>
                             <option value="denied" ${currentRoleType === 'denied' || currentRoleType === 'none' ? 'selected' : ''}>Sin Acceso (Denied)</option>
+                            <option value="super-user" ${currentRoleType === 'super-user' ? 'selected' : ''} ${!isAdminUser ? 'disabled' : ''}>Super User (Reserved)</option>
                             <option value="admin" ${currentRoleType === 'admin' ? 'selected' : ''}>Admin</option>
                             <option value="read" ${currentRoleType === 'read' || currentRoleType === 'reader' ? 'selected' : ''}>Solo Lectura (Read)</option>
                             <option value="read-write" ${currentRoleType === 'read-write' || currentRoleType === 'writer-reader' ? 'selected' : ''}>Escritura / Lectura (Read-Write)</option>

@@ -34,7 +34,7 @@ public class AuthResource {
             String token = TokenUtils.generateToken(user.username(), user.roles());
             // isAdmin usually refers to global admin capabilities (managing users, etc)
             // super-user and management can manage users. end-user cannot.
-            boolean isAdmin = "super-user".equals(user.profile()) || "management".equals(user.profile());
+            boolean isAdmin = "super-user".equals(user.profile());
             
             return Response.ok(Map.of(
                     "token", token,

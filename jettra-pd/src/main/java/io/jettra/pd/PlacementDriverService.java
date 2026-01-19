@@ -87,7 +87,7 @@ public class PlacementDriverService {
     }
 
     public java.util.Collection<DatabaseMetadata> listDatabases(String username) {
-        if ("super-user".equals(username) || "admin".equals(username) || "system-pd".equals(username) || "system".equals(username)) {
+        if ("super-user".equals(username) || "system-pd".equals(username) || "system".equals(username)) {
             return databases.values();
         }
 
@@ -100,8 +100,8 @@ public class PlacementDriverService {
             return java.util.Collections.emptyList();
         }
 
-        // super-user profile sees all databases
-        if ("super-user".equals(user.profile())) {
+        // super-user and management profiles see all databases
+        if ("super-user".equals(user.profile()) || "management".equals(user.profile())) {
             return databases.values();
         }
 
@@ -215,8 +215,13 @@ public class PlacementDriverService {
                     java.net.http.HttpResponse.BodyHandlers.ofString());
 
             LOG.infof("Node %s responded with status: %d", nodeId, response.statusCode());
-        } catch (Exception e) {
+        } catch (java.io.IOException | InterruptedException e) {
             LOG.errorf("Error notifying node %s to stop at %s: %s", nodeId, node.address(), e.getMessage());
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+        } catch (Exception e) {
+             LOG.errorf("Unexpected error notifying node %s to stop: %s", nodeId, e.getMessage());
         }
 
         // Mark as OFFLINE immediately in PD metadata

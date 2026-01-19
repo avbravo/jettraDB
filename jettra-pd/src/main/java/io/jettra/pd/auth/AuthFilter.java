@@ -15,6 +15,8 @@ import jakarta.ws.rs.ext.Provider;
 @Priority(Priorities.AUTHENTICATION)
 public class AuthFilter implements ContainerRequestFilter {
 
+    private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(AuthFilter.class);
+
     @Inject
     TokenUtils tokenUtils;
 
@@ -66,7 +68,7 @@ public class AuthFilter implements ContainerRequestFilter {
             boolean isAdmin = "super-user".equals(username) || "admin".equals(username) || "system-pd".equals(username);
             if (!isAdmin) {
                 User user = authService.getUser(username);
-                if (user != null && ("super-user".equals(user.profile()) || "management".equals(user.profile()))) {
+                if (user != null && "super-user".equals(user.profile())) {
                     isAdmin = true;
                 }
             }
@@ -80,6 +82,7 @@ public class AuthFilter implements ContainerRequestFilter {
 
                 String method = requestContext.getMethod();
                 boolean isListing = method.equals("GET") && !path.contains("/stop");
+                boolean isStopNode = path.contains("/stop");
 
                 if (!isAdmin && !isListing) {
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
@@ -87,44 +90,60 @@ public class AuthFilter implements ContainerRequestFilter {
                             .build());
                     return;
                 }
+
+                // Extra restriction: Only super-user profile can stop nodes
+                if (isStopNode) {
+                    User user = authService.getUser(username);
+                    if (user == null || !"super-user".equals(user.profile())) {
+                         requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                            .entity("{\"error\":\"Only super-user can stop nodes.\"}")
+                            .build());
+                        return;
+                    }
+                }
             }
 
             // B. Database access filtering
             String dbName = null;
-            if (path.contains("api/db/")) {
-                String sub = path.substring(path.indexOf("api/db/") + 7);
-                if (!sub.isEmpty())
+            if (path.contains("databases") || path.contains("sync-roles") || path.startsWith("api/db/")) {
+                String sub = "";
+                if (path.contains("api/internal/pd/databases/")) {
+                    sub = path.substring(path.indexOf("api/internal/pd/databases/") + 26);
+                } else if (path.contains("api/web-auth/databases/")) {
+                    sub = path.substring(path.indexOf("api/web-auth/databases/") + 23);
+                } else if (path.contains("api/auth/databases/")) {
+                    sub = path.substring(path.indexOf("api/auth/databases/") + 19);
+                } else if (path.startsWith("api/db/")) {
+                    sub = path.substring(7);
+                }
+                
+                if (!sub.isEmpty()) {
                     dbName = sub.split("/")[0];
-            } else if (path.contains("api/auth/databases/")) {
-                String sub = path.substring(path.indexOf("api/auth/databases/") + 19);
-                if (!sub.isEmpty())
-                    dbName = sub.split("/")[0];
-            } else if (path.contains("api/web-auth/databases/")) {
-                String sub = path.substring(path.indexOf("api/web-auth/databases/") + 23);
-                if (!sub.isEmpty())
-                    dbName = sub.split("/")[0];
-            } else if (path.contains("api/internal/pd/databases/")) {
-                String sub = path.substring(path.indexOf("api/internal/pd/databases/") + 26);
-                if (!sub.isEmpty())
-                    dbName = sub.split("/")[0];
+                }
             }
 
             if (dbName != null && !dbName.isEmpty()) {
                 String method = requestContext.getMethod();
-                // sync-roles should require ADMIN access
-                if (path.contains("sync-roles"))
+                // Map structural changes to ADMIN
+                if (path.contains("sync-roles") || 
+                    (path.contains("collections") && !method.equals("GET")) ||
+                    (path.matches(".*/databases/[^/]+$") && !method.equals("GET")) ||
+                    (path.matches("^api/db/[^/]+$") && !method.equals("GET"))) {
                     method = "ADMIN";
+                }
 
                 if (!hasAccess(username, dbName, method)) {
-                    System.out
-                            .println("DEBUG: Access denied for " + username + " to db " + dbName + " using " + method);
+                    LOG.warnf("Access denied for user %s to database %s with required privilege mapped from %s: %s", 
+                                username, dbName, requestContext.getMethod(), method);
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
                             .build());
+                } else {
+                    LOG.debugf("Access granted for user %s to database %s with method %s", username, dbName, method);
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LOG.error("Authentication/Authorization error", e);
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
         }
     }
@@ -135,8 +154,8 @@ public class AuthFilter implements ContainerRequestFilter {
             return false;
         }
 
-        // super-user profile has full access to everything
-        if ("super-user".equals(user.profile())) {
+        // super-user and management profiles have full access to everything (except node stopping, handled in filter)
+        if ("super-user".equals(user.profile()) || "management".equals(user.profile())) {
             return true;
         }
 
@@ -153,19 +172,18 @@ public class AuthFilter implements ContainerRequestFilter {
 
                 // Direct privilege check (Legacy/Internal)
                 if (privs.contains("ADMIN")) {
-                    System.out.println("DEBUG: Access granted (Legacy ADMIN) for " + username + " to " + dbName);
+                    LOG.debugf("Access granted (ADMIN privilege) for %s to %s", username, dbName);
                     return true;
                 }
                 if (!"ADMIN".equals(requiredPrivilege) && privs.contains(requiredPrivilege)) {
-                    System.out.println("DEBUG: Access granted (Privilege " + requiredPrivilege + ") for " + username
-                            + " to " + dbName);
+                    LOG.debugf("Access granted (Privilege %s) for %s to %s", requiredPrivilege, username, dbName);
                     return true;
                 }
 
                 // Predefined role types mapping
                 String roleName = role.name();
-                if (roleName.startsWith("admin")) {
-                    System.out.println("DEBUG: Access granted (Role admin) for " + username + " to " + dbName);
+                if (roleName.startsWith("admin") || roleName.startsWith("super-user_")) {
+                    LOG.debugf("Access granted (Role %s) for %s to %s", roleName, username, dbName);
                     return true;
                 }
 

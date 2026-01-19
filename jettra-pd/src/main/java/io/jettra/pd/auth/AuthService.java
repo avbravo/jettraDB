@@ -15,15 +15,16 @@ public class AuthService {
     private final Map<String, Role> roles = new ConcurrentHashMap<>();
 
     public AuthService() {
-        // Initialize default roles (Application level perfiles are just strings in profile field)
-        // Database level roles:
+        // Initialize default roles (Application level profiles are just strings in profile field)
+        // Global roles
         roles.put("super-user", new Role("super-user", "_all", Set.of("SUPER", "ADMIN", "READ", "WRITE")));
+        roles.put("management", new Role("management", "_all", Set.of("ADMIN", "READ", "WRITE")));
         roles.put("admin", new Role("admin", "_all", Set.of("ADMIN", "READ", "WRITE")));
         roles.put("read", new Role("read", "_all", Set.of("READ")));
         roles.put("read-write", new Role("read-write", "_all", Set.of("READ", "WRITE")));
 
         // Initialize default super-user
-        users.put("super-user", new User("super-user", "adminadmin", null, Set.of("super-user"), "super-user", false));
+        users.put("super-user", new User("super-user", "adminadmin", null, new java.util.HashSet<>(Set.of("super-user")), "super-user", false));
     }
 
     public User authenticate(String username, String password) {
@@ -55,6 +56,10 @@ public class AuthService {
             LOG.warn("Attempt to create/overwrite super-user via API blocked.");
             return;
         }
+        if ("super-user".equals(user.profile()) && !"super-user".equals(user.username())) {
+            LOG.warnf("Attempt to assign super-user profile to non-super-user user '%s' blocked.", user.username());
+            return;
+        }
         users.put(user.username(), user);
         LOG.infof("User created: %s with profile: %s", user.username(), user.profile());
     }
@@ -74,12 +79,12 @@ public class AuthService {
 
     public void updateUser(User user) {
         if ("super-user".equals(user.username())) {
-             // Protect super-user from profile change or removal through general update
+             // Protect super-user from profile change through general update, but allow role updates
              User existing = users.get("super-user");
              if (existing != null) {
                  String password = (user.password() == null || user.password().isEmpty()) ? existing.password() : user.password();
-                 users.put("super-user", new User("super-user", password, user.email(), existing.roles(), "super-user", user.forcePasswordChange()));
-                 LOG.info("Super-user updated (roles and profile protected)");
+                 users.put("super-user", new User("super-user", password, user.email(), user.roles(), "super-user", user.forcePasswordChange()));
+                 LOG.info("Super-user updated (profile protected, roles updated)");
                  return;
              }
         }
@@ -87,8 +92,14 @@ public class AuthService {
         if (users.containsKey(user.username())) {
             User existing = users.get(user.username());
             String password = (user.password() == null || user.password().isEmpty()) ? existing.password() : user.password();
+            String profile = user.profile();
+            if ("super-user".equals(profile) && !"super-user".equals(user.username())) {
+                LOG.warnf("Attempt to update user '%s' with super-user profile blocked.", user.username());
+                profile = existing.profile(); // Keep existing profile if they tried to illegally upgrade
+            }
+
             users.put(user.username(),
-                    new User(user.username(), password, user.email(), user.roles(), user.profile(), user.forcePasswordChange()));
+                    new User(user.username(), password, user.email(), user.roles(), profile, user.forcePasswordChange()));
             LOG.infof("User updated: %s", user.username());
         }
     }
@@ -139,20 +150,11 @@ public class AuthService {
         // Ensure the primary 'super-user' account always gets it
         assignRoleToUser("super-user", suRoleName);
 
-        // 2. Assign roles to creator
-        if (creator != null) {
-            User creatorUser = users.get(creator);
-            boolean isSuperProfile = creatorUser != null && "super-user".equals(creatorUser.profile());
-            
-            if (isSuperProfile || "super-user".equals(creator)) {
-                // If creator is a super-user, they already have (or just got) the su role
-                assignRoleToUser(creator, suRoleName);
-            } else if (!"system-pd".equals(creator)) {
-                // Normal creator gets admin role
-                String adminRoleName = "admin_" + dbName;
-                createRole(new Role(adminRoleName, dbName, Set.of("ADMIN", "READ", "WRITE")));
-                assignRoleToUser(creator, adminRoleName);
-            }
+        // 2. Assign roles to creator if they are not the super-user
+        if (creator != null && !"super-user".equals(creator)) {
+            String adminRoleName = "admin_" + dbName;
+            createRole(new Role(adminRoleName, dbName, Set.of("ADMIN", "READ", "WRITE")));
+            assignRoleToUser(creator, adminRoleName);
         }
     }
 
@@ -220,8 +222,8 @@ public class AuthService {
 
         // 3. Apply the new mapping
         userRoleMapping.forEach((username, roleType) -> {
-            if ("none".equals(roleType) || "super-user".equals(roleType))
-                return; // super-user is handled separately/protected
+            if ("none".equals(roleType) || "super-user".equals(roleType) || "denied".equals(roleType))
+                return; // super-user is handled separately/protected. denied means no role.
 
             String roleName = roleType + "_" + dbName;
 
@@ -231,7 +233,6 @@ public class AuthService {
                     case "admin" -> java.util.Set.of("ADMIN", "READ", "WRITE");
                     case "read-write" -> java.util.Set.of("READ", "WRITE");
                     case "read" -> java.util.Set.of("READ");
-                    case "denied" -> java.util.Collections.emptySet();
                     default -> java.util.Set.of("READ");
                 };
                 createRole(new Role(roleName, dbName, privileges));
@@ -250,4 +251,5 @@ public class AuthService {
         assignRoleToUser("super-user", suRoleName);
         LOG.infof("Sync database roles completed for %s", dbName);
     }
+
 }
