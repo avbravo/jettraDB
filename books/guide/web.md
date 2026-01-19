@@ -9,6 +9,16 @@ La interfaz web se despliega automáticamente con el componente `jettra-web`.
   - Usuario por defecto: `super-user`
   - Contraseña por defecto: `adminadmin`
 
+## Jettra Web Vaadin ⭐
+JettraDB ahora incluye un panel de administración moderno construido con **Vaadin**, ofreciendo una experiencia de usuario enriquecida y componentes interactivos avanzados.
+
+- **URL**: `http://localhost:8082`
+- **Tecnología**: Java + Vaadin 24 + Quarkus.
+- **Funcionalidades**:
+    - **Explorador de Base de Datos**: Vista de árbol para navegar por bases de datos y colecciones.
+    - **Monitoreo**: Gráficos y tablas para visualizar el estado del cluster.
+    - **Administración**: Gestión de configuraciones y seguridad.
+
 ## Secciones y Funcionalidades
 
 ### 1. Panel de Control (Overview)

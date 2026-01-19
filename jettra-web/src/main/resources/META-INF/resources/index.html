@@ -96,6 +96,39 @@
             display: flex;
             flex-direction: column;
             transition: margin-left 0.3s ease;
+            width: calc(100% - var(--sidebar-width));
+            box-sizing: border-box;
+        }
+
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .hamburger {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .sidebar.show-mobile {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 1rem;
+            }
         }
 
         .main-content.expanded {
@@ -185,8 +218,20 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
+        }
+
+        @media (max-width: 640px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .centered-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
         }
 
         .card {
@@ -497,6 +542,20 @@
         #alert-modal {
             z-index: 200 !important;
         }
+
+        @media (max-width: 640px) {
+            .hidden-mobile {
+                display: none !important;
+            }
+
+            .show-mobile-only {
+                display: inline !important;
+            }
+        }
+
+        .show-mobile-only {
+            display: none;
+        }
     </style>
 </head>
 
@@ -511,19 +570,27 @@
             </button>
             <div class="brand">JettraDB Manager</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
             <div id="user-display"
                 style="display: flex; align-items: center; gap: 0.5rem; color: #94a3b8; font-size: 0.9rem;">
                 <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                 </svg>
-                <span id="logged-username">...</span>
+                <span id="logged-username" class="hidden-mobile">...</span>
             </div>
+            <button class="btn-icon" onclick="showUserInfo()" title="User Info"
+                style="background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); padding: 0.4rem; display: flex; align-items: center; justify-content: center; border-radius: 0.375rem; cursor: pointer;">
+                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </button>
             <button class="btn"
                 style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); padding: 0.4rem 1rem; font-size: 0.85rem;"
                 onclick="logout()">
-                Sign Out
+                <span class="hidden-mobile">Sign Out</span>
+                <span class="show-mobile-only">Exit</span>
             </button>
         </div>
     </nav>
@@ -592,18 +659,21 @@
     <div class="main-content">
         <!-- Cluster View -->
         <div id="view-cluster">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>Cluster Overview</h2>
-            </header>
+            <div class="centered-container">
+                <header
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Cluster Overview</h2>
+                </header>
 
-            <div class="grid" id="node-grid">
-                <!-- Node cards injected here -->
-            </div>
+                <div class="grid" id="node-grid">
+                    <!-- Node cards injected here -->
+                </div>
 
-            <h2 style="margin-top: 3rem;">Multi-Raft Groups</h2>
-            <div class="grid" id="group-grid" style="margin-top: 1.5rem;">
-                <!-- Group cards injected here -->
-                <div style="color: #94a3b8; text-align: center; width: 100%;">Loading groups...</div>
+                <h2 style="margin-top: 3rem;">Multi-Raft Groups</h2>
+                <div class="grid" id="group-grid" style="margin-top: 1.5rem;">
+                    <!-- Group cards injected here -->
+                    <div style="color: #94a3b8; text-align: center; width: 100%;">Loading groups...</div>
+                </div>
             </div>
         </div>
 
@@ -633,22 +703,23 @@
                         </div>
                     </div>
 
-                    <form id="inlineChangePasswordForm" onsubmit="handleChangePassword(event)">
+                    <form id="inlineChangePasswordForm" onsubmit="handleChangePassword(event, 'inline')">
                         <div class="mb-6">
                             <label
                                 style="display: block; color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.9rem;">Current
                                 Password</label>
-                            <input type="password" id="modal-old-password" required
+                            <input type="password" id="inline-old-password" required
                                 style="width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1);">
                         </div>
                         <div class="mb-6">
                             <label style="display: block; color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.9rem;">New
                                 Password</label>
-                            <input type="password" id="modal-new-password" required
+                            <input type="password" id="inline-new-password" required
                                 style="width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1);">
                         </div>
                         <button type="submit" class="btn" style="width: 100%; padding: 1rem;">Update Password</button>
-                        <div id="password-msg" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></div>
+                        <div id="inline-password-msg" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;">
+                        </div>
                     </form>
                 </div>
             </div>
@@ -760,7 +831,7 @@
                 <button onclick="closeChangePasswordModal()"
                     style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
-            <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+            <form id="changePasswordForm" onsubmit="handleChangePassword(event, 'modal')">
                 <div class="mb-6">
                     <label style="display: block; color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.9rem;">Current
                         Password</label>
@@ -774,8 +845,24 @@
                         style="width: 100%; box-sizing: border-box;">
                 </div>
                 <button type="submit" class="btn" style="width: 100%;">Update Password</button>
-                <div id="password-msg" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></div>
+                <div id="modal-password-msg" style="margin-top: 1rem; text-align: center; font-size: 0.9rem;"></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="alert-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 400px; border-top: 4px solid #ef4444;">
+            <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem;">
+                <div id="alert-icon-container"
+                    style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <!-- Icon injected by JS -->
+                </div>
+                <h2 id="alert-title" style="margin: 0; font-size: 1.25rem;">Alert</h2>
+                <p id="alert-message" style="margin: 0; color: #94a3b8; font-size: 0.95rem; line-height: 1.5;">Message
+                </p>
+                <button class="btn" onclick="closeAlertModal()" style="width: 100%; margin-top: 0.5rem;">OK</button>
+            </div>
         </div>
     </div>
 
@@ -1049,6 +1136,42 @@
             </div>
         </div>
     </div>
+    <!-- User Info Modal -->
+    <div id="user-info-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 400px; border-top: 4px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">User Information</h2>
+                <button onclick="closeUserInfoModal()"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <div
+                    style="display: flex; align-items: center; gap: 1rem; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 0.75rem;">
+                    <div
+                        style="background: var(--primary); width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 600;">
+                        <span id="user-info-initial">U</span>
+                    </div>
+                    <div>
+                        <div
+                            style="color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                            Username</div>
+                        <div style="font-size: 1.1rem; font-weight: 600;" id="user-info-username">Loading...</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <span style="color: #94a3b8;">Profile Type</span>
+                        <span id="user-info-profile" style="font-weight: 500; color: var(--secondary);">...</span>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="closeUserInfoModal()"
+                    style="width: 100%; margin-top: 0.5rem;">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Collection Delete Confirmation Modal -->
     <div id="col-delete-modal" class="modal-overlay hidden">
@@ -1114,9 +1237,15 @@
         const userProfile = localStorage.getItem('jettra_profile') || 'end-user';
         document.getElementById('logged-username').textContent = username;
 
-        const isAdmin = userProfile === 'super-user' || userProfile === 'management';
+        const isAdmin = userProfile === 'super-user';
         const isSuperUser = userProfile === 'super-user';
         const isEndUser = userProfile === 'end-user';
+
+        // Hide New Database button for end-users and management
+        const btnNewDb = document.querySelector('.btn-plus');
+        if (btnNewDb) {
+            btnNewDb.style.display = (userProfile === 'super-user') ? 'flex' : 'none';
+        }
         let currentView = 'cluster';
         let allNodes = [];
         let allDatabases = [];
@@ -1127,7 +1256,7 @@
         // Apply initial role-based UI restrictions
         const navSecurity = document.getElementById('nav-security');
         if (navSecurity) {
-            navSecurity.style.display = (username === 'super-user') ? 'block' : 'none';
+            navSecurity.style.display = (userProfile === 'super-user' || userProfile === 'management') ? 'block' : 'none';
         }
 
         const SUPPORTED_ENGINES = [
@@ -1173,7 +1302,32 @@
         const groupGrid = document.getElementById('group-grid');
 
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('show');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.querySelector('.main-content');
+
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show-mobile');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                if (sidebar.classList.contains('collapsed')) {
+                    mainContent.style.marginLeft = '0';
+                    mainContent.style.width = '100%';
+                } else {
+                    mainContent.style.marginLeft = 'var(--sidebar-width)';
+                    mainContent.style.width = 'calc(100% - var(--sidebar-width))';
+                }
+            }
+        }
+
+        function showUserInfo() {
+            document.getElementById('user-info-username').textContent = username;
+            document.getElementById('user-info-profile').textContent = userProfile;
+            document.getElementById('user-info-initial').textContent = username.charAt(0).toUpperCase();
+            document.getElementById('user-info-modal').classList.remove('hidden');
+        }
+
+        function closeUserInfoModal() {
+            document.getElementById('user-info-modal').classList.add('hidden');
         }
 
         function showView(viewId) {
@@ -1272,8 +1426,30 @@
             }
         }
 
+        function getUserPrivileges(dbName) {
+            if (userProfile === 'super-user' || userProfile === 'management') {
+                return { admin: true, read: true, write: true };
+            }
+            const currentUser = allUsers.find(u => u.username === username);
+            if (!currentUser || !currentUser.roles) return { admin: false, read: false, write: false };
+
+            const dbRoles = currentUser.roles.map(rn => {
+                const r = allSystemRoles.find(role => role.name === rn);
+                return r;
+            }).filter(r => r && (r.database === dbName || r.database === '_all'));
+
+            const privileges = {
+                admin: dbRoles.some(r => r.privileges.includes('ADMIN') || r.name.startsWith('admin_')),
+                read: dbRoles.some(r => r.privileges.includes('READ') || r.name.startsWith('admin_') || r.name.startsWith('reader_')),
+                write: dbRoles.some(r => r.privileges.includes('WRITE') || r.name.startsWith('admin_') || r.name.startsWith('writer_'))
+            };
+            return privileges;
+        }
+
         function renderCollectionItems(dbName, collections, engine) {
             if (!collections || collections.length === 0) return '<div style="color: #475569; font-size: 0.75rem; padding-left: 1rem;">Sin colecciones</div>';
+            const privs = getUserPrivileges(dbName);
+
             return collections.map(col => `
                 <div class="tree-type-item" style="justify-content: space-between; padding-right: 0.5rem;">
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -1281,12 +1457,16 @@
                         <span>${col}</span>
                     </div>
                     <div style="display: flex; gap: 4px;">
+                        ${privs.write || privs.admin ? `
                         <div class="action-icon" style="width:16px; height:16px;" title="Renombrar" onclick="openCollectionModal('${dbName}', '${col}', '${engine}')">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </div>
+                        ` : ''}
+                        ${privs.admin ? `
                         <div class="action-icon" style="width:16px; height:16px;" title="Eliminar" onclick="handleDeleteCol('${dbName}', '${col}')">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </div>
+                        ` : ''}
                     </div>
                 </div>
             `).join('');
@@ -1461,12 +1641,9 @@
             }
 
             treeRoot.innerHTML = filteredDbs.map(db => {
-                const currentUser = allUsers.find(u => u.username === username);
-                const hasAdminRole = currentUser && currentUser.roles && currentUser.roles.some(rn => {
-                    const r = allSystemRoles.find(role => role.name === rn);
-                    return r && r.database === db.name && (rn.startsWith('admin_') || rn.startsWith('super-user_'));
-                });
-                const canManage = userProfile === 'super-user' || userProfile === 'management' || hasAdminRole;
+                const privs = getUserPrivileges(db.name);
+                // A user can manage a DB if they are global admin OR have 'admin' role for this specific DB
+                const canManageDb = privs.admin;
 
                 return `
                 <div class="tree-db-item">
@@ -1477,14 +1654,14 @@
                             <div class="db-action-btn" onclick="showDbInfo('${db.name}'); event.stopPropagation();" title="Information">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
-                            ${canManage ? `
+                            ${canManageDb ? `
                             <div class="db-action-btn" onclick="managePermissions('${db.name}'); event.stopPropagation();" title="Security & Permissions">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                             </div>
-                            <div class="db-action-btn" onclick="editDb('${db.name}'); event.stopPropagation();" title="Edit Config">
+                            <div class="db-action-btn" onclick="editDb('${db.name}'); event.stopPropagation();" title="Edit Config / Rename">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </div>
-                            <div class="db-action-btn delete" onclick="handleDeleteDb('${db.name}'); event.stopPropagation();" title="Delete">
+                            <div class="db-action-btn delete" onclick="handleDeleteDb('${db.name}'); event.stopPropagation();" title="Delete Database">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </div>
                             ` : ''}
@@ -1518,9 +1695,11 @@
                                     ${eng.name}
                                 </div>
                                 <div class="tree-actions">
+                                    ${privs.write || privs.admin ? `
                                     <div class="action-icon" title="Añadir Coleccion" onclick="openCollectionModal('${db.name}', '', '${eng.name}')">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                     </div>
+                                    ` : ''}
                                     <div class="action-icon" title="Refrescar" onclick="refreshCollections('${db.name}', '${eng.name}', this)">
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                                     </div>
@@ -1557,7 +1736,7 @@
                 return;
             }
             nodeGrid.innerHTML = nodes.map(node => `
-                < div class="card" >
+                <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <h3 style="margin:0">Node: ${node.id}</h3>
                         <span class="status-dot ${node.status === 'ONLINE' ? 'status-online' : 'status-offline'}" 
@@ -1574,7 +1753,7 @@
                                 onclick="stopNode('${node.id}')">🛑 Stop</button>
                         ` : ''}
                     </div>
-                </div >
+                </div>
                 `).join('');
         }
 
@@ -1895,7 +2074,7 @@
 
         function openChangePasswordModal() {
             document.getElementById('password-modal').classList.remove('hidden');
-            document.getElementById('password-msg').textContent = '';
+            document.getElementById('modal-password-msg').textContent = '';
             document.getElementById('changePasswordForm').reset();
         }
 
@@ -1903,16 +2082,19 @@
             document.getElementById('password-modal').classList.add('hidden');
         }
 
-        async function handleChangePassword(e) {
+        async function handleChangePassword(e, source = 'modal') {
             e.preventDefault();
-            const msg = document.getElementById('password-msg');
+            const msgId = source === 'modal' ? 'modal-password-msg' : 'inline-password-msg';
+            const oldPassId = source === 'modal' ? 'modal-old-password' : 'inline-old-password';
+            const newPassId = source === 'modal' ? 'modal-new-password' : 'inline-new-password';
+
+            const msg = document.getElementById(msgId);
             msg.textContent = 'Updating...';
             msg.style.color = '#94a3b8';
 
-            const oldPass = document.getElementById('modal-old-password').value;
-            const newPass = document.getElementById('modal-new-password').value;
-            // Assuming we stored username or use 'super-user' as fallback/current
-            const user = localStorage.getItem('jettra_username') || 'super-user';
+            const oldPass = document.getElementById(oldPassId).value;
+            const newPass = document.getElementById(newPassId).value;
+            const user = localStorage.getItem('jettra_username') || 'Unknown';
 
             try {
                 const response = await fetch('/api/web-auth/change-password', {
@@ -1924,7 +2106,9 @@
                 if (response.ok) {
                     msg.style.color = '#10b981';
                     msg.textContent = 'Password changed successfully.';
-                    setTimeout(closeChangePasswordModal, 1500);
+                    if (source === 'modal') {
+                        setTimeout(closeChangePasswordModal, 1500);
+                    }
                 } else {
                     const text = await response.text();
                     throw new Error(text || 'Failed');
@@ -2224,10 +2408,14 @@
 
         // --- Permissions Management Logic ---
 
-        function managePermissions(dbName) {
+        async function managePermissions(dbName) {
             document.getElementById('perm-db-name-label').textContent = dbName;
             document.getElementById('perm-db-name-hidden').value = dbName;
             document.getElementById('db-permissions-modal').classList.remove('hidden');
+
+            // Ensure users are loaded
+            await fetchUsers();
+            await fetchRoles();
 
             // Logic similar to editDb but strictly for this modal's list
             renderPermRoleList(dbName);
@@ -2309,9 +2497,11 @@
             // Self-Lockout Prevention
             const isGlobalAdmin = (localStorage.getItem('jettra_username') === 'super-user') || (localStorage.getItem('jettra_is_admin') === 'true');
 
+            console.log('DEBUG: isGlobalAdmin=', isGlobalAdmin, 'currentUserNewRole=', currentUserNewRole);
+
             // Check if user is demoting themselves
             if (!isGlobalAdmin) {
-                if (currentUserNewRole === 'none') {
+                if (currentUserNewRole === 'denied' || currentUserNewRole === 'none') {
                     return showAlert('Acción Bloqueada', 'No puedes quitarte tu propio acceso completamente. Asigna otro administrador primero o contacta al administrador global.', 'error');
                 }
 

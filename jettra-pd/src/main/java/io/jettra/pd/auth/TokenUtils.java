@@ -8,9 +8,12 @@ import java.util.Set;
 public class TokenUtils {
 
     public static String generateToken(String username, Set<String> roles) {
-        return Jwt.issuer("https://jettra.io/issuer")
-                .upn(username)
-                .groups(roles)
+        var builder = Jwt.issuer("https://jettra.io/issuer")
+                .upn(username);
+        if (roles != null && !roles.isEmpty()) {
+            builder.groups(roles);
+        }
+        return builder
                 .expiresIn(3600) // 1 hour
                 .sign();
     }

@@ -32,12 +32,12 @@ public class AuthResource {
         User user = authService.authenticate(request.username(), request.password());
         if (user != null) {
             String token = TokenUtils.generateToken(user.username(), user.roles());
-            // isAdmin usually refers to global admin capabilities (managing users, etc)
-            // super-user and management can manage users. end-user cannot.
-            boolean isAdmin = "super-user".equals(user.profile());
-            
+            // isAdmin refers to global admin capabilities (managing users, nodes, etc)
+            boolean isAdmin = "super-user".equals(user.profile()) || "management".equals(user.profile());
+
             return Response.ok(Map.of(
                     "token", token,
+                    "username", user.username(),
                     "profile", user.profile(),
                     "mustChangePassword", user.forcePasswordChange(),
                     "isAdmin", isAdmin)).build();
@@ -57,7 +57,8 @@ public class AuthResource {
             return Response.ok().build();
         }
         LOG.warnf("Failed to change password for user %s (Invalid old password or user not found)", request.username());
-        return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials (PD)").build(); // Distinct message
+        return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials (PD)").build(); // Distinct
+                                                                                                         // message
     }
 
     // User Management API

@@ -30,6 +30,8 @@ public class AuthFilter implements ContainerRequestFilter {
         while (path.startsWith("/")) {
             path = path.substring(1);
         }
+        System.out.println("DEBUG: AuthFilter path=" + path);
+        LOG.infof("AuthFilter entering for path: %s", path);
 
         // 1. Truly public endpoints
         if (path.equals("api/auth/login") || path.equals("api/web-auth/login") ||
@@ -95,9 +97,9 @@ public class AuthFilter implements ContainerRequestFilter {
                 if (isStopNode) {
                     User user = authService.getUser(username);
                     if (user == null || !"super-user".equals(user.profile())) {
-                         requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-                            .entity("{\"error\":\"Only super-user can stop nodes.\"}")
-                            .build());
+                        requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                                .entity("{\"error\":\"Only super-user can stop nodes.\"}")
+                                .build());
                         return;
                     }
                 }
@@ -105,7 +107,7 @@ public class AuthFilter implements ContainerRequestFilter {
 
             // B. Database access filtering
             String dbName = null;
-            if (path.contains("databases") || path.contains("sync-roles") || path.startsWith("api/db/")) {
+            if (path.contains("/databases/") || path.contains("api/db/")) {
                 String sub = "";
                 if (path.contains("api/internal/pd/databases/")) {
                     sub = path.substring(path.indexOf("api/internal/pd/databases/") + 26);
@@ -115,8 +117,13 @@ public class AuthFilter implements ContainerRequestFilter {
                     sub = path.substring(path.indexOf("api/auth/databases/") + 19);
                 } else if (path.startsWith("api/db/")) {
                     sub = path.substring(7);
+                } else {
+                    int idx = path.indexOf("/databases/");
+                    if (idx != -1) {
+                        sub = path.substring(idx + 11);
+                    }
                 }
-                
+
                 if (!sub.isEmpty()) {
                     dbName = sub.split("/")[0];
                 }
@@ -125,21 +132,29 @@ public class AuthFilter implements ContainerRequestFilter {
             if (dbName != null && !dbName.isEmpty()) {
                 String method = requestContext.getMethod();
                 // Map structural changes to ADMIN
-                if (path.contains("sync-roles") || 
-                    (path.contains("collections") && !method.equals("GET")) ||
-                    (path.matches(".*/databases/[^/]+$") && !method.equals("GET")) ||
-                    (path.matches("^api/db/[^/]+$") && !method.equals("GET"))) {
+                if (path.contains("sync-roles") ||
+                        (path.contains("collections") && !method.equals("GET")) ||
+                        (path.matches(".*/databases/[^/]+$") && !method.equals("GET")) ||
+                        (path.matches(".*/db/[^/]+$") && !method.equals("GET"))) {
                     method = "ADMIN";
                 }
 
-                if (!hasAccess(username, dbName, method)) {
-                    LOG.warnf("Access denied for user %s to database %s with required privilege mapped from %s: %s", 
-                                username, dbName, requestContext.getMethod(), method);
+                if (!isAdmin && !hasAccess(username, dbName, method)) {
+                    LOG.warnf("Access denied for user %s to database %s (Method: %s). isAdmin: %s", username, dbName,
+                            method, isAdmin);
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
                             .build());
-                } else {
-                    LOG.debugf("Access granted for user %s to database %s with method %s", username, dbName, method);
+                    return;
+                }
+            } else if (path.endsWith("databases") && requestContext.getMethod().equals("POST")) {
+                // Explicit check for database creation when no dbName is in path
+                if (!isAdmin) {
+                    LOG.warnf("Database creation denied for user %s (not admin)", username);
+                    requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                            .entity("{\"error\":\"Database creation restricted to administrative users.\"}")
+                            .build());
+                    return;
                 }
             }
         } catch (Exception e) {
@@ -151,15 +166,21 @@ public class AuthFilter implements ContainerRequestFilter {
     private boolean hasAccess(String username, String dbName, String method) {
         User user = authService.getUser(username);
         if (user == null) {
+            LOG.warnf("User %s not found in AuthService", username);
             return false;
         }
 
-        // super-user and management profiles have full access to everything (except node stopping, handled in filter)
+        // super-user and management profiles have full access to everything (except
+        // node stopping, handled in filter)
         if ("super-user".equals(user.profile()) || "management".equals(user.profile())) {
+            LOG.infof("Access granted (Profile: %s) for %s to %s", user.profile(), username, dbName);
             return true;
         }
 
         java.util.List<Role> userRoles = authService.getRolesForUser(user);
+        LOG.infof("Checking access for %s to %s (%s). Current user roles: %s. DB Roles count: %d",
+                username, dbName, method, user.roles(), authService.listRoles().size());
+
         String requiredPrivilege;
         if ("ADMIN".equals(method))
             requiredPrivilege = "ADMIN";
@@ -167,6 +188,8 @@ public class AuthFilter implements ContainerRequestFilter {
             requiredPrivilege = method.equals("GET") ? "READ" : "WRITE";
 
         for (Role role : userRoles) {
+            LOG.infof("Checking role %s (DB: %s) for user %s. Required: %s", role.name(), role.database(), username,
+                    requiredPrivilege);
             if ("_all".equals(role.database()) || dbName.equals(role.database())) {
                 java.util.Set<String> privs = role.privileges();
 
@@ -203,6 +226,8 @@ public class AuthFilter implements ContainerRequestFilter {
                 }
             }
         }
+        LOG.infof("No matching role found for user %s with database %s and privilege %s. Checked %d roles.",
+                username, dbName, requiredPrivilege, userRoles.size());
         return false;
     }
 }

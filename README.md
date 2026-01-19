@@ -17,6 +17,7 @@ JettraDB follows a distributed architecture with specialized nodes:
 *   `jettra-engine`: Core multi-model storage engine.
 *   `jettra-store`: Data store service implementation.
 *   `jettra-web`: Web-based management interface.
+*   `jettra-web-vaadin`: Modern Web Dashboard based on Vaadin.
 *   `jettra-shell`: Interactive CLI for database operations.
 *   `jettra-driver-java`: Official Java driver with Repository architecture support.
 *   `jettra-consensus`: Raft-based consensus implementation.
@@ -35,6 +36,7 @@ docker-compose up -d --build
 ```
 
 Access the dashboard at: `http://localhost:8081`
+Access the Vaadin dashboard at: `http://localhost:8082`
 
 ## Documentation
 

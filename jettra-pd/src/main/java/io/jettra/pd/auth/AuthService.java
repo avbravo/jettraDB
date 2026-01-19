@@ -15,7 +15,8 @@ public class AuthService {
     private final Map<String, Role> roles = new ConcurrentHashMap<>();
 
     public AuthService() {
-        // Initialize default roles (Application level profiles are just strings in profile field)
+        // Initialize default roles (Application level profiles are just strings in
+        // profile field)
         // Global roles
         roles.put("super-user", new Role("super-user", "_all", Set.of("SUPER", "ADMIN", "READ", "WRITE")));
         roles.put("management", new Role("management", "_all", Set.of("ADMIN", "READ", "WRITE")));
@@ -24,7 +25,8 @@ public class AuthService {
         roles.put("read-write", new Role("read-write", "_all", Set.of("READ", "WRITE")));
 
         // Initialize default super-user
-        users.put("super-user", new User("super-user", "adminadmin", null, new java.util.HashSet<>(Set.of("super-user")), "super-user", false));
+        users.put("super-user", new User("super-user", "adminadmin", null,
+                new java.util.HashSet<>(Set.of("super-user")), "super-user", false));
     }
 
     public User authenticate(String username, String password) {
@@ -79,19 +81,23 @@ public class AuthService {
 
     public void updateUser(User user) {
         if ("super-user".equals(user.username())) {
-             // Protect super-user from profile change through general update, but allow role updates
-             User existing = users.get("super-user");
-             if (existing != null) {
-                 String password = (user.password() == null || user.password().isEmpty()) ? existing.password() : user.password();
-                 users.put("super-user", new User("super-user", password, user.email(), user.roles(), "super-user", user.forcePasswordChange()));
-                 LOG.info("Super-user updated (profile protected, roles updated)");
-                 return;
-             }
+            // Protect super-user from profile change through general update, but allow role
+            // updates
+            User existing = users.get("super-user");
+            if (existing != null) {
+                String password = (user.password() == null || user.password().isEmpty()) ? existing.password()
+                        : user.password();
+                users.put("super-user", new User("super-user", password, user.email(), user.roles(), "super-user",
+                        user.forcePasswordChange()));
+                LOG.info("Super-user updated (profile protected, roles updated)");
+                return;
+            }
         }
 
         if (users.containsKey(user.username())) {
             User existing = users.get(user.username());
-            String password = (user.password() == null || user.password().isEmpty()) ? existing.password() : user.password();
+            String password = (user.password() == null || user.password().isEmpty()) ? existing.password()
+                    : user.password();
             String profile = user.profile();
             if ("super-user".equals(profile) && !"super-user".equals(user.username())) {
                 LOG.warnf("Attempt to update user '%s' with super-user profile blocked.", user.username());
@@ -99,7 +105,8 @@ public class AuthService {
             }
 
             users.put(user.username(),
-                    new User(user.username(), password, user.email(), user.roles(), profile, user.forcePasswordChange()));
+                    new User(user.username(), password, user.email(), user.roles(), profile,
+                            user.forcePasswordChange()));
             LOG.infof("User updated: %s", user.username());
         }
     }
@@ -146,7 +153,7 @@ public class AuthService {
         // 1. Create and Assign super-user role for this DB
         String suRoleName = "super-user_" + dbName;
         createRole(new Role(suRoleName, dbName, Set.of("SUPER", "ADMIN", "READ", "WRITE")));
-        
+
         // Ensure the primary 'super-user' account always gets it
         assignRoleToUser("super-user", suRoleName);
 
@@ -161,9 +168,11 @@ public class AuthService {
     private void assignRoleToUser(String username, String roleName) {
         User user = users.get(username);
         if (user != null) {
-            Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
+            Set<String> roles = user.roles();
+            Set<String> updatedRoles = new java.util.HashSet<>(roles != null ? roles : Set.of());
             updatedRoles.add(roleName);
-            updateUser(new User(user.username(), user.password(), user.email(), updatedRoles, user.profile(), user.forcePasswordChange()));
+            updateUser(new User(user.username(), user.password(), user.email(), updatedRoles, user.profile(),
+                    user.forcePasswordChange()));
             LOG.infof("Role %s assigned to user %s", roleName, username);
         }
     }
@@ -188,7 +197,7 @@ public class AuthService {
 
             // Update users
             for (User user : users.values()) {
-                if (user.roles().contains(oldRole.name())) {
+                if (user.roles() != null && user.roles().contains(oldRole.name())) {
                     java.util.Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
                     updatedRoles.remove(oldRole.name());
                     updatedRoles.add(newRoleName);
@@ -209,9 +218,14 @@ public class AuthService {
                 .map(Role::name)
                 .collect(java.util.stream.Collectors.toSet());
 
-        // 2. Clear these roles from ALL users first (except 'super-user' who is protected)
+        // 2. Clear these roles from ALL users first (except 'super-user' who is
+        // protected)
         users.values().forEach(user -> {
-            if (user.username().equals("super-user")) return; 
+            if (user.username().equals("super-user"))
+                return;
+
+            if (user.roles() == null)
+                return;
 
             java.util.Set<String> updatedRoles = new java.util.HashSet<>(user.roles());
             if (updatedRoles.removeIf(dbRoleNames::contains)) {

@@ -10,7 +10,8 @@ The JettraDB architecture consists of three main service types:
 |-----------|------|-------------|
 | **Jettra PD** | Placement Driver | The "brain" of the cluster. Manages metadata, node registration, and Raft group leadership. |
 | **Jettra Store** | Storage Node | Data nodes that store the actual data and participate in Multi-Raft replication. |
-| **Jettra Web** | Dashboard | A web-based interface for monitoring cluster health, nodes, and Raft groups. |
+| **Jettra Web** | Dashboard | A web-based interface for monitoring cluster health. |
+| **Jettra Web Vaadin** | Modern Dashboard | A more advanced management console built with Vaadin. |
 
 ## Docker Compose Walkthrough
 
@@ -43,6 +44,22 @@ services:
     container_name: jettra-web
     ports:
       - "8081:8080" # Host 8081 -> Container 8080
+    depends_on:
+      - jettra-pd
+    environment:
+      - QUARKUS_HTTP_PORT=8080
+      - JETTRA_PD_URL=http://jettra-pd:8080
+    networks:
+      - jettra-net
+
+  # Web Vaadin Dashboard
+  jettra-web-vaadin:
+    build:
+      context: ./jettra-web-vaadin
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: jettra-web-vaadin
+    ports:
+      - "8082:8080" # Host 8082 -> Container 8080
     depends_on:
       - jettra-pd
     environment:
