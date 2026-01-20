@@ -33,7 +33,8 @@ public class AuthResource {
         if (user != null) {
             String token = TokenUtils.generateToken(user.username(), user.roles());
             // isAdmin refers to global admin capabilities (managing users, nodes, etc)
-            boolean isAdmin = "super-user".equals(user.profile()) || "management".equals(user.profile());
+            boolean isAdmin = "super-user".equals(user.profile()) || "management".equals(user.profile())
+                    || "admin".equals(user.profile());
 
             return Response.ok(Map.of(
                     "token", token,

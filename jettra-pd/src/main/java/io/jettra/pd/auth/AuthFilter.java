@@ -68,12 +68,15 @@ public class AuthFilter implements ContainerRequestFilter {
 
             // 3. Authorization (Role-based access)
             User user = authService.getUser(username);
-            
-            // isGlobalAdmin: Users who have broad administrative powers (User management, Database management)
+
+            // isGlobalAdmin: Users who have broad administrative powers (User management,
+            // Database management)
             // matching logic in AuthResource.login
-            boolean isGlobalAdmin = "super-user".equals(username) || "admin".equals(username) || "system-pd".equals(username) ||
-                    (user != null && ("super-user".equals(user.profile()) || "management".equals(user.profile())));
-            
+            boolean isGlobalAdmin = "super-user".equals(username) || "admin".equals(username)
+                    || "system-pd".equals(username) ||
+                    (user != null && ("super-user".equals(user.profile()) || "management".equals(user.profile())
+                            || "admin".equals(user.profile())));
+
             // canManageUsers: Specifically for User/Role management API
             boolean canManageUsers = isGlobalAdmin;
 
@@ -141,12 +144,16 @@ public class AuthFilter implements ContainerRequestFilter {
                 }
 
                 // Check access for non-global admins or for database-level security enforcement
-                // Although management isGlobalAdmin, we still check hasAccess if they are not the super-user
+                // Although management isGlobalAdmin, we still check hasAccess if they are not
+                // the super-user
                 // to respect the user's wish for strict database-level role assignment.
-                boolean isSuperUser = "super-user".equals(username) || (user != null && "super-user".equals(user.profile()));
-                
+                boolean isSuperUser = "super-user".equals(username) ||
+                        (user != null && ("super-user".equals(user.profile()) || "management".equals(user.profile())
+                                || "admin".equals(user.profile())));
+
                 if (!isSuperUser && !hasAccess(user, username, dbName, method)) {
-                    LOG.warnf("Access denied for user %s to database %s (Method: %s). isSuperUser: %s", username, dbName,
+                    LOG.warnf("Access denied for user %s to database %s (Method: %s). isSuperUser: %s", username,
+                            dbName,
                             method, isSuperUser);
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
@@ -195,9 +202,9 @@ public class AuthFilter implements ContainerRequestFilter {
 
         for (Role role : userRoles) {
             String roleDb = role.database();
-            LOG.debugf("Checking role %s (DB: %s) for user %s. Required: %s (Target DB: %s)", 
+            LOG.debugf("Checking role %s (DB: %s) for user %s. Required: %s (Target DB: %s)",
                     role.name(), roleDb, username, requiredPrivilege, dbName);
-                    
+
             if ("_all".equals(roleDb) || dbName.equalsIgnoreCase(roleDb)) {
                 java.util.Set<String> privs = role.privileges();
                 String roleName = role.name();
@@ -207,12 +214,12 @@ public class AuthFilter implements ContainerRequestFilter {
                     LOG.debugf("Access granted (ADMIN/SUPER privilege) for %s to %s", username, dbName);
                     return true;
                 }
-                
+
                 // Predefined role types mapping - check both name and database-prefixed name
-                if (roleName.equalsIgnoreCase("admin") || 
-                    roleName.equalsIgnoreCase("admin_" + dbName) ||
-                    roleName.equalsIgnoreCase("super-user_" + dbName) ||
-                    roleName.startsWith("admin_") && roleName.substring(6).equalsIgnoreCase(dbName)) {
+                if (roleName.equalsIgnoreCase("admin") ||
+                        roleName.equalsIgnoreCase("admin_" + dbName) ||
+                        roleName.equalsIgnoreCase("super-user_" + dbName) ||
+                        roleName.startsWith("admin_") && roleName.substring(6).equalsIgnoreCase(dbName)) {
                     LOG.debugf("Access granted (Admin Role: %s) for %s to %s", roleName, username, dbName);
                     return true;
                 }

@@ -113,19 +113,19 @@ public class AuthService {
 
     // Role Management
     public void createRole(Role role) {
-        roles.put(role.name(), role);
+        roles.put(role.name().toLowerCase(), role);
         LOG.infof("Role created: %s for database: %s", role.name(), role.database());
     }
 
     public void updateRole(Role role) {
-        if (roles.containsKey(role.name())) {
-            roles.put(role.name(), role);
+        if (roles.containsKey(role.name().toLowerCase())) {
+            roles.put(role.name().toLowerCase(), role);
             LOG.infof("Role updated: %s", role.name());
         }
     }
 
     public void deleteRole(String name) {
-        roles.remove(name);
+        roles.remove(name.toLowerCase());
         LOG.infof("Role deleted: %s", name);
     }
 
@@ -134,12 +134,17 @@ public class AuthService {
     }
 
     public Role getRole(String name) {
-        return roles.get(name);
+        if (name == null)
+            return null;
+        return roles.get(name.toLowerCase());
     }
 
     public java.util.List<Role> getRolesForUser(User user) {
+        if (user == null || user.roles() == null) {
+            return java.util.Collections.emptyList();
+        }
         return user.roles().stream()
-                .map(roles::get)
+                .map(this::getRole) // Use the helper that can handle case-sensitivity
                 .filter(java.util.Objects::nonNull)
                 .toList();
     }
