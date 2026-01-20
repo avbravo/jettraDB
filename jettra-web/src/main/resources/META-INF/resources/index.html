@@ -1427,21 +1427,24 @@
         }
 
         function getUserPrivileges(dbName) {
-            if (userProfile === 'super-user' || userProfile === 'management') {
+            if (userProfile === 'super-user') {
                 return { admin: true, read: true, write: true };
             }
+            if (!dbName) return { admin: false, read: false, write: false };
+
             const currentUser = allUsers.find(u => u.username === username);
             if (!currentUser || !currentUser.roles) return { admin: false, read: false, write: false };
 
-            const dbRoles = currentUser.roles.map(rn => {
-                const r = allSystemRoles.find(role => role.name === rn);
-                return r;
-            }).filter(r => r && (r.database === dbName || r.database === '_all'));
+            // Find roles that apply to this database (case-insensitive) or to all databases
+            const dbRoles = allSystemRoles.filter(role => {
+                if (!currentUser.roles.includes(role.name)) return false;
+                return role.database === '_all' || (role.database && role.database.toLowerCase() === dbName.toLowerCase());
+            });
 
             const privileges = {
-                admin: dbRoles.some(r => r.privileges.includes('ADMIN') || r.name.startsWith('admin_')),
-                read: dbRoles.some(r => r.privileges.includes('READ') || r.name.startsWith('admin_') || r.name.startsWith('reader_')),
-                write: dbRoles.some(r => r.privileges.includes('WRITE') || r.name.startsWith('admin_') || r.name.startsWith('writer_'))
+                admin: dbRoles.some(r => r.privileges?.includes('ADMIN') || r.name?.toLowerCase().startsWith('admin_') || r.name?.toLowerCase() === 'admin'),
+                read: dbRoles.some(r => r.privileges?.includes('READ') || r.privileges?.includes('ADMIN') || r.name?.toLowerCase().startsWith('admin_') || r.name?.toLowerCase().startsWith('reader_')),
+                write: dbRoles.some(r => r.privileges?.includes('WRITE') || r.privileges?.includes('ADMIN') || r.name?.toLowerCase().startsWith('admin_') || r.name?.toLowerCase().startsWith('writer_'))
             };
             return privileges;
         }
@@ -1594,7 +1597,7 @@
                 const userRoles = u.roles || [];
                 return userRoles.some(rn => {
                     const r = allSystemRoles.find(role => role.name === rn);
-                    return r && r.database === dbName;
+                    return r && r.database && (r.database.toLowerCase() === dbName.toLowerCase());
                 });
             });
 
@@ -1603,7 +1606,7 @@
             return dbUsers.map(u => {
                 const rolesForDb = (u.roles || []).filter(rn => {
                     const r = allSystemRoles.find(role => role.name === rn);
-                    return r && r.database === dbName;
+                    return r && r.database && (r.database.toLowerCase() === dbName.toLowerCase());
                 }).map(rn => {
                     // Extract core role type from name (e.g., admin_testdb -> admin)
                     return rn.split('_')[0];
@@ -1622,15 +1625,15 @@
             const treeRoot = document.getElementById('db-tree-root');
             if (!treeRoot) return;
 
-            // Filter databases: super-user sees all, others only see where they have a role
+            // Filter databases: super-user (global) sees all, others only see where they have a role
             let filteredDbs = dbs;
-            if (userProfile !== 'super-user' && userProfile !== 'management') {
+            if (userProfile !== 'super-user') {
                 filteredDbs = dbs.filter(db => {
                     const currentUser = allUsers.find(u => u.username === username);
                     if (!currentUser || !currentUser.roles) return false;
                     return currentUser.roles.some(rn => {
                         const r = allSystemRoles.find(role => role.name === rn);
-                        return r && r.database === db.name;
+                        return r && r.database && (r.database.toLowerCase() === db.name.toLowerCase());
                     });
                 });
             }
@@ -1830,7 +1833,7 @@
             list.innerHTML = allUsers.map(user => {
                 const isSystemAdminTarget = user.username === 'super-user';
                 const roles = getRolesForUser(user.username);
-                const dbRole = roles.find(r => r.database === dbName);
+                const dbRole = roles.find(r => r.database && (r.database.toLowerCase() === dbName.toLowerCase()));
                 let currentType = isSystemAdminTarget ? 'admin' : 'none';
 
                 if (dbRole) {

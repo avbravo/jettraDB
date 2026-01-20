@@ -100,8 +100,8 @@ public class PlacementDriverService {
             return java.util.Collections.emptyList();
         }
 
-        // super-user and management profiles see all databases
-        if ("super-user".equals(user.profile()) || "management".equals(user.profile())) {
+        // only super-user profile sees all databases automatically
+        if ("super-user".equals(user.profile())) {
             return databases.values();
         }
 
@@ -109,7 +109,7 @@ public class PlacementDriverService {
         return databases.values().stream()
                 .filter(db -> {
                     java.util.List<io.jettra.pd.auth.Role> dbRoles = userRoles.stream()
-                            .filter(r -> "_all".equals(r.database()) || db.name().equals(r.database()))
+                            .filter(r -> "_all".equals(r.database()) || db.name().equalsIgnoreCase(r.database()))
                             .toList();
                     if (dbRoles.isEmpty()) {
                         return false;

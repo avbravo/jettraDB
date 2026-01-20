@@ -67,13 +67,15 @@ public class AuthFilter implements ContainerRequestFilter {
             requestContext.setProperty("auth.username", username);
 
             // 3. Authorization (Role-based access)
-            boolean isAdmin = "super-user".equals(username) || "admin".equals(username) || "system-pd".equals(username);
-            if (!isAdmin) {
-                User user = authService.getUser(username);
-                if (user != null && "super-user".equals(user.profile())) {
-                    isAdmin = true;
-                }
-            }
+            User user = authService.getUser(username);
+            
+            // isGlobalAdmin: Users who have broad administrative powers (User management, Database management)
+            // matching logic in AuthResource.login
+            boolean isGlobalAdmin = "super-user".equals(username) || "admin".equals(username) || "system-pd".equals(username) ||
+                    (user != null && ("super-user".equals(user.profile()) || "management".equals(user.profile())));
+            
+            // canManageUsers: Specifically for User/Role management API
+            boolean canManageUsers = isGlobalAdmin;
 
             // A. Admin-only endpoints: User/Role management and Node stop
             // Exception: Allow GET (listing) for authenticated users to support UI
@@ -86,7 +88,7 @@ public class AuthFilter implements ContainerRequestFilter {
                 boolean isListing = method.equals("GET") && !path.contains("/stop");
                 boolean isStopNode = path.contains("/stop");
 
-                if (!isAdmin && !isListing) {
+                if (!canManageUsers && !isListing) {
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Action restricted to administrative users.\"}")
                             .build());
@@ -95,7 +97,6 @@ public class AuthFilter implements ContainerRequestFilter {
 
                 // Extra restriction: Only super-user profile can stop nodes
                 if (isStopNode) {
-                    User user = authService.getUser(username);
                     if (user == null || !"super-user".equals(user.profile())) {
                         requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                                 .entity("{\"error\":\"Only super-user can stop nodes.\"}")
@@ -139,22 +140,25 @@ public class AuthFilter implements ContainerRequestFilter {
                     method = "ADMIN";
                 }
 
-                if (!isAdmin && !hasAccess(username, dbName, method)) {
-                    LOG.warnf("Access denied for user %s to database %s (Method: %s). isAdmin: %s", username, dbName,
-                            method, isAdmin);
+                // Check access for non-global admins or for database-level security enforcement
+                // Although management isGlobalAdmin, we still check hasAccess if they are not the super-user
+                // to respect the user's wish for strict database-level role assignment.
+                boolean isSuperUser = "super-user".equals(username) || (user != null && "super-user".equals(user.profile()));
+                
+                if (!isSuperUser && !hasAccess(user, username, dbName, method)) {
+                    LOG.warnf("Access denied for user %s to database %s (Method: %s). isSuperUser: %s", username, dbName,
+                            method, isSuperUser);
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Access denied to database: " + dbName + "\"}")
                             .build());
-                    return;
                 }
             } else if (path.endsWith("databases") && requestContext.getMethod().equals("POST")) {
                 // Explicit check for database creation when no dbName is in path
-                if (!isAdmin) {
-                    LOG.warnf("Database creation denied for user %s (not admin)", username);
+                if (!isGlobalAdmin) {
+                    LOG.warnf("Database creation denied for user %s (not global admin)", username);
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                             .entity("{\"error\":\"Database creation restricted to administrative users.\"}")
                             .build());
-                    return;
                 }
             }
         } catch (Exception e) {
@@ -163,16 +167,18 @@ public class AuthFilter implements ContainerRequestFilter {
         }
     }
 
-    private boolean hasAccess(String username, String dbName, String method) {
-        User user = authService.getUser(username);
+    private boolean hasAccess(User user, String username, String dbName, String method) {
+        if (user == null) {
+            user = authService.getUser(username);
+        }
         if (user == null) {
             LOG.warnf("User %s not found in AuthService", username);
             return false;
         }
 
-        // super-user and management profiles have full access to everything (except
+        // super-user profiles have full access to everything (except
         // node stopping, handled in filter)
-        if ("super-user".equals(user.profile()) || "management".equals(user.profile())) {
+        if ("super-user".equals(user.profile())) {
             LOG.infof("Access granted (Profile: %s) for %s to %s", user.profile(), username, dbName);
             return true;
         }
@@ -188,25 +194,31 @@ public class AuthFilter implements ContainerRequestFilter {
             requiredPrivilege = method.equals("GET") ? "READ" : "WRITE";
 
         for (Role role : userRoles) {
-            LOG.infof("Checking role %s (DB: %s) for user %s. Required: %s", role.name(), role.database(), username,
-                    requiredPrivilege);
-            if ("_all".equals(role.database()) || dbName.equals(role.database())) {
+            String roleDb = role.database();
+            LOG.debugf("Checking role %s (DB: %s) for user %s. Required: %s (Target DB: %s)", 
+                    role.name(), roleDb, username, requiredPrivilege, dbName);
+                    
+            if ("_all".equals(roleDb) || dbName.equalsIgnoreCase(roleDb)) {
                 java.util.Set<String> privs = role.privileges();
+                String roleName = role.name();
 
                 // Direct privilege check (Legacy/Internal)
-                if (privs.contains("ADMIN")) {
-                    LOG.debugf("Access granted (ADMIN privilege) for %s to %s", username, dbName);
+                if (privs.contains("ADMIN") || privs.contains("SUPER")) {
+                    LOG.debugf("Access granted (ADMIN/SUPER privilege) for %s to %s", username, dbName);
                     return true;
                 }
-                if (!"ADMIN".equals(requiredPrivilege) && privs.contains(requiredPrivilege)) {
-                    LOG.debugf("Access granted (Privilege %s) for %s to %s", requiredPrivilege, username, dbName);
+                
+                // Predefined role types mapping - check both name and database-prefixed name
+                if (roleName.equalsIgnoreCase("admin") || 
+                    roleName.equalsIgnoreCase("admin_" + dbName) ||
+                    roleName.equalsIgnoreCase("super-user_" + dbName) ||
+                    roleName.startsWith("admin_") && roleName.substring(6).equalsIgnoreCase(dbName)) {
+                    LOG.debugf("Access granted (Admin Role: %s) for %s to %s", roleName, username, dbName);
                     return true;
                 }
 
-                // Predefined role types mapping
-                String roleName = role.name();
-                if (roleName.startsWith("admin") || roleName.startsWith("super-user_")) {
-                    LOG.debugf("Access granted (Role %s) for %s to %s", roleName, username, dbName);
+                if (!"ADMIN".equals(requiredPrivilege) && privs.contains(requiredPrivilege)) {
+                    LOG.debugf("Access granted (Privilege %s) for %s to %s", requiredPrivilege, username, dbName);
                     return true;
                 }
 
@@ -214,13 +226,14 @@ public class AuthFilter implements ContainerRequestFilter {
                 if ("ADMIN".equals(requiredPrivilege))
                     continue;
 
+                String lowerRoleName = roleName.toLowerCase();
                 if (method.equals("GET")) {
-                    if (roleName.startsWith("reader") || roleName.startsWith("writer-reader")
-                            || roleName.startsWith("guest")) {
+                    if (lowerRoleName.startsWith("reader") || lowerRoleName.startsWith("writer-reader")
+                            || lowerRoleName.startsWith("guest")) {
                         return true;
                     }
                 } else {
-                    if (roleName.startsWith("writer-reader")) {
+                    if (lowerRoleName.startsWith("writer-reader") || lowerRoleName.startsWith("writer")) {
                         return true;
                     }
                 }
