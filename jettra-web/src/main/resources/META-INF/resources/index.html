@@ -291,6 +291,98 @@
             color: #9ca3af;
         }
 
+        .view-mode-btn {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #94a3b8;
+            border-radius: 0.35rem;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .view-mode-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .view-mode-btn.active {
+            color: white;
+            background: var(--primary);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .doc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .doc-table th {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #64748b;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.05em;
+        }
+
+        .doc-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+            vertical-align: middle;
+        }
+
+        .doc-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .json-viewer {
+            padding: 1.5rem;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #10b981;
+            background: #0f172a;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .tree-viewer {
+            padding: 1.5rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+        }
+
+        .tree-node {
+            margin-left: 1.5rem;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding-left: 0.5rem;
+        }
+
+        .tree-key {
+            color: #818cf8;
+            font-weight: 600;
+        }
+
+        .tree-val-string {
+            color: #10b981;
+        }
+
+        .tree-val-number {
+            color: #f59e0b;
+        }
+
+        .tree-val-bool {
+            color: #ec4899;
+        }
+
         /* Modal & Tree styles preserved/simplified */
         .modal-overlay {
             position: fixed;
@@ -808,6 +900,51 @@
                 <h3 class="mb-4">Roles (System)</h3>
                 <div id="role-list-container" style="max-height: 400px; overflow-y: auto;">
                     <p class="text-xs text-gray-400">Loading roles...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Explorer View -->
+        <div id="view-document-explorer" class="hidden" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
+                        Document Explorer</h2>
+                    <p id="doc-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
+                        Exploring collection...</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div
+                        style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                        <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
+                            title="Table View">TABLE</button>
+                        <button class="view-mode-btn" onclick="setDocViewMode('json')" id="view-mode-json"
+                            title="JSON View">JSON</button>
+                        <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
+                            title="Tree View">TREE</button>
+                    </div>
+                    <button class="btn" onclick="openAddDocModal()"
+                        style="background: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                        New doc
+                    </button>
+                    <button class="btn" style="background: rgba(255,255,255,0.1);"
+                        onclick="loadDocuments(currentSelectedCollection)">
+                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <div class="card" id="document-list-card" style="padding: 0; overflow: hidden;">
+                <div id="document-list-container">
+                    <!-- Documents injected here -->
                 </div>
             </div>
         </div>
@@ -1335,6 +1472,7 @@
             document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
             document.getElementById('view-security').classList.toggle('hidden', viewId !== 'security');
             document.getElementById('view-password').classList.toggle('hidden', viewId !== 'password');
+            document.getElementById('view-document-explorer').classList.toggle('hidden', viewId !== 'document-explorer');
 
             document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
             document.getElementById('nav-security').classList.toggle('active', viewId === 'security');
@@ -1454,22 +1592,28 @@
             const privs = getUserPrivileges(dbName);
 
             return collections.map(col => `
-                <div class="tree-type-item" style="justify-content: space-between; padding-right: 0.5rem;">
+                <div class="tree-type-item" style="justify-content: space-between; padding-right: 0.5rem;" onclick="toggleSubtree('sub-${dbName}-${col}'); ${engine === 'Document' ? `selectCollection('${dbName}', '${col}', '${engine}')` : ''}">
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"></path></svg>
-                        <span>${col}</span>
+                        <span style="cursor: pointer; font-weight: 600;">${col}</span>
                     </div>
                     <div style="display: flex; gap: 4px;">
                         ${privs.write || privs.admin ? `
-                        <div class="action-icon" style="width:16px; height:16px;" title="Renombrar" onclick="openCollectionModal('${dbName}', '${col}', '${engine}')">
+                        <div class="action-icon" style="width:16px; height:16px;" title="Renombrar" onclick="event.stopPropagation(); openCollectionModal('${dbName}', '${col}', '${engine}')">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </div>
                         ` : ''}
                         ${privs.admin ? `
-                        <div class="action-icon" style="width:16px; height:16px;" title="Eliminar" onclick="handleDeleteCol('${dbName}', '${col}')">
+                        <div class="action-icon" style="width:16px; height:16px;" title="Eliminar" onclick="event.stopPropagation(); handleDeleteCol('${dbName}', '${col}')">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </div>
                         ` : ''}
+                    </div>
+                </div>
+                <div id="sub-${dbName}-${col}" class="${engine === 'Document' && currentSelectedCollection === col ? '' : 'hidden'}" style="padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
+                    <div class="tree-type-item" onclick="selectCollection('${dbName}', '${col}', '${engine}')" style="font-size: 0.75rem; color: var(--primary);">
+                        <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                         Documentos (CRUD)
                     </div>
                 </div>
             `).join('');
@@ -1479,7 +1623,6 @@
             document.getElementById('col-db-name').value = dbName;
             document.getElementById('col-old-name').value = colName;
             document.getElementById('col-name-input').value = colName;
-
             const engineSelect = document.getElementById('col-engine-select');
             engineSelect.value = engine;
 
@@ -1497,6 +1640,271 @@
             document.getElementById('col-modal-title').textContent = colName ? 'Editar Colección' : 'Nueva Colección';
             document.getElementById('col-submit-btn').textContent = colName ? 'Guardar Cambios' : 'Crear Colección';
             document.getElementById('collection-modal').classList.remove('hidden');
+        }
+
+        let currentSelectedCollection = null;
+        let currentSelectedDatabase = null;
+
+        function selectCollection(dbName, colName, engine) {
+            currentSelectedDatabase = dbName;
+            currentSelectedCollection = colName;
+
+            showView('document-explorer');
+            document.getElementById('doc-explorer-title').textContent = `${colName} (${engine})`;
+            document.getElementById('doc-explorer-subtitle').textContent = `Exploring collection in database: ${dbName}`;
+
+            loadDocuments(colName);
+        }
+
+        let currentDocViewMode = 'table';
+        let loadedDocuments = [];
+
+        function setDocViewMode(mode) {
+            currentDocViewMode = mode;
+            document.querySelectorAll('.view-mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`view-mode-${mode}`).classList.add('active');
+            renderCurrentDocuments();
+        }
+
+        async function loadDocuments(colName) {
+            const container = document.getElementById('document-list-container');
+            container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #94a3b8;">Fetching records...</div>';
+
+            try {
+                const nodesResp = await fetch('/api/monitor/nodes', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
+                });
+                const nodes = await nodesResp.json();
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                if (!storeNode) {
+                    container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #ef4444;">No online STORAGE nodes found.</div>';
+                    return;
+                }
+
+                const resp = await fetch(`http://${storeNode.address}/api/v1/document/${colName}`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
+                });
+
+                if (resp.ok) {
+                    const data = await resp.json();
+                    loadedDocuments = data.map(d => JSON.parse(d));
+                    renderCurrentDocuments();
+                } else {
+                    container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #ef4444;">Collection is empty or unreachable.</div>';
+                    loadedDocuments = [];
+                }
+            } catch (e) {
+                container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #ef4444;">Error: ' + e.message + '</div>';
+            }
+        }
+
+        function renderCurrentDocuments() {
+            const container = document.getElementById('document-list-container');
+            if (loadedDocuments.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 3rem; text-align: center; color: #475569;">
+                        <svg style="width: 48px; height: 48px; margin: 0 auto 1rem; opacity: 0.3;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-2.586 2.586a2 2 0 01-2.828 0L12 14l-2.586 2.586a2 2 0 01-2.828 0L4 13"></path></svg>
+                        <p>No documents found in this collection.</p>
+                        <button class="btn" style="margin-top: 1rem; font-size: 0.8rem;" onclick="addSampleDoc()">Insert Example</button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (currentDocViewMode === 'table') {
+                renderDocumentsTable(container);
+            } else if (currentDocViewMode === 'json') {
+                renderDocumentsJSON(container);
+            } else {
+                renderDocumentsTree(container);
+            }
+        }
+
+        function renderDocumentsTable(container) {
+            const keys = new Set();
+            loadedDocuments.forEach(doc => Object.keys(doc).forEach(k => keys.add(k)));
+            const headerKeys = Array.from(keys).filter(k => k !== '_id' && k !== 'jettraID' && k !== '_tags');
+
+            let html = '<div style="overflow-x: auto;"><table class="doc-table"><thead><tr>';
+            html += '<th>jettraID</th>';
+            headerKeys.slice(0, 5).forEach(k => html += `<th>${k}</th>`);
+            html += '<th style="text-align: right;">Acciones</th></tr></thead><tbody>';
+
+            loadedDocuments.forEach(doc => {
+                const jid = doc.jettraID || 'N/A';
+                html += `<tr><td style="font-family: monospace; font-size: 0.7rem; color: var(--primary); font-weight: 600;">${jid}</td>`;
+                headerKeys.slice(0, 5).forEach(k => {
+                    let val = doc[k];
+                    if (val === undefined) val = '<span style="opacity: 0.3">-</span>';
+                    else if (typeof val === 'object') val = '<span style="color: #64748b">{...}</span>';
+                    html += `<td>${val}</td>`;
+                });
+                html += `
+                    <td style="text-align: right;">
+                        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                            <div class="action-icon" style="width:18px; height:18px;" title="Editar" onclick="editDocument('${jid}')">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <div class="action-icon" style="width:18px; height:18px;" title="Eliminar" onclick="deleteDocument('${jid}')">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </div>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function renderDocumentsJSON(container) {
+            container.innerHTML = `<div class="json-viewer">${JSON.stringify(loadedDocuments, null, 2)}</div>`;
+        }
+
+        function renderDocumentsTree(container) {
+            let html = '<div class="tree-viewer">';
+            loadedDocuments.forEach((doc, idx) => {
+                html += `<div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <div style="color: #64748b; font-size: 0.7rem; margin-bottom: 0.5rem;">Document [${idx}]</div>
+                    ${renderObjectAsTree(doc)}
+                </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderObjectAsTree(obj) {
+            let html = '';
+            for (const key in obj) {
+                const val = obj[key];
+                const isArr = Array.isArray(val);
+                html += `<div class="tree-node">`;
+                html += `<span class="tree-key">${key}:</span> `;
+                if (val !== null && typeof val === 'object') {
+                    html += `<span>${isArr ? '[' : '{'}</span>${renderObjectAsTree(val)}<span>${isArr ? ']' : '}'}</span>`;
+                } else {
+                    const type = typeof val;
+                    const cssClass = type === 'string' ? 'tree-val-string' : (type === 'number' ? 'tree-val-number' : 'tree-val-bool');
+                    html += `<span class="${cssClass}">${type === 'string' ? '"' + val + '"' : val}</span>`;
+                }
+                html += `</div>`;
+            }
+            return html;
+        }
+
+        function toggleSubtree(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden');
+        }
+
+        function editDocument(jid) {
+            const doc = loadedDocuments.find(d => d.jettraID === jid);
+            if (!doc) return;
+
+            // Set current jettraID in a hidden field if we want to update same record
+            // For now, we'll just put it in the modal.
+            document.getElementById('doc-json').value = JSON.stringify(doc, (key, value) => {
+                if (key === 'jettraID') return undefined; // Let engine handle ID if we want to generate new or keep it
+                return value;
+            }, 2);
+
+            // We'll add a way to remember we are editing
+            document.getElementById('doc-modal-title').textContent = 'Editar Documento';
+            document.getElementById('doc-id-input').value = jid;
+            showModal('doc-modal');
+        }
+
+        async function deleteDocument(jid) {
+            if (!confirm(`¿Está seguro de eliminar el registro ${jid}?`)) return;
+
+            try {
+                const nodesResp = await fetch('/api/monitor/nodes', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
+                });
+                const nodes = await nodesResp.json();
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                const resp = await fetch(`http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${jid}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
+                });
+
+                if (resp.ok) {
+                    showAlert('Registro eliminado');
+                    loadDocuments(currentSelectedCollection);
+                } else {
+                    showAlert('Error al eliminar');
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message);
+            }
+        }
+
+        function openAddDocModal() {
+            if (!currentSelectedCollection) {
+                showAlert('Please select a collection first');
+                return;
+            }
+            document.getElementById('doc-id-input').value = '';
+            document.getElementById('doc-modal-title').textContent = 'Nuevo Documento';
+            document.getElementById('doc-json').value = '{\n  "name": "Nuevo Documento",\n  "_tags": ["demo"]\n}';
+            showModal('doc-modal');
+        }
+
+        async function saveDocument() {
+            const json = document.getElementById('doc-json').value;
+            const existingId = document.getElementById('doc-id-input').value;
+            try {
+                // Discover store node
+                const nodesResp = await fetch('/api/monitor/nodes', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
+                });
+                const nodes = await nodesResp.json();
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                if (!storeNode) {
+                    showAlert('Error: No online STORAGE nodes found');
+                    return;
+                }
+
+                let url = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}`;
+                if (existingId) {
+                    url += `?jettraID=${encodeURIComponent(existingId)}`;
+                }
+
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('jettraToken')}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: json
+                });
+
+                if (resp.ok) {
+                    const id = await resp.text();
+                    showAlert(`Registro guardado: ${id}`);
+                    closeModal('doc-modal');
+                    loadDocuments(currentSelectedCollection);
+                } else {
+                    showAlert('Error al guardar: ' + resp.status);
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message);
+            }
+        }
+        async function addSampleDoc() {
+            document.getElementById('doc-json').value = JSON.stringify({
+                name: "Alice Cooper",
+                email: "alice@jettra.io",
+                status: "active",
+                _tags: ["demo", "premium"]
+            }, null, 2);
+            document.getElementById('doc-modal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
         }
 
         function closeCollectionModal() {
@@ -1527,6 +1935,9 @@
                 if (response.ok) {
                     closeCollectionModal();
                     fetchDatabases();
+                    if (engine === 'Document') {
+                        selectCollection(dbName, colName, engine);
+                    }
                     showAlert('Success', `Colección ${isEdit ? 'actualizada' : 'creada'} correctamente`, 'success');
                 } else {
                     showAlert('Error', 'Error al procesar la colección');
@@ -2573,6 +2984,32 @@
             window.location.href = '/login.html';
         }
     </script>
+    <!-- New Document Modal -->
+    <div id="doc-modal" class="modal-overlay hidden">
+        <div class="modal-content"
+            style="max-width: 600px; background: var(--bg); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 id="doc-modal-title" style="margin: 0; color: white;">New Document</h2>
+                <input type="hidden" id="doc-id-input">
+                <button onclick="closeModal('doc-modal')"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 2rem; line-height: 1;">&times;</button>
+            </div>
+
+            <div class="mb-6">
+                <label style="display: block; color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.9rem;">Document JSON
+                    Content</label>
+                <textarea id="doc-json"
+                    style="width: 100%; height: 250px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #10b981; padding: 1rem; border-radius: 0.5rem; box-sizing: border-box;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn" onclick="saveDocument()" style="flex: 1; padding: 1rem; font-weight: 600;">Save
+                    Document</button>
+                <button class="btn" onclick="closeModal('doc-modal')"
+                    style="background: rgba(255, 255, 255, 0.1); color: #94a3b8; padding: 1rem;">Cancel</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

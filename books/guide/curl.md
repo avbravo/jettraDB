@@ -297,4 +297,40 @@ curl -X POST http://localhost:8081/api/db/mi_base_datos/collections/usuarios \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"engine": "Document"}'
+
+## Operaciones de Documentos (Document Engine) ⭐
+
+Una vez creada la colección con motor `Document`, puedes interactuar directamente con los documentos.
+
+### 1. Guardar un Documento (Save / Upsert)
+Si no se proporciona `jettraID`, el sistema lo generará automáticamente.
+
+```bash
+# Se requiere hablar directamente con un nodo STORAGE (ej: puerto 8082)
+curl -X POST http://localhost:8082/api/v1/document/usuarios \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"nombre": "Juan", "email": "juan@example.com", "_tags": ["premium"]}'
+```
+
+### 2. Recuperar un Documento por ID
+```bash
+# Reemplazar {jettraID} con el ID generado (ej: node1/default#uuid)
+curl -s http://localhost:8082/api/v1/document/usuarios/{jettraID} \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 3. Ver Historial de Versiones
+Para ver todas las versiones guardadas de un documento:
+
+```bash
+curl -s http://localhost:8082/api/v1/document/usuarios/{jettraID}/versions \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 4. Búsqueda por Etiquetas (Tags)
+```bash
+curl -s "http://localhost:8082/api/v1/document/usuarios/search/tag?tag=premium" \
+  -H "Authorization: Bearer $TOKEN"
+```
 ```

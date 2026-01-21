@@ -159,21 +159,24 @@ sql UPDATE analytics SET processed=true WHERE id='node_2'
 sql DELETE FROM logs WHERE date < '2023-01-01'
 ```
 
-### 8. MongoDB-style Support 🍃
-JettraDB also understands MongoDB syntax for developers coming from document-oriented backgrounds.
+### 8. MongoDB-style Support (REAL) 🍃
+JettraDB entiende la sintaxis de MongoDB y ahora la traduce internamente a llamadas al **Document Engine** para una persistencia real con versionamiento.
 
 ```bash
-# Querying
-mongo db.users.find({age: {$gt: 21}})
+# Inserción (Genera automáticamente jettraID y Versión 1)
+mongo db.usuarios.insert({nombre: 'Alice', _tags: ['vip']})
 
-# Inserting
-mongo db.products.insert({name: 'Laptop', price: 1200})
+# Consulta por ID (Simplificado)
+mongo db.usuarios.find('node1/default#uuid123')
 
-# Updating
-mongo db.inventory.update({id: '123'}, {$set: {stock: 10}})
+# Consulta por Filtro ID
+mongo db.usuarios.find({id: 'node1/default#uuid123'})
 
-# Aggregations
-mongo db.orders.aggregate([{$group: {_id: '$status', total: {$sum: '$amount'}}}])
+# Actualización (Incrementa el número de versión)
+mongo db.usuarios.update({id: 'node1/default#uuid123'}, {nombre: 'Alice Cooper'})
+
+# Eliminación
+mongo db.usuarios.remove({id: 'node1/default#uuid123'})
 ```
 
 ### 9. Cluster Administration & Monitoring ⭐

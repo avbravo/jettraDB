@@ -18,6 +18,11 @@ public class MongoCommand implements Runnable {
     @Parameters(index = "0..*", description = "Mongo statement parts (e.g., db.collection.find({}))")
     String[] mongoParts;
 
+    private io.jettra.driver.JettraReactiveClient getClient() {
+        io.jettra.driver.JettraReactiveClient client = new io.jettra.driver.JettraReactiveClient(JettraShell.pdAddress, JettraShell.authToken);
+        return client;
+    }
+
     @Override
     public void run() {
         if (JettraShell.authToken == null) {
@@ -66,29 +71,63 @@ public class MongoCommand implements Runnable {
     }
 
     private void handleFind(String collection, String query) {
-        System.out.println("Engine: DocumentEngine -> Searching with filter: " + (query.isEmpty() ? "{}" : query));
-        if (collection.toLowerCase().contains("graph")) {
-            System.out.println("Note: Mapping to GraphEngine traversal...");
+        String id = query.trim();
+        if (id.startsWith("{") && id.endsWith("}")) {
+            // Very simple extraction for {id: '...'}
+            Pattern p = Pattern.compile("id:\\s*['\"]([^'\"]+)['\"]");
+            Matcher m = p.matcher(id);
+            if (m.find()) id = m.group(1);
+            else id = ""; 
         }
-        System.out.println("Result: [Mock JSON document list]");
+        
+        if (id.isEmpty() || id.equals("{}")) {
+            System.out.println("Engine: DocumentEngine -> Result: Full scan not supported via Shell find yet. Provide an ID: db.col.find('id1')");
+            return;
+        }
+
+        System.out.println("Engine: DocumentEngine -> Fetching document " + id + " from " + collection);
+        try {
+            Object result = getClient().findById(collection, id).await().indefinitely();
+            if (result != null) {
+                System.out.println("Result: " + result);
+            } else {
+                System.out.println("Result: Not found");
+            }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
     }
 
     private void handleInsert(String collection, String document) {
         System.out.println("Engine: StorageEngine -> Persisting document in " + collection);
-        System.out.println("Document: " + document);
-        System.out.println("Status: Success (Write acknowledged)");
+        try {
+            getClient().save(collection, document).await().indefinitely();
+            System.out.println("Status: Success (Write acknowledged)");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
     }
 
     private void handleUpdate(String collection, String args) {
-        System.out.println("Engine: DocumentEngine -> Patching documents in " + collection);
-        System.out.println("Params: " + args);
-        System.out.println("Status: Success (Modified count: 1)");
+        System.out.println("Engine: DocumentEngine -> Update implemented via save (Upsert strategy)");
+        handleInsert(collection, args);
     }
 
     private void handleDelete(String collection, String query) {
-        System.out.println("Engine: StorageEngine -> Removing documents from " + collection);
-        System.out.println("Filter: " + query);
-        System.out.println("Status: Success (Deleted count: 1)");
+        String id = query.trim();
+        if (id.startsWith("{") && id.endsWith("}")) {
+            Pattern p = Pattern.compile("id:\\s*['\"]([^'\"]+)['\"]");
+            Matcher m = p.matcher(id);
+            if (m.find()) id = m.group(1);
+        }
+        
+        System.out.println("Engine: StorageEngine -> Removing document " + id + " from " + collection);
+        try {
+            getClient().delete(collection, id).await().indefinitely();
+            System.out.println("Status: Success (Deleted)");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
     }
 
     private void handleAggregate(String collection, String pipeline) {

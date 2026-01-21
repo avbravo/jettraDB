@@ -77,6 +77,13 @@ Permite ejecutar operaciones multi-modelo directamente desde el navegador:
 2.  **Editor JSON**: Entrada de comandos en formato JSON estandarizado de Jettra.
 3.  **Ejecución Reactiva**: Las consultas se procesan de forma no bloqueante.
 
+### 6. Explorador de Documentos (Real Document Engine) ⭐
+El Dashboard incluye una herramienta especializada para interactuar con el **Motor de Documentos** a través de la red de nodos de almacenamiento:
+- **Visualización Directa**: Al seleccionar una colección de tipo `Document` en el árbol, se activa la vista de exploración.
+- **Inserción de Documentos**: Diálogo modal con editor JSON inteligente que permite definir campos y etiquetas (`_tags`).
+- **Descubrimiento de Almacenamiento**: La interfaz web descubre automáticamente un nodo `STORAGE` activo para realizar las operaciones de datos, garantizando que interactúas con el nodo correcto dentro del cluster.
+- **Identificadores Físicos (jettraID)**: Los documentos creados o recuperados muestran su `jettraID` completo, permitiendo a los desarrolladores ver exactamente en qué nodo y bucket reside el dato.
+
 ## Procedimiento de Autenticación en la Web
 
 1. Al acceder a la URL, el sistema redirigirá automáticamente a `login.html`.

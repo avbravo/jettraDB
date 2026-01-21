@@ -4,12 +4,20 @@ import io.smallrye.mutiny.Uni;
 
 public interface JettraClient {
     Uni<Void> save(String collection, Object document);
+    Uni<Void> save(String collection, String jettraId, Object document);
 
     Uni<Object> findById(String collection, String id);
 
     Uni<Void> delete(String collection, String id);
 
     Uni<Long> count(String collection);
+
+    Uni<String> generateJettraId(String bucketId);
+
+    Uni<java.util.List<String>> getDocumentVersions(String collection, String jettraId);
+
+    Uni<Object> resolveReference(String collection, String referenceJettraId);
+
 
     Uni<Void> createDatabase(String name, String storage);
 

@@ -141,15 +141,34 @@ List<String> usernames = client.listUsers().await().indefinitely();
 client.deleteUser("bob").await().indefinitely();
 ```
 
-### 7. Data Operations
+### 7. Document Operations (Document Engine) ⭐
+
+Operaciones específicas para el motor de documentos, incluyendo versionamiento y gestión de IDs físicos.
 
 ```java
-// Save a document
-MyObject doc = new MyObject("key1", "value");
-client.save("my_collection", doc).await().indefinitely();
+// 1. Generar un jettraID basado en la ubicación física (bucket)
+// Formato: nodeId/bucketName#uuid
+String jettraId = client.generateJettraId("node1/main-bucket").await().indefinitely();
 
-// Find a document
-MyObject result = client.findById("my_collection", "key1").await().indefinitely();
+// 2. Guardar un documento (JSON String o POJO)
+// Si el documento ya existe, se crea una nueva versión automáticamente.
+String json = "{\"nombre\": \"Alice\", \"_tags\": [\"vip\", \"2024\"]}";
+client.save("usuarios", jettraId, json).await().indefinitely();
+
+// 3. Recuperar la versión actual por jettraID
+Object doc = client.findById("usuarios", jettraId).await().indefinitely();
+System.out.println("Documento: " + doc);
+
+// 4. Listar historial de versiones
+List<String> versiones = client.getDocumentVersions("usuarios", jettraId).await().indefinitely();
+System.out.println("Versiones: " + versiones);
+
+// 5. Resolver una referencia (Document Linking)
+// Útil para navegar entre documentos vinculados físicamente.
+Object related = client.resolveReference("pedidos", "node2/orders#ref123").await().indefinitely();
+
+// 6. Eliminar un documento
+client.delete("usuarios", jettraId).await().indefinitely();
 ```
 
 The driver uses `Mutiny` (Uni/Multi) for non-blocking I/O.
