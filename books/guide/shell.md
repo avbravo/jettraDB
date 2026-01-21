@@ -177,6 +177,9 @@ mongo db.usuarios.update({id: 'node1/default#uuid123'}, {nombre: 'Alice Cooper'}
 
 # Eliminación
 mongo db.usuarios.remove({id: 'node1/default#uuid123'})
+
+# Restaurar Versión
+restore usuarios node1/default#uuid123 1
 ```
 
 ### 9. Cluster Administration & Monitoring ⭐

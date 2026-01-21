@@ -27,7 +27,8 @@ import jakarta.enterprise.context.ApplicationScoped;
                 SqlCommand.class,
                 MongoCommand.class,
                 UserCommands.class,
-                RoleCommands.class
+                RoleCommands.class,
+                RestoreCommand.class
         })
 public class JettraShell implements Runnable {
     public static String authToken;

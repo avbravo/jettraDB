@@ -7,6 +7,7 @@
     <title>JettraDB Manager</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo/jettra-logo.png">
+    <script src="https://unpkg.com/htmx.org@2.0.8"></script>
     <style>
         :root {
             --primary: #6366f1;
@@ -757,13 +758,16 @@
                     <h2>Cluster Overview</h2>
                 </header>
 
-                <div class="grid" id="node-grid">
-                    <!-- Node cards injected here -->
+                <div class="grid" id="node-grid" hx-get="/api/monitor/htmx/nodes" hx-trigger="load, every 5s"
+                    hx-swap="innerHTML">
+                    <!-- Node cards injected via HTMX -->
+                    <div style="color: #94a3b8; text-align: center; width: 100%;">Loading nodes...</div>
                 </div>
 
                 <h2 style="margin-top: 3rem;">Multi-Raft Groups</h2>
-                <div class="grid" id="group-grid" style="margin-top: 1.5rem;">
-                    <!-- Group cards injected here -->
+                <div class="grid" id="group-grid" style="margin-top: 1.5rem;" hx-get="/api/monitor/htmx/groups"
+                    hx-trigger="load, every 5s" hx-swap="innerHTML">
+                    <!-- Group cards injected via HTMX -->
                     <div style="color: #94a3b8; text-align: center; width: 100%;">Loading groups...</div>
                 </div>
             </div>
@@ -914,6 +918,27 @@
                         Exploring collection...</p>
                 </div>
                 <div style="display: flex; gap: 1rem; align-items: center;">
+                    <!-- (+) Add Document Button -->
+                    <button class="btn"
+                        style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;"
+                        onclick="openAddDocModal()" title="Add New Document">
+                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </button>
+                    <!-- Search Box -->
+                    <div style="position: relative;">
+                        <input type="text" id="doc-search-input" placeholder="Search documents..."
+                            onkeyup="if(event.key === 'Enter') searchDocuments()"
+                            style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.5rem; color: white; font-size: 0.9rem; width: 200px;">
+                        <svg style="width: 16px; height: 16px; color: #94a3b8; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+
                     <div
                         style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
                         <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
@@ -923,14 +948,6 @@
                         <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
                             title="Tree View">TREE</button>
                     </div>
-                    <button class="btn" onclick="openAddDocModal()"
-                        style="background: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
-                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                            </path>
-                        </svg>
-                        New doc
-                    </button>
                     <button class="btn" style="background: rgba(255,255,255,0.1);"
                         onclick="loadDocuments(currentSelectedCollection)">
                         <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -939,6 +956,16 @@
                             </path>
                         </svg>
                     </button>
+                    <div
+                        style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                        <button class="btn" onclick="prevPage()" id="btn-prev-page" disabled
+                            style="padding: 0.4rem 0.8rem;">&lt;</button>
+                        <span id="page-indicator"
+                            style="color: #94a3b8; font-size: 0.9rem; min-width: 60px; text-align: center;">Page
+                            1</span>
+                        <button class="btn" onclick="nextPage()" id="btn-next-page"
+                            style="padding: 0.4rem 0.8rem;">&gt;</button>
+                    </div>
                 </div>
             </header>
 
@@ -1370,6 +1397,14 @@
         const token = localStorage.getItem('jettra_token');
         if (!token) window.location.href = '/login.html';
 
+        // HTMX Global configuration for Authorization
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            const t = localStorage.getItem('jettra_token');
+            if (t) {
+                event.detail.headers['Authorization'] = 'Bearer ' + t;
+            }
+        });
+
         const username = localStorage.getItem('jettra_username') || 'Unknown';
         const userProfile = localStorage.getItem('jettra_profile') || 'end-user';
         document.getElementById('logged-username').textContent = username;
@@ -1490,10 +1525,7 @@
             // Always fetch databases to keep the tree explorer updated
             fetchDatabases();
 
-            if (currentView === 'cluster') {
-                fetchNodes();
-                fetchGroups();
-            } else if (currentView === 'security') {
+            if (currentView === 'security') {
                 fetchUsers();
                 fetchRoles();
                 if (document.getElementById('user-db-roles-body').innerHTML.includes('Loading')) {
@@ -1507,42 +1539,23 @@
 
         async function fetchNodes() {
             try {
-                const response = await fetch('/api/monitor/nodes', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (response.status === 401) return logout();
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                allNodes = await response.json();
-                renderNodes(allNodes);
+                const response = await fetchWithAuth('/api/monitor/nodes');
+                if (response.ok) {
+                    allNodes = await safeJson(response);
+                }
                 if (selectedNodeId) updateModalContent();
             } catch (error) {
                 console.error('Error fetching nodes:', error);
-                nodeGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
             }
         }
 
-        async function fetchGroups() {
-            try {
-                const response = await fetch('/api/monitor/groups', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (response.status === 401) return;
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                renderGroups(await response.json());
-            } catch (error) {
-                console.error('Error fetching groups:', error);
-                groupGrid.innerHTML = `<div style="color: #ef4444; padding: 1rem;">Error: ${error.message}</div>`;
-            }
-        }
 
         async function fetchDatabases() {
             try {
-                const response = await fetch('/api/db', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
+                const response = await fetchWithAuth('/api/db');
                 if (response.status === 401) return logout();
                 if (!response.ok) throw new Error('HTTP ' + response.status);
-                allDatabases = await response.json();
+                allDatabases = await safeJson(response) || [];
 
                 // Fetch users and roles to have info for the tree
                 await fetchUsers();
@@ -1551,10 +1564,8 @@
                 // Fetch collections for all databases to populate tree
                 for (let db of allDatabases) {
                     try {
-                        const colRes = await fetch(`/api/db/${db.name}/collections`, {
-                            headers: { 'Authorization': 'Bearer ' + token }
-                        });
-                        if (colRes.ok) db.collections = await colRes.json();
+                        const colRes = await fetchWithAuth(`/api/db/${db.name}/collections`);
+                        if (colRes.ok) db.collections = await safeJson(colRes);
                     } catch (e) { console.error('Error fetching collections for ' + db.name, e); }
                 }
 
@@ -1599,6 +1610,9 @@
                     </div>
                     <div style="display: flex; gap: 4px;">
                         ${privs.write || privs.admin ? `
+                        <div class="action-icon" style="width:16px; height:16px;" title="Añadir Documento" onclick="event.stopPropagation(); addDocumentFromTree('${dbName}', '${col}', '${engine}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </div>
                         <div class="action-icon" style="width:16px; height:16px;" title="Renombrar" onclick="event.stopPropagation(); openCollectionModal('${dbName}', '${col}', '${engine}')">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </div>
@@ -1610,7 +1624,7 @@
                         ` : ''}
                     </div>
                 </div>
-                <div id="sub-${dbName}-${col}" class="${engine === 'Document' && currentSelectedCollection === col ? '' : 'hidden'}" style="padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
+                <div id="sub-${dbName}-${col}" class="${expandedNodes.has(`sub-${dbName}-${col}`) ? 'show' : 'hidden'}" style="padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
                     <div class="tree-type-item" onclick="selectCollection('${dbName}', '${col}', '${engine}')" style="font-size: 0.75rem; color: var(--primary);">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                          Documentos (CRUD)
@@ -1644,10 +1658,45 @@
 
         let currentSelectedCollection = null;
         let currentSelectedDatabase = null;
+        let expandedNodes = new Set();
+
+        async function safeJson(response) {
+            const text = await response.text();
+            if (!text) return null;
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('Failed to parse JSON:', text);
+                return null;
+            }
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('jettra_token');
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
+            try {
+                const response = await fetch(url, { ...options, headers });
+                if (response.status === 401 || response.status === 403) {
+                    window.location.href = '/login.html';
+                    throw new Error('Unauthorized');
+                }
+                return response;
+            } catch (error) {
+                if (error instanceof TypeError) {
+                    console.error("Network error:", error);
+                    throw new Error("Network error: Failed to fetch. Please check your connection to the server.");
+                }
+                throw error;
+            }
+        }
 
         function selectCollection(dbName, colName, engine) {
             currentSelectedDatabase = dbName;
             currentSelectedCollection = colName;
+            currentPage = 1; // Reset to first page on collection change
 
             showView('document-explorer');
             document.getElementById('doc-explorer-title').textContent = `${colName} (${engine})`;
@@ -1656,8 +1705,36 @@
             loadDocuments(colName);
         }
 
+        function addDocumentFromTree(dbName, colName, engine) {
+            selectCollection(dbName, colName, engine);
+            setTimeout(() => {
+                openAddDocModal();
+            }, 100);
+        }
+
         let currentDocViewMode = 'table';
         let loadedDocuments = [];
+        let currentPage = 1;
+        const pageSize = 20;
+
+        function nextPage() {
+            currentPage++;
+            loadDocuments(currentSelectedCollection);
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadDocuments(currentSelectedCollection);
+            }
+        }
+
+        function updatePaginationControls() {
+            document.getElementById('page-indicator').textContent = `Page ${currentPage}`;
+            document.getElementById('btn-prev-page').disabled = currentPage <= 1;
+            // Next button is disabled if we fetched less than pageSize, meaning end of list
+            document.getElementById('btn-next-page').disabled = loadedDocuments.length < pageSize;
+        }
 
         function setDocViewMode(mode) {
             currentDocViewMode = mode;
@@ -1670,11 +1747,13 @@
             const container = document.getElementById('document-list-container');
             container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #94a3b8;">Fetching records...</div>';
 
+            // Get search term
+            const searchInput = document.getElementById('doc-search-input');
+            const searchTerm = searchInput ? searchInput.value.trim() : '';
+
             try {
-                const nodesResp = await fetch('/api/monitor/nodes', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
-                });
-                const nodes = await nodesResp.json();
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
                 const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
 
                 if (!storeNode) {
@@ -1682,21 +1761,36 @@
                     return;
                 }
 
-                const resp = await fetch(`http://${storeNode.address}/api/v1/document/${colName}`, {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
+                // Append pagination and search parameters
+                let targetUrl = `http://${storeNode.address}/api/v1/document/${colName}?page=${currentPage}&size=${pageSize}`;
+                if (searchTerm) {
+                    targetUrl += `&search=${encodeURIComponent(searchTerm)}`;
+                }
+
+                const resp = await fetchWithAuth('/api/db/proxy/document', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: targetUrl, method: 'GET' })
                 });
 
                 if (resp.ok) {
-                    const data = await resp.json();
-                    loadedDocuments = data.map(d => JSON.parse(d));
+                    const data = await safeJson(resp);
+                    loadedDocuments = data ? data.map(d => JSON.parse(d)) : [];
                     renderCurrentDocuments();
+                    updatePaginationControls();
                 } else {
-                    container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #ef4444;">Collection is empty or unreachable.</div>';
+                    container.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Collection is empty or unreachable (Status: ${resp.status}).</div>`;
                     loadedDocuments = [];
+                    updatePaginationControls();
                 }
             } catch (e) {
                 container.innerHTML = '<div style="padding: 2rem; text-align: center; color: #ef4444;">Error: ' + e.message + '</div>';
             }
+        }
+
+        function searchDocuments() {
+            currentPage = 1;
+            loadDocuments(currentSelectedCollection);
         }
 
         function renderCurrentDocuments() {
@@ -1724,7 +1818,7 @@
         function renderDocumentsTable(container) {
             const keys = new Set();
             loadedDocuments.forEach(doc => Object.keys(doc).forEach(k => keys.add(k)));
-            const headerKeys = Array.from(keys).filter(k => k !== '_id' && k !== 'jettraID' && k !== '_tags');
+            const headerKeys = Array.from(keys).filter(k => k !== '_id' && k !== 'jettraID');
 
             let html = '<div style="overflow-x: auto;"><table class="doc-table"><thead><tr>';
             html += '<th>jettraID</th>';
@@ -1743,6 +1837,9 @@
                 html += `
                     <td style="text-align: right;">
                         <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                            <div class="action-icon" style="width:18px; height:18px;" title="History/Versions" onclick="showDocVersions('${jid}')">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
                             <div class="action-icon" style="width:18px; height:18px;" title="Editar" onclick="editDocument('${jid}')">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </div>
@@ -1758,14 +1855,35 @@
         }
 
         function renderDocumentsJSON(container) {
-            container.innerHTML = `<div class="json-viewer">${JSON.stringify(loadedDocuments, null, 2)}</div>`;
+            container.innerHTML = `<div class="json-viewer">
+                <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <span style="color: #64748b; font-size: 0.8rem; align-self: center;">Actions for visible documents:</span>
+                    ${loadedDocuments.map(d => `
+                        <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="showDocVersions('${d.jettraID}')" title="Versions: ${d.jettraID}">
+                            🕒 ${d.jettraID}
+                        </button>
+                    `).join('')}
+                </div>
+                ${JSON.stringify(loadedDocuments, null, 2)}
+            </div>`;
         }
 
         function renderDocumentsTree(container) {
             let html = '<div class="tree-viewer">';
             loadedDocuments.forEach((doc, idx) => {
-                html += `<div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <div style="color: #64748b; font-size: 0.7rem; margin-bottom: 0.5rem;">Document [${idx}]</div>
+                html += `<div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                         <div style="color: #64748b; font-size: 0.7rem;">Document [${idx}]</div>
+                         <div class="action-icon" style="width:16px; height:16px; cursor: pointer;" title="History/Versions" onclick="showDocVersions('${doc.jettraID}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <div class="action-icon" style="width:16px; height:16px; cursor: pointer;" title="Editar" onclick="editDocument('${doc.jettraID}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </div>
+                        <div class="action-icon" style="width:16px; height:16px; cursor: pointer;" title="Eliminar" onclick="deleteDocument('${doc.jettraID}')">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </div>
+                    </div>
                     ${renderObjectAsTree(doc)}
                 </div>`;
             });
@@ -1794,7 +1912,14 @@
 
         function toggleSubtree(id) {
             const el = document.getElementById(id);
-            if (el) el.classList.toggle('hidden');
+            if (el) {
+                el.classList.toggle('hidden');
+                if (!el.classList.contains('hidden')) {
+                    expandedNodes.add(id);
+                } else {
+                    expandedNodes.delete(id);
+                }
+            }
         }
 
         function editDocument(jid) {
@@ -1814,26 +1939,45 @@
             showModal('doc-modal');
         }
 
-        async function deleteDocument(jid) {
-            if (!confirm(`¿Está seguro de eliminar el registro ${jid}?`)) return;
+        let docToDeleteId = null;
+
+        function deleteDocument(jid) {
+            verifyDeleteDoc(jid);
+        }
+
+        function verifyDeleteDoc(jid) {
+            docToDeleteId = jid;
+            document.getElementById('delete-doc-id-label').textContent = jid;
+            document.getElementById('doc-delete-modal').classList.remove('hidden');
+        }
+
+        function closeDocDeleteModal() {
+            docToDeleteId = null;
+            document.getElementById('doc-delete-modal').classList.add('hidden');
+        }
+
+        async function confirmDeleteDoc() {
+            if (!docToDeleteId) return;
 
             try {
-                const nodesResp = await fetch('/api/monitor/nodes', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
-                });
-                const nodes = await nodesResp.json();
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
                 const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
 
-                const resp = await fetch(`http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${jid}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
+                const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(docToDeleteId)}`;
+                const resp = await fetchWithAuth('/api/db/proxy/document', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: targetUrl, method: 'DELETE' })
                 });
 
                 if (resp.ok) {
-                    showAlert('Registro eliminado');
+                    showAlert('Registro eliminado', `El documento ${docToDeleteId} ha sido eliminado.`, 'success');
+                    closeDocDeleteModal();
                     loadDocuments(currentSelectedCollection);
                 } else {
-                    showAlert('Error al eliminar');
+                    const errText = await resp.text();
+                    showAlert('Error al eliminar', `No se pudo eliminar el documento. Estado: ${resp.status}. ${errText}`);
                 }
             } catch (e) {
                 showAlert('Error: ' + e.message);
@@ -1847,7 +1991,7 @@
             }
             document.getElementById('doc-id-input').value = '';
             document.getElementById('doc-modal-title').textContent = 'Nuevo Documento';
-            document.getElementById('doc-json').value = '{\n  "name": "Nuevo Documento",\n  "_tags": ["demo"]\n}';
+            document.getElementById('doc-json').value = '{\n  "name": "Nuevo Documento"\n }';
             showModal('doc-modal');
         }
 
@@ -1856,10 +2000,8 @@
             const existingId = document.getElementById('doc-id-input').value;
             try {
                 // Discover store node
-                const nodesResp = await fetch('/api/monitor/nodes', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('jettraToken')}` }
-                });
-                const nodes = await nodesResp.json();
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
                 const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
 
                 if (!storeNode) {
@@ -1872,18 +2014,34 @@
                     url += `?jettraID=${encodeURIComponent(existingId)}`;
                 }
 
-                const resp = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('jettraToken')}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: json
-                });
+                let resp;
+                try {
+                    const docObj = JSON.parse(json);
+                    // Restriction: User cannot edit system fields
+                    if (docObj._version) delete docObj._version;
+                    if (docObj._lastModified) delete docObj._lastModified;
+                    // docObj._version = undefined; // Alternative
+
+                    const payload = JSON.stringify(docObj);
+
+                    resp = await fetchWithAuth('/api/db/proxy/document', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            url: url,
+                            method: 'POST',
+                            payload: payload
+                        })
+                    });
+                } catch (e) {
+                    console.error("JSON parse error", e);
+                    showAlert('Error de Formato JSON', 'El JSON proporcionado no es válido: ' + e.message + '. Por favor corríjalo antes de guardar.', 'error');
+                    return;
+                }
 
                 if (resp.ok) {
-                    const id = await resp.text();
-                    showAlert(`Registro guardado: ${id}`);
+                    // Simpler success message as requested
+                    showAlert('Registro Guardado', 'El documento se ha guardado correctamente.', 'success');
                     closeModal('doc-modal');
                     loadDocuments(currentSelectedCollection);
                 } else {
@@ -1898,9 +2056,13 @@
                 name: "Alice Cooper",
                 email: "alice@jettra.io",
                 status: "active",
-                _tags: ["demo", "premium"]
+                tags: ["demo", "premium"]
             }, null, 2);
             document.getElementById('doc-modal').classList.remove('hidden');
+        }
+
+        function showModal(id) {
+            document.getElementById(id).classList.remove('hidden');
         }
 
         function closeModal(id) {
@@ -1924,12 +2086,9 @@
             const method = isEdit ? 'PUT' : 'POST';
 
             try {
-                const response = await fetch(url, {
+                const response = await fetchWithAuth(url, {
                     method: method,
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ engine })
                 });
                 if (response.ok) {
@@ -1963,9 +2122,8 @@
             const colName = document.getElementById('delete-col-name-hidden').value;
 
             try {
-                const response = await fetch(`/api/db/${dbName}/collections/${colName}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                const response = await fetchWithAuth(`/api/db/${dbName}/collections/${colName}`, {
+                    method: 'DELETE'
                 });
                 if (response.ok) {
                     closeColDeleteModal();
@@ -1982,11 +2140,9 @@
         async function refreshCollections(dbName, engine, btn) {
             btn.style.animation = 'spin 1s linear infinite';
             try {
-                const response = await fetch(`/api/db/${dbName}/collections`, {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
+                const response = await fetchWithAuth(`/api/db/${dbName}/collections`);
                 if (response.ok) {
-                    const cols = await response.json();
+                    const cols = await safeJson(response);
                     // If backend returns objects with engine info, filter. Otherwise, show all in "Document" for now.
                     let filtered = cols;
                     if (cols.length > 0 && typeof cols[0] === 'object') {
@@ -2088,7 +2244,7 @@
                                 <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                                 users
                             </div>
-                            <div class="tree-children show" id="users-list-${db.name}">
+                            <div class="tree-children ${expandedNodes.has(`users-list-${db.name}`) ? 'show' : ''}" id="users-list-${db.name}">
                                 ${renderUserItems(db.name)}
                             </div>
                         </div>
@@ -2118,7 +2274,7 @@
                                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                                     </div>
                                 </div>
-                                <div class="tree-children tree-collection-list show" id="col-list-${db.name}-${eng.name}">
+                                <div class="tree-children tree-collection-list ${expandedNodes.has(`col-list-${db.name}-${eng.name}`) ? 'show' : ''}" id="col-list-${db.name}-${eng.name}">
                                     ${renderCollectionItems(db.name, filtered, eng.name)}
                                 </div>
                             </div>
@@ -2133,43 +2289,33 @@
             el.classList.toggle('expanded');
             const children = el.nextElementSibling;
             children.classList.toggle('show');
+            if (children.id) {
+                if (children.classList.contains('show')) {
+                    expandedNodes.add(children.id);
+                } else {
+                    expandedNodes.delete(children.id);
+                }
+            }
         }
 
         function toggleEngineActions(el) {
             const engineNode = el.parentElement;
-            // Close others in same tree
-            engineNode.parentElement.querySelectorAll('.tree-engine-node').forEach(node => {
-                if (node !== engineNode) node.classList.remove('active-engine');
-            });
+            // Disabled auto-close logic per user request
+            // engineNode.parentElement.querySelectorAll('.tree-engine-node').forEach(node => { ... });
+
             engineNode.classList.toggle('active-engine');
+            const children = engineNode.querySelector('.tree-children');
+            if (children && children.id) {
+                if (engineNode.classList.contains('active-engine')) {
+                    expandedNodes.add(children.id);
+                    children.classList.add('show');
+                } else {
+                    expandedNodes.delete(children.id);
+                    children.classList.remove('show');
+                }
+            }
         }
 
-        function renderNodes(nodes) {
-            if (!nodes || nodes.length === 0) {
-                nodeGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No nodes registered.</div>';
-                return;
-            }
-            nodeGrid.innerHTML = nodes.map(node => `
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <h3 style="margin:0">Node: ${node.id}</h3>
-                        <span class="status-dot ${node.status === 'ONLINE' ? 'status-online' : 'status-offline'}" 
-                              style="background: ${node.status === 'ONLINE' ? '#10b981' : '#ef4444'}; box-shadow: 0 0 10px ${node.status === 'ONLINE' ? '#10b981' : '#ef4444'}">
-                        </span>
-                    </div>
-                    <p style="margin: 0.5rem 0">Role: ${node.role}</p>
-                    <small style="color: #94a3b8; display: block; margin-bottom: 1rem;">Address: ${node.address}</small>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                        <button class="btn" style="flex: 1; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);" 
-                                onclick="showNodeResources('${node.id}')">🔍 Resources</button>
-                        ${isSuperUser ? `
-                        <button class="btn" id="stop-btn-${node.id}" style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);" 
-                                onclick="stopNode('${node.id}')">🛑 Stop</button>
-                        ` : ''}
-                    </div>
-                </div>
-                `).join('');
-        }
 
         let nodeToStop = null;
 
@@ -2190,13 +2336,14 @@
             if (!nodeId) return;
 
             try {
-                const response = await fetch(`/ api / monitor / nodes / ${nodeId}/stop`, {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                const response = await fetchWithAuth(`/api/monitor/nodes/${nodeId}/stop`, {
+                    method: 'POST'
                 });
                 if (response.ok) {
                     closeStopModal();
                     showAlert('Éxito', `Solicitud de parada enviada para el nodo ${nodeId}`, 'success');
+                    // Trigger HTMX refresh
+                    htmx.trigger('#node-grid', 'load');
                     fetchNodes();
                 } else {
                     showAlert('Error', 'Error al enviar la solicitud de parada');
@@ -2207,21 +2354,6 @@
             }
         }
 
-        function renderGroups(groups) {
-            if (!groups || groups.length === 0) {
-                groupGrid.innerHTML = '<div style="color: grey; padding: 1rem;">No Raft groups found.</div>';
-                return;
-            }
-            groupGrid.innerHTML = groups.map(group => `
-                <div class="card" style="border-left: 4px solid var(--primary);">
-                    <h3>Group ID: ${group.groupId}</h3>
-                    <p><span class="status-dot status-online"></span> Leader: <span style="color: var(--primary);">${group.leaderId}</span></p>
-                    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #94a3b8;">
-                        Peers: ${group.peers.join(', ')}
-                    </div>
-                </div>
-            `).join('');
-        }
 
         function getRolesForUser(username) {
             const user = allUsers.find(u => u.username === username);
@@ -2336,12 +2468,9 @@
             console.log(`DEBUG: Fetching URL=${url} Method=${method}`);
 
             try {
-                const response = await fetch(url, {
+                const response = await fetchWithAuth(url, {
                     method: method,
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, engine, storage })
                 });
 
@@ -2367,12 +2496,9 @@
                     const syncUrl = `/api/web-auth/databases/${name}/sync-roles`;
                     console.log("DEBUG: Syncing roles to " + syncUrl);
 
-                    const syncResponse = await fetch(syncUrl, {
+                    const syncResponse = await fetchWithAuth(syncUrl, {
                         method: 'POST',
-                        headers: {
-                            'Authorization': 'Bearer ' + token,
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(roleMappings)
                     });
 
@@ -2469,9 +2595,8 @@
             if (!name) return;
 
             try {
-                const response = await fetch('/api/db/' + name, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                const response = await fetchWithAuth('/api/db/' + name, {
+                    method: 'DELETE'
                 });
                 if (response.ok) {
                     closeDeleteModal();
@@ -2538,13 +2663,11 @@
 
         async function fetchUsers() {
             try {
-                const response = await fetch('/api/web-auth/users', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (response.status === 401) return logout();
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                allUsers = await response.json();
-                renderUsers(allUsers);
+                const response = await fetchWithAuth('/api/web-auth/users');
+                if (response.ok) {
+                    allUsers = await safeJson(response) || [];
+                    renderUsers(allUsers);
+                }
             } catch (error) {
                 console.error('Error fetching users:', error);
                 document.getElementById('user-list-container').innerHTML = `<p style="color: #ef4444;">Error: ${error.message}</p>`;
@@ -2553,11 +2676,9 @@
 
         async function fetchRoles() {
             try {
-                const response = await fetch('/api/web-auth/roles', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
+                const response = await fetchWithAuth('/api/web-auth/roles');
                 if (response.ok) {
-                    allSystemRoles = await response.json();
+                    allSystemRoles = await safeJson(response) || [];
                 }
             } catch (error) {
                 console.error('Error fetching roles:', error);
@@ -2660,10 +2781,8 @@
 
         async function handleEditUser(username) {
             try {
-                const response = await fetch('/api/web-auth/users', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const users = await response.json();
+                const response = await fetchWithAuth('/api/web-auth/users');
+                const users = await safeJson(response) || [];
                 const user = users.find(u => u.username === username);
                 if (!user) return;
 
@@ -2804,9 +2923,8 @@
         async function deleteUser(username) {
             if (!confirm(`Are you sure you want to delete user ${username}?`)) return;
             try {
-                const response = await fetch(`/api/web-auth/users/${username}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
+                const response = await fetchWithAuth(`/api/web-auth/users/${username}`, {
+                    method: 'DELETE'
                 });
                 if (response.ok) {
                     await fetchUsers();
@@ -2984,32 +3102,238 @@
             window.location.href = '/login.html';
         }
     </script>
-    <!-- New Document Modal -->
+    <!-- New/Edit Document Modal (Responsive) -->
     <div id="doc-modal" class="modal-overlay hidden">
-        <div class="modal-content"
-            style="max-width: 600px; background: var(--bg); padding: 2rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2 id="doc-modal-title" style="margin: 0; color: white;">New Document</h2>
-                <input type="hidden" id="doc-id-input">
+        <div class="card"
+            style="width: 100%; max-width: 600px; padding: 0; display: flex; flex-direction: column; max-height: 90vh;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="doc-modal-title" style="margin: 0;">New Document</h2>
                 <button onclick="closeModal('doc-modal')"
-                    style="background: none; border: none; color: white; cursor: pointer; font-size: 2rem; line-height: 1;">&times;</button>
+                    style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
 
-            <div class="mb-6">
-                <label style="display: block; color: #94a3b8; margin-bottom: 0.5rem; font-size: 0.9rem;">Document JSON
-                    Content</label>
-                <textarea id="doc-json"
-                    style="width: 100%; height: 250px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #10b981; padding: 1rem; border-radius: 0.5rem; box-sizing: border-box;"></textarea>
+            <div style="padding: 1.5rem; overflow-y: auto;">
+                <input type="hidden" id="doc-id-input">
+                <div class="mb-4">
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem;">
+                        Edit the JSON content below. The ID cannot be changed once created.
+                    </p>
+                    <label
+                        style="display: block; color: #c084fc; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">JSON
+                        Payload</label>
+                    <textarea id="doc-json"
+                        style="width: 100%; height: 300px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #a5b4fc; padding: 1rem; border-radius: 0.5rem; box-sizing: border-box; resize: vertical;"></textarea>
+                </div>
             </div>
 
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <button class="btn" onclick="saveDocument()" style="flex: 1; padding: 1rem; font-weight: 600;">Save
-                    Document</button>
+            <div
+                style="padding: 1rem 1.5rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: flex-end; gap: 1rem;">
                 <button class="btn" onclick="closeModal('doc-modal')"
-                    style="background: rgba(255, 255, 255, 0.1); color: #94a3b8; padding: 1rem;">Cancel</button>
+                    style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1;">Cancel</button>
+                <button class="btn" onclick="saveDocument()" style="background: var(--primary); color: white;">Save
+                    Document</button>
             </div>
         </div>
     </div>
+
+    <!-- Delete Document Modal (Responsive) -->
+    <div id="doc-delete-modal" class="modal-overlay hidden">
+        <div class="card"
+            style="width: 100%; max-width: 400px; text-align: center; border: 1px solid rgba(239, 68, 68, 0.3);">
+            <div
+                style="background: rgba(239, 68, 68, 0.1); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg style="width: 30px; height: 30px; color: #ef4444;" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                    </path>
+                </svg>
+            </div>
+            <h2 class="mb-2">¿Eliminar Documento?</h2>
+            <p class="text-sm text-gray-400 mb-6">Esta acción eliminará permanentemente el documento <span
+                    id="delete-doc-id-label" style="color: white; font-weight: 600; font-family: monospace;"></span>.
+            </p>
+
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="closeDocDeleteModal()"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">Cancelar</button>
+                <button class="btn" onclick="confirmDeleteDoc()"
+                    style="background: #ef4444; border: 1px solid #ef4444;">Sí, Eliminar</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Versions Modal -->
+    <div id="versions-modal" class="modal-overlay hidden">
+        <div class="card"
+            style="width: 100%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column; padding: 0;">
+            <div
+                style="padding: 1rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2);">
+                <h2 style="margin: 0; font-size: 1.25rem;">Document History</h2>
+                <button onclick="closeModal('versions-modal')"
+                    style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 1.5rem;">&times;</button>
+            </div>
+            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
+                <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem;">
+                    History for ID: <span id="versions-doc-id"
+                        style="color: var(--primary); font-family: monospace;"></span>
+                </p>
+                <div id="versions-list-container">
+                    Loading versions...
+                </div>
+            </div>
+            <div
+                style="padding: 1rem; text-align: right; border-top: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2);">
+                <button class="btn" onclick="closeModal('versions-modal')"
+                    style="background: rgba(255,255,255,0.1);">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restore Confirmation Modal -->
+    <div id="restore-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 400px; text-align: center;">
+            <div style="margin-bottom: 1rem;">
+                <svg style="width: 48px; height: 48px; margin: 0 auto; color: #a5b4fc;" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                </svg>
+            </div>
+            <h2 class="mb-2">Restaurar Versión</h2>
+            <p class="text-sm text-gray-400 mb-6">¿Estás seguro de que deseas restaurar la versión <span
+                    id="restore-ver-label" style="color: white; font-weight: 600;"></span>? Esto creará una nueva
+                versión actual.</p>
+            <input type="hidden" id="restore-jid-hidden">
+            <input type="hidden" id="restore-ver-hidden">
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="closeRestoreModal()"
+                    style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">Cancelar</button>
+                <button class="btn" onclick="confirmRestore()"
+                    style="background: #6366f1; border: 1px solid #6366f1;">Sí, Restaurar</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        async function showDocVersions(jid) {
+            document.getElementById('versions-doc-id').textContent = jid;
+            const container = document.getElementById('versions-list-container');
+            container.innerHTML = '<div style="color: #94a3b8; text-align: center;">Fetching versions...</div>';
+            showModal('versions-modal');
+
+            try {
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                if (!storeNode) {
+                    container.innerHTML = '<div style="color: #ef4444;">Error: No storage node available.</div>';
+                    return;
+                }
+
+                // Call Proxy
+                const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(jid)}/versions`;
+                const resp = await fetchWithAuth('/api/db/proxy/document', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: targetUrl, method: 'GET' })
+                });
+
+                if (resp.ok) {
+                    const data = await safeJson(resp);
+                    if (!data || data.length === 0) {
+                        container.innerHTML = '<div style="color: #94a3b8; font-style: italic;">No history found.</div>';
+                        return;
+                    }
+
+                    // Data is usually sorted oldest to newest from backend. Reverse to show newest first.
+                    let html = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
+                    data.reverse().forEach((vStr) => {
+                        let vObj = vStr;
+                        if (typeof vStr === 'string') {
+                            try { vObj = JSON.parse(vStr); } catch (e) { }
+                        }
+
+                        const vNum = vObj._version || 'N/A';
+                        const vDate = vObj._lastModified || 'Unknown';
+
+                        html += `
+                            <div class="card" style="padding: 1rem; border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
+                                    <div>
+                                        <span style="font-weight: 600; color: var(--secondary);">Version ${vNum}</span>
+                                        <span style="font-size: 0.8rem; color: #64748b; margin-left: 0.5rem;">${vDate}</span>
+                                    </div>
+                                    <button class="btn" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.2);"
+                                            onclick="openRestoreModal('${jid}', '${vNum}')">
+                                        Restore
+                                    </button>
+                                </div>
+                                <pre style="margin: 0; font-size: 0.8rem; color: #a5b4fc; overflow-x: auto; max-height: 150px;">${JSON.stringify(vObj, null, 2)}</pre>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `<div style="color: #ef4444;">Failed to load versions (${resp.status}).</div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div style="color: #ef4444;">Error: ${e.message}</div>`;
+            }
+        }
+
+        function openRestoreModal(jid, version) {
+            document.getElementById('restore-jid-hidden').value = jid;
+            document.getElementById('restore-ver-hidden').value = version;
+            document.getElementById('restore-ver-label').textContent = version;
+            document.getElementById('restore-modal').classList.remove('hidden');
+        }
+
+        function closeRestoreModal() {
+            document.getElementById('restore-modal').classList.add('hidden');
+        }
+
+        async function confirmRestore() {
+            const jid = document.getElementById('restore-jid-hidden').value;
+            const version = document.getElementById('restore-ver-hidden').value;
+
+            try {
+                // We need storeNode address again. 
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                if (!storeNode) {
+                    showAlert('Error: No storage node available', 'error');
+                    return;
+                }
+
+                const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(jid)}/restore/${version}`;
+                const resp = await fetchWithAuth('/api/db/proxy/document', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: targetUrl, method: 'POST' })
+                });
+
+                if (resp.ok) {
+                    showAlert(`Version ${version} restored!`, 'success');
+                    closeRestoreModal();
+                    closeModal('versions-modal');
+                    // Refresh listing
+                    loadDocuments(currentSelectedCollection);
+                } else {
+                    const txt = await resp.text();
+                    showAlert('Restore failed: ' + txt, 'error');
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        }
+    </script>
 </body>
 
 </html>

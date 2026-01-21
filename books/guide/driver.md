@@ -167,7 +167,10 @@ System.out.println("Versiones: " + versiones);
 // Útil para navegar entre documentos vinculados físicamente.
 Object related = client.resolveReference("pedidos", "node2/orders#ref123").await().indefinitely();
 
-// 6. Eliminar un documento
+// 6. Restaurar una versión
+client.restoreVersion("usuarios", jettraId, "1").await().indefinitely();
+
+// 7. Eliminar un documento
 client.delete("usuarios", jettraId).await().indefinitely();
 ```
 

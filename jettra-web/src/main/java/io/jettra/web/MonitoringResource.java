@@ -6,6 +6,8 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.GenericType;
+import jakarta.ws.rs.core.Response;
 import java.util.Collection;
 
 @Path("/api/monitor")
@@ -16,6 +18,17 @@ public class MonitoringResource {
 
     @jakarta.ws.rs.core.Context
     jakarta.ws.rs.core.HttpHeaders headers;
+
+    @jakarta.inject.Inject
+    @io.quarkus.qute.Location("monitoring/nodes.html")
+    io.quarkus.qute.Template nodes;
+
+    @jakarta.inject.Inject
+    @io.quarkus.qute.Location("monitoring/groups.html")
+    io.quarkus.qute.Template groups;
+
+    @jakarta.inject.Inject
+    org.eclipse.microprofile.jwt.JsonWebToken jwt;
 
     @GET
     @Path("/nodes")
@@ -32,7 +45,7 @@ public class MonitoringResource {
                 if (response.getStatus() == 401 || response.getStatus() == 403) {
                     throw new jakarta.ws.rs.WebApplicationException(response);
                 }
-                return response.readEntity(new jakarta.ws.rs.core.GenericType<java.util.List<NodeMetadata>>() {
+                return response.readEntity(new GenericType<java.util.List<NodeMetadata>>() {
                 });
             }
         } catch (jakarta.ws.rs.WebApplicationException e) {
@@ -50,7 +63,7 @@ public class MonitoringResource {
         try {
             String authHeader = headers.getHeaderString("Authorization");
             try (jakarta.ws.rs.client.Client client = jakarta.ws.rs.client.ClientBuilder.newClient()) {
-                jakarta.ws.rs.core.Response response = client.target(pdUrl + "/api/internal/pd/groups")
+                Response response = client.target(pdUrl + "/api/internal/pd/groups")
                         .request(MediaType.APPLICATION_JSON)
                         .header("Authorization", authHeader)
                         .get();
@@ -58,7 +71,7 @@ public class MonitoringResource {
                 if (response.getStatus() == 401 || response.getStatus() == 403) {
                     throw new jakarta.ws.rs.WebApplicationException(response);
                 }
-                return response.readEntity(new jakarta.ws.rs.core.GenericType<java.util.List<RaftGroupMetadata>>() {
+                return response.readEntity(new GenericType<java.util.List<RaftGroupMetadata>>() {
                 });
             }
         } catch (jakarta.ws.rs.WebApplicationException e) {
@@ -97,5 +110,27 @@ public class MonitoringResource {
             e.printStackTrace();
             return jakarta.ws.rs.core.Response.serverError().build();
         }
+    }
+
+    @GET
+    @Path("/htmx/nodes")
+    @Produces(MediaType.TEXT_HTML)
+    public String getNodesHtmx() {
+        Collection<NodeMetadata> nodeList = getNodes();
+        boolean isSuperUser = false;
+        if (jwt != null) {
+            String upn = jwt.getClaim("upn");
+            java.util.Set<String> roles = jwt.getGroups();
+            isSuperUser = "admin".equals(upn) || (roles != null && roles.contains("system"));
+        }
+        return nodes.data("nodes", nodeList).data("isSuperUser", isSuperUser).render();
+    }
+
+    @GET
+    @Path("/htmx/groups")
+    @Produces(MediaType.TEXT_HTML)
+    public String getGroupsHtmx() {
+        Collection<RaftGroupMetadata> groupList = getGroups();
+        return groups.data("groups", groupList).render();
     }
 }

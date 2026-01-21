@@ -1,0 +1,24 @@
+{#for node in nodes}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: start;">
+        <h3 style="margin:0">Node: {node.id}</h3>
+        <span class="status-dot {node.status == 'ONLINE' ? 'status-online' : 'status-offline'}"
+            style="background: {node.status == 'ONLINE' ? '#10b981' : '#ef4444'}; box-shadow: 0 0 10px {node.status == 'ONLINE' ? '#10b981' : '#ef4444'}">
+        </span>
+    </div>
+    <p style="margin: 0.5rem 0">Role: {node.role}</p>
+    <small style="color: #94a3b8; display: block; margin-bottom: 1rem;">Address: {node.address}</small>
+    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn"
+            style="flex: 1; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);"
+            onclick="showNodeResources('{node.id}')">🔍 Resources</button>
+        {#if isSuperUser}
+        <button class="btn" id="stop-btn-{node.id}"
+            style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);"
+            onclick="stopNode('{node.id}')">🛑 Stop</button>
+        {/if}
+    </div>
+</div>
+{#else}
+<div style="color: grey; padding: 1rem;">No nodes registered.</div>
+{/for}

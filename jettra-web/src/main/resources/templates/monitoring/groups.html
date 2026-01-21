@@ -1,0 +1,12 @@
+{#for group in groups}
+<div class="card" style="border-left: 4px solid var(--primary);">
+    <h3>Group ID: {group.groupId}</h3>
+    <p><span class="status-dot status-online"></span> Leader: <span
+            style="color: var(--primary);">{group.leaderId}</span></p>
+    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #94a3b8;">
+        Peers: {group.peers.join(', ')}
+    </div>
+</div>
+{#else}
+<div style="color: #94a3b8; text-align: center; width: 100%;">Loading groups...</div>
+{/for}

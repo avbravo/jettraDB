@@ -31,51 +31,62 @@ public class DocumentResource {
 
     @POST
     @Path("/{collection}")
-    public Uni<String> save(@PathParam("collection") String collection, 
-                            @QueryParam("bucket") String bucket,
-                            @QueryParam("jettraID") String jettraId, 
-                            String json) {
+    public Uni<String> save(@PathParam("collection") String collection,
+            @QueryParam("bucket") String bucket,
+            @QueryParam("jettraID") String jettraId,
+            String json) {
         String effectiveBucket = (bucket == null ? "default" : bucket);
         // Requirement: jettraID identifies where it is located (physical bucket)
-        String finalJettraId = (jettraId == null) 
-                ? documentEngine.generateJettraId(nodeId + "/" + effectiveBucket) 
+        String finalJettraId = (jettraId == null)
+                ? documentEngine.generateJettraId(nodeId + "/" + effectiveBucket)
                 : jettraId;
-        
+
         LOG.infof("Direct document save request. Collection: %s, jettraID: %s", collection, finalJettraId);
         return documentEngine.save(collection, finalJettraId, json);
     }
 
     @GET
     @Path("/{collection}")
-    public Multi<String> list(@PathParam("collection") String collection) {
-        return documentEngine.findAll(collection);
+    public Multi<String> list(@PathParam("collection") String collection,
+            @QueryParam("page") @jakarta.ws.rs.DefaultValue("1") int page,
+            @QueryParam("size") @jakarta.ws.rs.DefaultValue("20") int size,
+            @QueryParam("search") String search) {
+        return documentEngine.findAll(collection, page, size, search);
     }
 
     @GET
     @Path("/{collection}/{jettraID}")
-    public Uni<String> get(@PathParam("collection") String collection, 
-                           @PathParam("jettraID") String jettraId) {
+    public Uni<String> get(@PathParam("collection") String collection,
+            @PathParam("jettraID") String jettraId) {
         return documentEngine.findById(collection, jettraId);
     }
 
     @GET
     @Path("/{collection}/{jettraID}/versions")
-    public Multi<String> getVersions(@PathParam("collection") String collection, 
-                                     @PathParam("jettraID") String jettraId) {
+    public Multi<String> getVersions(@PathParam("collection") String collection,
+            @PathParam("jettraID") String jettraId) {
         return documentEngine.getDocumentVersions(collection, jettraId);
+    }
+
+    @POST
+    @Path("/{collection}/{jettraID}/restore/{version}")
+    public Uni<String> restoreVersion(@PathParam("collection") String collection,
+            @PathParam("jettraID") String jettraId,
+            @PathParam("version") String version) {
+        return documentEngine.restoreVersion(collection, jettraId, version);
     }
 
     @GET
     @Path("/{collection}/search/tag")
-    public Multi<String> findByTag(@PathParam("collection") String collection, 
-                                   @QueryParam("tag") String tag) {
+    public Multi<String> findByTag(@PathParam("collection") String collection,
+            @QueryParam("tag") String tag) {
         return documentEngine.findByTag(collection, tag);
     }
 
     @DELETE
     @Path("/{collection}/{jettraID}")
-    public Uni<Void> delete(@PathParam("collection") String collection, 
-                             @PathParam("jettraID") String jettraId) {
+    public Uni<Void> delete(@PathParam("collection") String collection,
+            @PathParam("jettraID") String jettraId) {
         return documentEngine.delete(collection, jettraId);
     }
 }

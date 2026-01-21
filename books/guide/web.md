@@ -83,6 +83,7 @@ El Dashboard incluye una herramienta especializada para interactuar con el **Mot
 - **Inserción de Documentos**: Diálogo modal con editor JSON inteligente que permite definir campos y etiquetas (`_tags`).
 - **Descubrimiento de Almacenamiento**: La interfaz web descubre automáticamente un nodo `STORAGE` activo para realizar las operaciones de datos, garantizando que interactúas con el nodo correcto dentro del cluster.
 - **Identificadores Físicos (jettraID)**: Los documentos creados o recuperados muestran su `jettraID` completo, permitiendo a los desarrolladores ver exactamente en qué nodo y bucket reside el dato.
+- **Restaurar Versión** ⭐: Desde el historial de versiones, es posible restaurar cualquier versión anterior. Esto creará una nueva versión activa con el contenido histórico, preservando la trazabilidad.
 
 ## Procedimiento de Autenticación en la Web
 

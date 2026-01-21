@@ -52,7 +52,7 @@ public class DocumentEngine extends AbstractEngine {
      */
     public Uni<String> save(String collection, String jettraId, String json) {
         LOG.infof("Save request for %s/%s", collection, jettraId);
-        
+
         return findById(collection, jettraId)
                 .onItem().transformToUni(existingJson -> {
                     if (existingJson != null && !existingJson.isEmpty()) {
@@ -74,12 +74,12 @@ public class DocumentEngine extends AbstractEngine {
                 obj.put("jettraID", jettraId);
                 obj.put("_version", version);
                 obj.put("_lastModified", Instant.now().toString());
-                
+
                 // Ensure tags field exists for "enriched JSON" requirement
                 if (!obj.has("_tags")) {
                     obj.putArray("_tags");
                 }
-                
+
                 json = objectMapper.writeValueAsString(obj);
             }
         } catch (Exception e) {
@@ -101,10 +101,32 @@ public class DocumentEngine extends AbstractEngine {
                     int currentVersion = meta.isEmpty() ? 1 : Integer.parseInt(meta);
                     String versionKey = "ver:" + collection + ":" + jettraId + ":" + currentVersion;
                     long groupId = Math.abs(versionKey.hashCode()) % 1024;
-                    
+
                     return writeData(groupId, versionKey, json)
-                            .onItem().transformToUni(v -> writeData(groupId, metaKey, String.valueOf(currentVersion + 1)))
+                            .onItem()
+                            .transformToUni(v -> writeData(groupId, metaKey, String.valueOf(currentVersion + 1)))
                             .onItem().transform(v -> currentVersion);
+                });
+    }
+
+    /**
+     * Restores a specific version of a document.
+     * Use the string version (e.g. "ver:collection:id:1") or just the number.
+     * Here we accept just the version number as string or int.
+     */
+    public Uni<String> restoreVersion(String collection, String jettraId, String versionStr) {
+        // Construct key for the requested version
+        // The version keys are stored as: ver:{collection}:{jettraId}:{version}
+        String versionKey = "ver:" + collection + ":" + jettraId + ":" + versionStr;
+
+        return readData(versionKey)
+                .onItem().transformToUni(oldJson -> {
+                    if (oldJson == null || oldJson.isEmpty()) {
+                        return Uni.createFrom().failure(new RuntimeException("Version not found: " + versionStr));
+                    }
+                    // Save it as a new version (this creates a NEW version that is a copy of the
+                    // old one)
+                    return save(collection, jettraId, oldJson);
                 });
     }
 
@@ -117,13 +139,15 @@ public class DocumentEngine extends AbstractEngine {
             return Uni.createFrom().item(documentCache.get(key));
         }
         return readData(key).onItem().invoke(val -> {
-            if (val != null && !val.isEmpty()) documentCache.put(key, val);
+            if (val != null && !val.isEmpty())
+                documentCache.put(key, val);
         });
     }
 
     /**
      * Resolves a reference using jettraID.
-     * This handles the requirement that references are made using the physical address (bucket) in jettraID.
+     * This handles the requirement that references are made using the physical
+     * address (bucket) in jettraID.
      */
     public Uni<String> resolveReference(String collection, String referenceJettraId) {
         LOG.debugf("Resolving reference: %s", referenceJettraId);
@@ -133,7 +157,8 @@ public class DocumentEngine extends AbstractEngine {
 
     /**
      * Lists all versions of a document.
-     * Note: In a real implementation this would use a prefix scan on 'ver:{collection}:{jettraId}:'
+     * Note: In a real implementation this would use a prefix scan on
+     * 'ver:{collection}:{jettraId}:'
      */
     public Multi<String> getDocumentVersions(String collection, String jettraId) {
         String metaKey = "meta:" + collection + ":" + jettraId + ":vcount";
@@ -161,7 +186,8 @@ public class DocumentEngine extends AbstractEngine {
                         if (node.has("_tags") && node.get("_tags").isArray()) {
                             ArrayNode tags = (ArrayNode) node.get("_tags");
                             for (JsonNode t : tags) {
-                                if (t.asText().equalsIgnoreCase(tag)) return true;
+                                if (t.asText().equalsIgnoreCase(tag))
+                                    return true;
                             }
                         }
                     } catch (Exception ex) {
@@ -173,11 +199,23 @@ public class DocumentEngine extends AbstractEngine {
     }
 
     /**
-     * Lists all documents in a collection.
+     * Lists documents in a collection with pagination and optional search.
      */
-    public Multi<String> findAll(String collection) {
+    public Multi<String> findAll(String collection, int page, int size, String search) {
+        int skip = (page - 1) * size;
         return Multi.createFrom().iterable(documentCache.entrySet())
-                .filter(e -> e.getKey().startsWith("doc:" + collection + ":"))
+                .filter(e -> {
+                    String key = e.getKey();
+                    if (!key.startsWith("doc:" + collection + ":"))
+                        return false;
+                    if (search != null && !search.isEmpty()) {
+                        // Simple case-insensitive json contains check
+                        return e.getValue().toLowerCase().contains(search.toLowerCase());
+                    }
+                    return true;
+                })
+                .skip().first(skip)
+                .select().first(size)
                 .onItem().transform(Map.Entry::getValue);
     }
 

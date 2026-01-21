@@ -67,7 +67,8 @@ public class JettraReactiveClient implements JettraClient {
                 throw new RuntimeException(e);
             }
         })).onItem().transformToUni(response -> {
-            if (response.statusCode() >= 200 && response.statusCode() < 300) return Uni.createFrom().voidItem();
+            if (response.statusCode() >= 200 && response.statusCode() < 300)
+                return Uni.createFrom().voidItem();
             return Uni.createFrom().failure(new RuntimeException("Save failed: " + response.body()));
         });
     }
@@ -76,14 +77,17 @@ public class JettraReactiveClient implements JettraClient {
     public Uni<Object> findById(String collection, String id) {
         return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/" + java.net.URLEncoder.encode(id, java.nio.charset.StandardCharsets.UTF_8)))
+                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/"
+                            + java.net.URLEncoder.encode(id, java.nio.charset.StandardCharsets.UTF_8)))
                     .header("Authorization", "Bearer " + authToken)
                     .GET()
                     .build();
             return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
         })).onItem().transform(response -> {
-            if (response.statusCode() == 200) return response.body();
-            if (response.statusCode() == 404) return null;
+            if (response.statusCode() == 200)
+                return response.body();
+            if (response.statusCode() == 404)
+                return null;
             throw new RuntimeException("Find failed: " + response.body());
         });
     }
@@ -92,13 +96,15 @@ public class JettraReactiveClient implements JettraClient {
     public Uni<Void> delete(String collection, String id) {
         return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/" + java.net.URLEncoder.encode(id, java.nio.charset.StandardCharsets.UTF_8)))
+                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/"
+                            + java.net.URLEncoder.encode(id, java.nio.charset.StandardCharsets.UTF_8)))
                     .header("Authorization", "Bearer " + authToken)
                     .DELETE()
                     .build();
             return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
         })).onItem().transformToUni(response -> {
-            if (response.statusCode() == 200 || response.statusCode() == 204) return Uni.createFrom().voidItem();
+            if (response.statusCode() == 200 || response.statusCode() == 204)
+                return Uni.createFrom().voidItem();
             throw new RuntimeException("Delete failed: " + response.body());
         });
     }
@@ -118,7 +124,9 @@ public class JettraReactiveClient implements JettraClient {
     public Uni<java.util.List<String>> getDocumentVersions(String collection, String jettraId) {
         return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/" + java.net.URLEncoder.encode(jettraId, java.nio.charset.StandardCharsets.UTF_8) + "/versions"))
+                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/"
+                            + java.net.URLEncoder.encode(jettraId, java.nio.charset.StandardCharsets.UTF_8)
+                            + "/versions"))
                     .header("Authorization", "Bearer " + authToken)
                     .GET()
                     .build();
@@ -126,12 +134,33 @@ public class JettraReactiveClient implements JettraClient {
         })).onItem().transform(response -> {
             if (response.statusCode() == 200) {
                 try {
-                    return mapper.readValue(response.body(), new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+                    return mapper.readValue(response.body(),
+                            new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {
+                            });
                 } catch (Exception e) {
                     return List.of();
                 }
             }
             return List.of();
+        });
+    }
+
+    @Override
+    public Uni<Void> restoreVersion(String collection, String jettraId, String version) {
+        return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/"
+                            + java.net.URLEncoder.encode(jettraId, java.nio.charset.StandardCharsets.UTF_8)
+                            + "/restore/"
+                            + java.net.URLEncoder.encode(version, java.nio.charset.StandardCharsets.UTF_8)))
+                    .header("Authorization", "Bearer " + authToken)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        })).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200)
+                return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new RuntimeException("Restore failed: " + response.body()));
         });
     }
 
@@ -285,7 +314,8 @@ public class JettraReactiveClient implements JettraClient {
                 return Uni.createFrom().voidItem();
             String url = "http://" + pdAddress + "/api/db/" + dbName + "/collections/" + colName;
             return Uni.createFrom()
-                    .failure(new RuntimeException("Failed to add collection. Status: " + response.statusCode() + " URL: " + url));
+                    .failure(new RuntimeException(
+                            "Failed to add collection. Status: " + response.statusCode() + " URL: " + url));
         });
     }
 
