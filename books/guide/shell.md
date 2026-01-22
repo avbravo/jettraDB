@@ -37,14 +37,18 @@ To know which IP and port to connect to, check your Docker configuration:
 3. Connect using that address (e.g., `localhost:8081`).
 
 ```bash
-connect 192.168.1.50:8081
+connect http://localhost:8081
 ```
 
 Once connected, you typically need to login:
 ```bash
 login super-user -p
 # Enter password when prompted
+
+Password: adminadmin
 ```
+Password: adminadmin
+
 
 # Show Connection Info (View current PD address and Auth status)
 ```bash
@@ -183,19 +187,31 @@ restore usuarios node1/default#uuid123 1
 ```
 
 ### 9. Cluster Administration & Monitoring ⭐
-Monitor your cluster health and resource usage directly from the shell:
+Monitor your cluster health and resource usage directly from the shell. This is critical for maintaining high availability and identifying performance bottlenecks.
 
 ```bash
 # List all nodes with CPU and Memory consumption
 node list
 
 # Output Example:
-# ID              | Address            | Role       | Status   | CPU%   | Memory Usage    / Max Memory
-# jettra-store-1  | jettra-store-1:8080| STORAGE    | ONLINE   | 4.2    | 120.5 MB        / 4096.0 MB
+# Node Resources Monitoring:
+# --------------------------------------------------------------------------------------------------------------------------
+# ID              | Address            | Role       | Raft Role  | Status   | CPU%   | Memory Usage    / Max Memory     
+# --------------------------------------------------------------------------------------------------------------------------
+# jettra-store-1  | 172.18.0.3:8080    | STORAGE    | LEADER     | ONLINE   | 4.5    | 156.2 MB        / 4096.0 MB      
+# jettra-store-2  | 172.18.0.4:8080    | STORAGE    | FOLLOWER   | ONLINE   | 2.1    | 120.8 MB        / 4096.0 MB      
+# jettra-store-3  | 172.18.0.5:8080    | STORAGE    | FOLLOWER   | ONLINE   | 1.8    | 115.5 MB        / 4096.0 MB      
+# --------------------------------------------------------------------------------------------------------------------------
 ```
-- `node list`: Shows CPU/Memory and Raft Role of each node.
-- `node stop <node-id>`: Gracefully shuts down the specified node (e.g., `node stop jettra-store-2`).
-- `node <node-id> stop`: Alternative syntax for shutdown (e.g., `node jettra-store-2 stop`).
+*   **CPU%**: Porcentaje de uso de CPU del proceso del nodo.
+*   **Memory Usage**: Memoria RAM actualmente utilizada por la JVM del nodo.
+*   **Status**: `ONLINE` o `OFFLINE` basado en los heartbeats recibidos por el Placement Driver.
+
+**Control de Nodos:**
+*   `node list`: Muestra CPU/Memoria y Raft Role de cada nodo.
+*   `node stop <node-id>`: Apaga de forma segura el nodo especificado.
+*   `node <node-id> stop`: Sintaxis alternativa para el apagado.
+
 - `database list`: List all multi-model databases.
 
 ```bash

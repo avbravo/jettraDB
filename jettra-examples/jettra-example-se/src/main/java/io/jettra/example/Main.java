@@ -10,23 +10,39 @@ import io.jettra.driver.JettraReactiveClient;
 import io.jettra.driver.NodeInfo;
 
 public class Main {
+    static {
+        System.setProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager");
+    }
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
+        
         String pdAddress = "localhost:8081"; 
-        String token = "adminadmin"; 
 
         try {
             LOG.info("Iniciando JettraDB Java SE Example...");
             
-            JettraReactiveClient client = new JettraReactiveClient(pdAddress, token);
+            // 1. Autenticación y obtención del Token
+            LOG.info("Iniciando sesión para obtener el token...");
+            JettraReactiveClient client = new JettraReactiveClient(pdAddress);
+            client.login("super-user", "adminadmin").await().indefinitely();
+            LOG.info("Login exitoso. Token autoconfigurado en el cliente.");
 
-            // 1. Monitoreo del Cluster
-            LOG.info("Consultando estado de los nodos...");
+            // 2. Monitoreo del Cluster
+            LOG.info("Consultando estado de los nodos y recursos...");
             List<NodeInfo> nodes = client.listNodes().await().indefinitely();
+            System.out.println("\n---------------------------------------------------------------------------------------------------------------------------");
+            System.out.printf("%-15s | %-10s | %-10s | %-8s | %-6s | %-12s | %-12s\n", "ID", "Role", "Raft Role", "Status", "CPU%", "Mem Usage", "Mem Max");
+            System.out.println("---------------------------------------------------------------------------------------------------------------------------");
             for (NodeInfo node : nodes) {
-                LOG.info("Node: {} | Status: {} | Address: {}", node.id(), node.status(), node.address());
+                double memUsedMb = node.memoryUsage() / (1024.0 * 1024.0);
+                double memMaxMb = node.memoryMax() / (1024.0 * 1024.0);
+                System.out.printf("%-15s | %-10s | %-10s | %-8s | %-6.1f | %-10.1f MB | %-10.1f MB\n", 
+                    node.id(), node.role(), node.raftRole(), node.status(), node.cpuUsage(), memUsedMb, memMaxMb);
             }
+            System.out.println("---------------------------------------------------------------------------------------------------------------------------\n");
+
+
 
             // 2. Gestión de Bases de Datos
             String dbName = "shop";

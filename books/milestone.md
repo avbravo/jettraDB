@@ -3,11 +3,24 @@ Base de datos realizar operaciones creacion, actualizar nombre o tipo o engine-s
 eliminar base de datos.
 
 # Terminados
-[296](https://github.com/avbravo/jettraDB/issues/296)
-[298](https://github.com/avbravo/jettraDB/issues/298)
-[162](https://github.com/avbravo/jettraDB/issues/162)
-[164](https://github.com/avbravo/jettraDB/issues/164)
-[297](https://github.com/avbravo/jettraDB/issues/297)
-[163](https://github.com/avbravo/jettraDB/issues/163)
-[165](https://github.com/avbravo/jettraDB/issues/165)
+[18](https://github.com/avbravo/jettraDB/issues/18)
+[19](https://github.com/avbravo/jettraDB/issues/19)
+[20](https://github.com/avbravo/jettraDB/issues/20)
+[21](https://github.com/avbravo/jettraDB/issues/21)
+[299](https://github.com/avbravo/jettraDB/issues/299)
 # Pendientes
+
+
+
+Monitorear el consumo de recursos de cada nodo y mostrarlos en el shell
+
+
+Monitorear el consumo de recursos de cada nodo y mostrarlos en curl
+
+
+Monitorear el consumo de recursos de cada nodo y mostrarlos en el driver
+
+
+Monitorear el consumo de recursos de cada nodo y mostrarlos en el driver
+
+Actualizar la documentacion del shell, web, driver y curl indicando los procedimientos para monitorerar los recursos de los nodos

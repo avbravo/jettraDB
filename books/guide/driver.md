@@ -91,28 +91,31 @@ Monitor node resource consumption (CPU, Memory) directly via the driver.
 ```java
 import io.jettra.driver.NodeInfo;
 
-// List all cluster nodes
+// 1. List all cluster nodes
 Uni<List<NodeInfo>> nodesUni = client.listNodes();
 List<NodeInfo> nodes = nodesUni.await().indefinitely();
 
-// Stop a specific node (Sends a remote stop request via PD)
-// NOTE: Only allowed for users with 'admin' role.
-Uni<Void> stopResult = client.stopNode("jettra-store-2");
-stopResult.await().indefinitely(); // Blocking wait for demo
-
-// Alternatively, any node can be stopped directly via HTTP POST to /stop if the address is known.
-```
-
+// 2. Iterate and display resource metrics
 for (NodeInfo node : nodes) {
-    System.out.println("Node: " + node.id());
+    double memUsedMB = node.memoryUsage() / 1024.0 / 1024.0;
+    double memMaxMB = node.memoryMax() / 1024.0 / 1024.0;
+    
+    System.out.println("Node ID: " + node.id());
+    System.out.println(" - Role: " + node.role() + " (" + node.raftRole() + ")");
     System.out.println(" - Status: " + node.status());
-    System.out.println(" - CPU Use: " + node.cpuUsage() + "%");
-    System.out.println(" - Memory: " + (node.memoryUsage() / 1024 / 1024) + " MB");
+    System.out.println(" - CPU Usage: " + String.format("%.1f %%", node.cpuUsage()));
+    System.out.println(" - Memory: " + String.format("%.1f / %.1f MB", memUsedMB, memMaxMB));
+    System.out.println("-----------------------------------");
 }
+
+// 3. Stop a specific node (Sends a remote stop request via PD)
+// NOTE: Only allowed for users with 'admin' role.
+client.stopNode("jettra-store-2").await().indefinitely();
 
 // Check Connection Info
 System.out.println(client.connectionInfo());
 ```
+
 
 ### 6. User & Role Management ⭐
 Manage cluster access control. 

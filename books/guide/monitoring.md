@@ -30,29 +30,63 @@ El dashboard visualiza tendencias de salud del cluster:
 - **Alerta de Latencia**: Revisa la conectividad de red entre los nodos del grupo Raft afectado.
 - **Alerta Predictiva de CPU**: Es el momento ideal para escalar horizontalmente la capa de motores (Engines).
 
-## Métodos Alternativos de Monitoreo
-
 ### 🐚 Vía Shell
-Ejecuta el comando `node list` para ver una tabla comparativa de recursos.
+Ejecuta el comando `node list` para ver una tabla comparativa de recursos en tiempo real. Este comando extrae datos directamente del Placement Driver, mostrando la carga de CPU y el consumo de memoria JVM de cada nodo.
+
 ```bash
 node list
 ```
 
+**Ejemplo de Salida:**
+```text
+Node Resources Monitoring:
+--------------------------------------------------------------------------------------------------------------------------
+ID              | Address            | Role       | Raft Role  | Status   | CPU%   | Memory Usage    / Max Memory     
+--------------------------------------------------------------------------------------------------------------------------
+jettra-store-1  | 172.18.0.3:8080    | STORAGE    | LEADER     | ONLINE   | 4.5    | 156.2 MB        / 4096.0 MB      
+jettra-store-2  | 172.18.0.4:8080    | STORAGE    | FOLLOWER   | ONLINE   | 2.1    | 120.8 MB        / 4096.0 MB      
+jettra-store-3  | 172.18.0.5:8080    | STORAGE    | FOLLOWER   | ONLINE   | 1.8    | 115.5 MB        / 4096.0 MB      
+--------------------------------------------------------------------------------------------------------------------------
+```
+
 ### 🌐 Vía cURL (API REST)
-Consulta el endpoint de monitorización (requiere token JWT).
+Consulta el endpoint de monitorización unificado en el puerto del Dashboard Web (8081). Este endpoint devuelve un JSON con las métricas crudas de todos los nodos.
+
 ```bash
-curl -s http://localhost:8081/api/monitor/nodes -H "Authorization: Bearer $TOKEN"
+# 1. Obtener Token
+TOKEN=$(curl -s -X POST http://localhost:8081/api/web-auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"super-user","password":"adminadmin"}' | jq -r .token)
+
+# 2. Consultar Recursos
+curl -s http://localhost:8081/api/monitor/nodes \
+  -H "Authorization: Bearer $TOKEN" | jq .
 ```
 
 ### ☕ Vía Java Driver
-Utiliza el método `listNodes()` de `JettraClient`.
+Utiliza el método `listNodes()` de `JettraClient` para obtener objetos `NodeInfo` que contienen todas las métricas de recursos.
+
 ```java
-List<NodeInfo> nodes = client.listNodes().await().indefinitely();
+JettraReactiveClient client = new JettraReactiveClient("localhost:8081", token);
+
+client.listNodes().subscribe().with(nodes -> {
+    for (NodeInfo node : nodes) {
+        System.out.printf("Node: %s | CPU: %.1f%% | Mem: %.1f MB / %.1f MB\n",
+            node.id(), 
+            node.cpuUsage(), 
+            node.memoryUsage() / 1024.0 / 1024.0, 
+            node.memoryMax() / 1024.0 / 1024.0);
+    }
+});
 ```
 
 ## Ejemplo: Escalamiento Dinámico
+Si detectas que los nodos de almacenamiento están llegando a su límite de recursos, puedes escalar horizontalmente el cluster:
+
+```bash
 docker-compose up -d --scale jettra-store=5
 ```
 
 ## Configuración de Umbrales
-Los umbrales de alerta se pueden configurar en el archivo `config.json` del Placement Driver (PD), permitiendo personalizar la sensibilidad del sistema predictivo según el entorno (Dev, Stage, Prod).
+Los umbrales de alerta se pueden configurar en el archivo `application.properties` o `config.json` del Placement Driver (PD), permitiendo personalizar la sensibilidad del sistema predictivo según el entorno (Dev, Stage, Prod).
+

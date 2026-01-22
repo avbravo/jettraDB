@@ -356,7 +356,8 @@ public class JettraReactiveClient implements JettraClient {
 
     @Override
     public Uni<List<NodeInfo>> listNodes() {
-        LOG.log(Level.INFO, "Listing cluster nodes from {0} [Auth: {1}]", new Object[] { pdAddress, authToken });
+        String authStatus = (authToken != null) ? "active" : "none";
+        LOG.log(Level.INFO, "Listing cluster nodes from {0} [Auth: {1}]", new Object[] { pdAddress, authStatus });
 
         return Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()
@@ -368,7 +369,6 @@ public class JettraReactiveClient implements JettraClient {
         }).onItem().transform(response -> {
             if (response.statusCode() == 200) {
                 try {
-                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                     return mapper.readValue(response.body(),
                             new com.fasterxml.jackson.core.type.TypeReference<List<NodeInfo>>() {
                             });
@@ -449,18 +449,19 @@ public class JettraReactiveClient implements JettraClient {
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .build();
             return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-        }).onItem().transform(response -> {
+        }).onItem().transformToUni(response -> {
             if (response.statusCode() == 200) {
-                String body = response.body();
-                if (body.contains("\"token\":\"")) {
-                    int start = body.indexOf("\"token\":\"") + 9;
-                    int end = body.indexOf("\"", start);
-                    String token = body.substring(start, end);
-                    this.authToken = token;
-                    return token;
+                try {
+                    com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(response.body());
+                    if (node.has("token")) {
+                        this.authToken = node.get("token").asText();
+                        return Uni.createFrom().item(this.authToken);
+                    }
+                } catch (Exception e) {
+                    return Uni.createFrom().failure(new RuntimeException("Failed to parse login response: " + e.getMessage()));
                 }
             }
-            throw new RuntimeException("Login failed. Status: " + response.statusCode() + " Body: " + response.body());
+            return Uni.createFrom().failure(new RuntimeException("Login failed. Status: " + response.statusCode() + " Body: " + response.body()));
         });
     }
 

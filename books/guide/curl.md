@@ -17,11 +17,11 @@ echo "Token: $TOKEN"
 
 ## Monitorización de Nodos y Recursos
 
-Para obtener la lista de nodos registrados y su consumo de recursos actual (CPU y Memoria):
+Para obtener la lista de nodos registrados y su consumo de recursos actual (CPU y Memoria), consulta el endpoint `/api/monitor/nodes` en el puerto 8081.
 
 ```bash
 curl -s http://localhost:8081/api/monitor/nodes \
-  -H "Authorization: Bearer $TOKEN"
+  -H "Authorization: Bearer $TOKEN" | jq .
 ```
 
 **Respuesta esperada (JSON):**
@@ -30,9 +30,10 @@ curl -s http://localhost:8081/api/monitor/nodes \
 [
   {
     "id": "jettra-store-1",
-    "address": "jettra-store-1:8080",
+    "address": "172.18.0.3:8080",
     "role": "STORAGE",
     "status": "ONLINE",
+    "raftRole": "LEADER",
     "lastSeen": 1709923456789,
     "cpuUsage": 15.4,
     "memoryUsage": 245678912,
@@ -40,9 +41,10 @@ curl -s http://localhost:8081/api/monitor/nodes \
   },
   {
     "id": "jettra-store-2",
-    "address": "jettra-store-2:8080",
+    "address": "172.18.0.4:8080",
     "role": "STORAGE",
     "status": "ONLINE",
+    "raftRole": "FOLLOWER",
     "lastSeen": 1709923456790,
     "cpuUsage": 8.2,
     "memoryUsage": 198234567,
@@ -50,6 +52,7 @@ curl -s http://localhost:8081/api/monitor/nodes \
   }
 ]
 ```
+
 
 ## Administración de Bases de Datos
 
