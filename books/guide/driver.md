@@ -177,6 +177,63 @@ client.restoreVersion("usuarios", jettraId, "1").await().indefinitely();
 client.delete("usuarios", jettraId).await().indefinitely();
 ```
 
+### 8. Consultas SQL (Nuevo) ⭐
+
+Soporta la ejecución de sentencias SQL (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) directamente. Las consultas son procesadas por el Placement Driver y enrutadas al motor correspondiente.
+
+```java
+// Ejecutar una consulta SQL
+String result = client.executeSql("SELECT * FROM sales_db.orders").await().indefinitely();
+System.out.println("Resultados: " + result);
+
+// Insertar vía SQL
+client.executeSql("INSERT INTO sales_db.orders VALUES ('order123', 'Laptop', 1200)").await().indefinitely();
+
+// Actualizar vía SQL
+client.executeSql("UPDATE sales_db.orders SET precio=1300 WHERE id='order123'").await().indefinitely();
+
+// Eliminar vía SQL
+client.executeSql("DELETE FROM sales_db.orders WHERE id='order123'").await().indefinitely();
+```
+
+### 9. Llaves Secuenciales (Sequences) ⭐
+
+Gestión de contadores persistentes y secuenciales.
+
+```java
+// 1. Crear secuencia
+client.createSequence("user_id_seq", "sales_db", 1000, 1).await().indefinitely();
+
+// 2. Obtener siguiente valor
+long nextId = client.nextSequenceValue("user_id_seq").await().indefinitely();
+
+// 3. Obtener valor actual
+long currentId = client.currentSequenceValue("user_id_seq").await().indefinitely();
+
+// 4. Listar todas las secuencias de una base de datos
+List<String> names = client.listSequences("sales_db").await().indefinitely();
+
+// 5. Reiniciar secuencia
+client.resetSequence("user_id_seq", 2000).await().indefinitely();
+
+// 6. Eliminar secuencia
+client.deleteSequence("user_id_seq").await().indefinitely();
+```
+
+### 10. Resolución de Referencias (Resolve References) ⭐
+
+Permite obtener objetos referenciados completos de manera automática.
+
+```java
+// 1. Usando findById con resolución activa
+// Devuelve el documento con todos sus JettraID internos resueltos a objetos completos
+String jsonResult = (String) client.findById("usuarios", "node1/def#uuid1", true).await().indefinitely();
+
+// 2. Usando SQL con resolución activa 
+String sqlResult = client.executeSql("SELECT * FROM users", true).await().indefinitely();
+```
+
+---
 The driver uses `Mutiny` (Uni/Multi) for non-blocking I/O.
 
 ## Ejemplo Completo: Base de Datos y Colección (Document)

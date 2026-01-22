@@ -9,6 +9,8 @@ public interface JettraClient {
 
     Uni<Object> findById(String collection, String id);
 
+    Uni<Object> findById(String collection, String id, boolean resolveRefs);
+
     Uni<Void> delete(String collection, String id);
 
     Uni<Long> count(String collection);
@@ -63,6 +65,23 @@ public interface JettraClient {
     Uni<java.util.List<String>> listRoles();
 
     Uni<Void> deleteRole(String name);
+
+    Uni<String> executeSql(String sql);
+
+    Uni<String> executeSql(String sql, boolean resolveRefs);
+
+    // Sequence Management
+    Uni<Void> createSequence(String name, String database, long start, long increment);
+
+    Uni<Long> nextSequenceValue(String name);
+
+    Uni<Long> currentSequenceValue(String name);
+
+    Uni<Void> resetSequence(String name, long value);
+
+    Uni<Void> deleteSequence(String name);
+
+    Uni<java.util.List<String>> listSequences(String database);
 
     String connectionInfo();
 }

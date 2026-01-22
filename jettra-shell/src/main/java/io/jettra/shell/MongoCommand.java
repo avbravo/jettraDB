@@ -6,20 +6,22 @@ import java.util.regex.Pattern;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 
-@Command(name = "mongo", 
-         description = "Execute MongoDB-style queries across JettraDB engines",
-         footer = "Examples:%n" +
-                  "  mongo db.users.find({age: 30})%n" +
-                  "  mongo db.products.insert({name: 'Laptop'})%n" +
-                  "  mongo db.stock.update({id: 's1'}, {$set: {count: 5}})%n" +
-                  "  mongo db.logs.remove({level: 'DEBUG'})")
+@Command(name = "mongo", description = "Execute MongoDB-style queries across JettraDB engines", footer = "Examples:%n" +
+        "  mongo db.users.find({age: 30})%n" +
+        "  mongo db.products.insert({name: 'Laptop'})%n" +
+        "  mongo db.stock.update({id: 's1'}, {$set: {count: 5}})%n" +
+        "  mongo db.logs.remove({level: 'DEBUG'})")
 public class MongoCommand implements Runnable {
+
+    @picocli.CommandLine.Option(names = { "--resolve-refs" }, description = "Resolve JettraID references automatically")
+    boolean resolveRefs;
 
     @Parameters(index = "0..*", description = "Mongo statement parts (e.g., db.collection.find({}))")
     String[] mongoParts;
 
     private io.jettra.driver.JettraReactiveClient getClient() {
-        io.jettra.driver.JettraReactiveClient client = new io.jettra.driver.JettraReactiveClient(JettraShell.pdAddress, JettraShell.authToken);
+        io.jettra.driver.JettraReactiveClient client = new io.jettra.driver.JettraReactiveClient(JettraShell.pdAddress,
+                JettraShell.authToken);
         return client;
     }
 
@@ -37,7 +39,7 @@ public class MongoCommand implements Runnable {
         }
 
         System.out.println("Executing Mongo Command: " + mongo);
-        
+
         try {
             processMongo(mongo);
         } catch (Exception e) {
@@ -49,14 +51,14 @@ public class MongoCommand implements Runnable {
         // Broad pattern: db.<collection>.<method>(<args>)
         Pattern pattern = Pattern.compile("db\\.(\\w+)\\.(\\w+)\\((.*)\\)");
         Matcher matcher = pattern.matcher(command);
-        
+
         if (matcher.find()) {
             String collection = matcher.group(1);
             String method = matcher.group(2).toLowerCase();
             String args = matcher.group(3);
-            
+
             System.out.println("Routing Mongo command for collection: " + collection);
-            
+
             switch (method) {
                 case "find" -> handleFind(collection, args);
                 case "insert", "insertone", "insertmany" -> handleInsert(collection, args);
@@ -76,18 +78,21 @@ public class MongoCommand implements Runnable {
             // Very simple extraction for {id: '...'}
             Pattern p = Pattern.compile("id:\\s*['\"]([^'\"]+)['\"]");
             Matcher m = p.matcher(id);
-            if (m.find()) id = m.group(1);
-            else id = ""; 
+            if (m.find())
+                id = m.group(1);
+            else
+                id = "";
         }
-        
+
         if (id.isEmpty() || id.equals("{}")) {
-            System.out.println("Engine: DocumentEngine -> Result: Full scan not supported via Shell find yet. Provide an ID: db.col.find('id1')");
+            System.out.println(
+                    "Engine: DocumentEngine -> Result: Full scan not supported via Shell find yet. Provide an ID: db.col.find('id1')");
             return;
         }
 
         System.out.println("Engine: DocumentEngine -> Fetching document " + id + " from " + collection);
         try {
-            Object result = getClient().findById(collection, id).await().indefinitely();
+            Object result = getClient().findById(collection, id, resolveRefs).await().indefinitely();
             if (result != null) {
                 System.out.println("Result: " + result);
             } else {
@@ -118,9 +123,10 @@ public class MongoCommand implements Runnable {
         if (id.startsWith("{") && id.endsWith("}")) {
             Pattern p = Pattern.compile("id:\\s*['\"]([^'\"]+)['\"]");
             Matcher m = p.matcher(id);
-            if (m.find()) id = m.group(1);
+            if (m.find())
+                id = m.group(1);
         }
-        
+
         System.out.println("Engine: StorageEngine -> Removing document " + id + " from " + collection);
         try {
             getClient().delete(collection, id).await().indefinitely();

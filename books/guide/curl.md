@@ -336,4 +336,95 @@ curl -s http://localhost:8082/api/v1/document/usuarios/{jettraID}/versions \
 curl -s "http://localhost:8082/api/v1/document/usuarios/search/tag?tag=premium" \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+## Consultas SQL (Nuevo) ⭐
+
+JettraDB ahora soporta un subconjunto del lenguaje SQL para operar sobre los diversos motores. Las consultas se envían al Placement Driver (puerto 8081).
+
+### Ejecutar una consulta SQL
+Soporta `SELECT`, `INSERT`, `UPDATE` y `DELETE`.
+
+```bash
+# 1. SELECT (Obtener todos los documentos de una colección)
+curl -X POST http://localhost:8081/api/v1/sql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT * FROM sales_db.orders"}'
+
+# 2. INSERT (Insertar un nuevo documento)
+curl -X POST http://localhost:8081/api/v1/sql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "INSERT INTO sales_db.orders VALUES ('order123', 'Laptop', 1200)"}'
+
+# 3. UPDATE (Actualizar un documento por su ID)
+curl -X POST http://localhost:8081/api/v1/sql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "UPDATE sales_db.orders SET precio=1300 WHERE id='order123'"}'
+
+# 4. DELETE (Eliminar un documento por su ID)
+curl -X POST http://localhost:8081/api/v1/sql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "DELETE FROM sales_db.orders WHERE id='order123'"}'
 ```
+
+## Llaves Secuenciales (Sequences) ⭐
+
+Permite crear y gestionar contadores persistentes en el cluster.
+
+```bash
+# 1. Crear secuencia
+curl -X POST http://localhost:8081/api/v1/sequence \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "test_seq", "database": "db1", "startValue": 100, "increment": 1}'
+
+# 2. Obtener siguiente valor
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/api/v1/sequence/test_seq/next
+
+# 3. Obtener valor actual
+curl -H "Authorization: Bearer $TOKEN" http://localhost:8081/api/v1/sequence/test_seq/current
+
+# 4. Reiniciar secuencia
+curl -X POST http://localhost:8081/api/v1/sequence/test_seq/reset \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"newValue": 500}'
+
+# 5. Eliminar secuencia
+curl -X DELETE http://localhost:8081/api/v1/sequence/test_seq -H "Authorization: Bearer $TOKEN"
+```
+## Resolución de Referencias (Resolve References) ⭐
+
+Esta característica permite que JettraDB resuelva automáticamente las referencias entre documentos basadas en `jettraID` en una sola operación de lectura, devolviendo el objeto completo en lugar de solo el ID.
+
+### 1. Vía API de Documentos
+Agrega el parámetro `resolveRefs=true` a la URL de consulta.
+
+```bash
+# Obtener un documento resolviendo sus referencias internas
+curl -s "http://localhost:8082/api/v1/document/usuarios/{jettraID}?resolveRefs=true" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Listar documentos con resolución
+curl -s "http://localhost:8082/api/v1/document/usuarios?resolveRefs=true" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 2. Vía API SQL
+Agrega el campo `resolveRefs: true` en el cuerpo del JSON.
+
+```bash
+curl -X POST http://localhost:8081/api/v1/sql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sql": "SELECT * FROM sales_db.orders",
+    "resolveRefs": true
+  }'
+```
+
+---
+Este manual se actualiza periódicamente con las nuevas funciones del núcleo de JettraDB.

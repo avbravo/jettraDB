@@ -259,7 +259,59 @@ JettraDB implementa una jerarquía estricta de 4 roles principales:
 - `read`: Solo lectura (SELECT/GET).
 - `read-write`: Lectura y Escritura (INSERT, UPDATE, DELETE), sin capacidades administrativas.
 
-### 11. Integrated Help System 📖
+### 11. Sequential Keys (Sequences) 🔑
+
+Manage persistent counters for generating sequential IDs at the database level. Sequences are cluster-wide but can be filtered by database context.
+
+```bash
+# Context Awareness: Use 'use' to target a database for sequence creation and listing
+use sales_db
+
+# Create a sequence (auto-associates with 'sales_db')
+sequence create user_id_seq --start 1000 --inc 1
+
+# Get next/current value
+sequence next user_id_seq
+sequence current user_id_seq
+
+# Management
+sequence list                 # Lists sequences for the current database context
+sequence list --database db2  # Override database filtering
+sequence reset user_id_seq 0
+sequence delete user_id_seq
+```
+
+#### Associating Sequences with Collections
+While sequences are database-level objects, they are primarily used to provide unique IDs for Document collections. 
+
+**Best Practice:** Use a naming convention that includes the collection name (e.g., `orders_seq` for an `orders` collection).
+
+**Example Workflow:**
+1. Generate the next sequential ID:
+   ```bash
+   sequence next user_id_seq
+   # Output: 1001
+   ```
+2. Insert a document using that ID:
+   ```bash
+   mongo db.users.insert({id: 1001, name: 'John Doe'})
+   ```
+
+### 12. Resolve References (Direct Memory Access) 🚀
+
+JettraDB allows you to automatically resolve references between documents without using JOINs. When a field contains a `jettraID`, JettraDB can fetch the full object in a single operation.
+
+```bash
+# Using SQL with resolution
+sql SELECT * FROM users --resolve-refs
+
+# Using MongoDB syntax with resolution
+mongo db.users.find('node1/default#u123') --resolve-refs
+```
+
+This feature uses the internal `idToCollection` index to perform direct memory access to the referenced objects, making it extremely efficient for normalized data models.
+
+### 13. Integrated Help System 📖
 
 ## Advanced Features
 

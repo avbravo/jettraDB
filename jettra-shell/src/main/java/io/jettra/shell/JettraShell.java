@@ -26,6 +26,7 @@ import jakarta.enterprise.context.ApplicationScoped;
                 QueryCommand.class,
                 SqlCommand.class,
                 MongoCommand.class,
+                SequenceCommands.class,
                 UserCommands.class,
                 RoleCommands.class,
                 RestoreCommand.class

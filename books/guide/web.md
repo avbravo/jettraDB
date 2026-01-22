@@ -71,19 +71,25 @@ Control centralizado de acceso y roles para todo el cluster:
     - `read`: Acceso de solo lectura.
     - `read-write`: Acceso de lectura y escritura (sin permisos administrativos).
 
-### 5. Consola de Consultas (Query Console)
-Permite ejecutar operaciones multi-modelo directamente desde el navegador:
-1.  **Selección de Motor**: Conmuta entre Document, Key-Value, Graph, Columnar, Time-Series, Vector y Geospatial.
-2.  **Editor JSON**: Entrada de comandos en formato JSON estandarizado de Jettra.
-3.  **Ejecución Reactiva**: Las consultas se procesan de forma no bloqueante.
+### 5. Consola de Consultas SQL (Nuevo) ⭐
+Permite ejecutar sentencias SQL directamente desde el navegador:
+1.  **Editor SQL**: Un área de texto con resaltado (vía fuente monoespaciada) para ingresar comandos `SELECT`, `INSERT`, `UPDATE` o `DELETE`.
+2.  **Ejecución Unificada**: Las consultas se envían al Placement Driver, el cual las enruta automáticamente al motor correspondiente (Document, Graph, Vector, etc.) basándose en la base de datos y colección especificada.
+3.  **Visualizador de Resultados**: Muestra el resultado de la ejecución en formato JSON estructurado, con indicadores de éxito o error en tiempo real.
 
-### 6. Explorador de Documentos (Real Document Engine) ⭐
-El Dashboard incluye una herramienta especializada para interactuar con el **Motor de Documentos** a través de la red de nodos de almacenamiento:
-- **Visualización Directa**: Al seleccionar una colección de tipo `Document` en el árbol, se activa la vista de exploración.
-- **Inserción de Documentos**: Diálogo modal con editor JSON inteligente que permite definir campos y etiquetas (`_tags`).
-- **Descubrimiento de Almacenamiento**: La interfaz web descubre automáticamente un nodo `STORAGE` activo para realizar las operaciones de datos, garantizando que interactúas con el nodo correcto dentro del cluster.
-- **Identificadores Físicos (jettraID)**: Los documentos creados o recuperados muestran su `jettraID` completo, permitiendo a los desarrolladores ver exactamente en qué nodo y bucket reside el dato.
-- **Restaurar Versión** ⭐: Desde el historial de versiones, es posible restaurar cualquier versión anterior. Esto creará una nueva versión activa con el contenido histórico, preservando la trazabilidad.
+### 7. Llaves Secuenciales (Sequences) ⭐
+Interfaz visual para la gestión de contadores:
+- **Listado de Secuencias**: Vista de tabla con el valor actual, incremento y base de datos de cada secuencia.
+- **Creación**: Formulario para provisionar nuevas secuencias con valores iniciales personalizados.
+- **Interacción**: Botón "NEXT" para incrementar manualmente y visualizar el cambio de estado en tiempo real.
+- **Eliminación**: Capacidad para borrar secuencias persistentes del sistema.
+
+### 8. Resolución de Referencias (Resolve References) ⭐
+
+El Dashboard incluye una opción global para la resolución automática de referencias entre documentos:
+- **Casilla "Resolve Refs"**: Disponible en la Consola SQL y en el Explorador de Documentos.
+- **Funcionamiento**: Al marcar esta casilla, las consultas que devuelvan documentos con campos que contengan un `jettraID` válido mostrarán el objeto referenciado completo en lugar de solo el ID.
+- **Eficiencia**: Utiliza acceso directo a la memoria del cluster para evitar JOINS tradicionales, acelerando la visualización de datos normalizados.
 
 ## Procedimiento de Autenticación en la Web
 

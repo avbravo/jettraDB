@@ -75,10 +75,19 @@ public class JettraReactiveClient implements JettraClient {
 
     @Override
     public Uni<Object> findById(String collection, String id) {
+        return findById(collection, id, false);
+    }
+
+    @Override
+    public Uni<Object> findById(String collection, String id, boolean resolveRefs) {
         return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
+            String url = "http://" + address + "/api/v1/document/" + collection + "/"
+                    + java.net.URLEncoder.encode(id, java.nio.charset.StandardCharsets.UTF_8);
+            if (resolveRefs) {
+                url += "?resolveRefs=true";
+            }
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + address + "/api/v1/document/" + collection + "/"
-                            + java.net.URLEncoder.encode(id, java.nio.charset.StandardCharsets.UTF_8)))
+                    .uri(URI.create(url))
                     .header("Authorization", "Bearer " + authToken)
                     .GET()
                     .build();
@@ -458,10 +467,12 @@ public class JettraReactiveClient implements JettraClient {
                         return Uni.createFrom().item(this.authToken);
                     }
                 } catch (Exception e) {
-                    return Uni.createFrom().failure(new RuntimeException("Failed to parse login response: " + e.getMessage()));
+                    return Uni.createFrom()
+                            .failure(new RuntimeException("Failed to parse login response: " + e.getMessage()));
                 }
             }
-            return Uni.createFrom().failure(new RuntimeException("Login failed. Status: " + response.statusCode() + " Body: " + response.body()));
+            return Uni.createFrom().failure(new RuntimeException(
+                    "Login failed. Status: " + response.statusCode() + " Body: " + response.body()));
         });
     }
 
@@ -624,6 +635,170 @@ public class JettraReactiveClient implements JettraClient {
         if (set == null || set.isEmpty())
             return "[]";
         return "[" + String.join(",", set.stream().map(s -> "\"" + s + "\"").toList()) + "]";
+    }
+
+    @Override
+    public Uni<String> executeSql(String sql) {
+        return executeSql(sql, false);
+    }
+
+    @Override
+    public Uni<String> executeSql(String sql, boolean resolveRefs) {
+        LOG.log(Level.INFO, "Executing SQL via PD (resolveRefs={0}): {1}", new Object[] { resolveRefs, sql });
+        return Uni.createFrom().completionStage(() -> {
+            try {
+                String json = String.format("{\"sql\": \"%s\", \"resolveRefs\": %b}",
+                        sql.replace("\"", "\\\""), resolveRefs);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://" + pdAddress + "/api/v1/sql"))
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                return response.body();
+            }
+            throw new RuntimeException(
+                    "SQL execution failed. Status: " + response.statusCode() + " Body: " + response.body());
+        });
+    }
+
+    @Override
+    public Uni<Void> createSequence(String name, String database, long start, long increment) {
+        LOG.log(Level.INFO, "Creating sequence: {0} in {1}", new Object[] { name, database });
+        return Uni.createFrom().completionStage(() -> {
+            try {
+                String json = String.format(
+                        "{\"name\": \"%s\", \"database\": \"%s\", \"startValue\": %d, \"increment\": %d}",
+                        name, database, start, increment);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://" + pdAddress + "/api/v1/sequence"))
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 201) {
+                return Uni.createFrom().voidItem();
+            }
+            return Uni.createFrom().failure(new RuntimeException("Failed to create sequence: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<Long> nextSequenceValue(String name) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/v1/sequence/" + name + "/next"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                String body = response.body();
+                // Simple parsing of {"value": 123}
+                int start = body.indexOf("\"value\":") + 8;
+                int end = body.indexOf("}", start);
+                return Long.parseLong(body.substring(start, end).trim());
+            }
+            throw new RuntimeException("Failed to get next sequence value: " + response.body());
+        });
+    }
+
+    @Override
+    public Uni<Long> currentSequenceValue(String name) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/v1/sequence/" + name + "/current"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                String body = response.body();
+                int start = body.indexOf("\"value\":") + 8;
+                int end = body.indexOf("}", start);
+                return Long.parseLong(body.substring(start, end).trim());
+            }
+            throw new RuntimeException("Failed to get current sequence value: " + response.body());
+        });
+    }
+
+    @Override
+    public Uni<Void> resetSequence(String name, long value) {
+        return Uni.createFrom().completionStage(() -> {
+            try {
+                String json = String.format("{\"newValue\": %d}", value);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://" + pdAddress + "/api/v1/sequence/" + name + "/reset"))
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200) {
+                return Uni.createFrom().voidItem();
+            }
+            return Uni.createFrom().failure(new RuntimeException("Failed to reset sequence: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<Void> deleteSequence(String name) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/v1/sequence/" + name))
+                    .header("Authorization", "Bearer " + authToken)
+                    .DELETE()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 204 || response.statusCode() == 200) {
+                return Uni.createFrom().voidItem();
+            }
+            return Uni.createFrom().failure(new RuntimeException("Failed to delete sequence: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<java.util.List<String>> listSequences(String database) {
+        return Uni.createFrom().completionStage(() -> {
+            String url = "http://" + pdAddress + "/api/v1/sequence" + (database != null ? "?database=" + database : "");
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                String body = response.body();
+                // Simple parsing for JSON list of objects to list of names
+                java.util.List<String> names = new java.util.ArrayList<>();
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("\"name\":\"(.*?)\"");
+                java.util.regex.Matcher m = p.matcher(body);
+                while (m.find()) {
+                    names.add(m.group(1));
+                }
+                return names;
+            }
+            throw new RuntimeException("Failed to list sequences: " + response.body());
+        });
     }
 
     @Override

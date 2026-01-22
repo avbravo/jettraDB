@@ -1,9 +1,16 @@
 {#for node in nodes}
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: start;">
-        <h3 style="margin:0">Node: {node.id}</h3>
-        <span class="status-dot {node.status == 'ONLINE' ? 'status-online' : 'status-offline'}"
-            style="background: {node.status == 'ONLINE' ? '#10b981' : '#ef4444'}; box-shadow: 0 0 10px {node.status == 'ONLINE' ? '#10b981' : '#ef4444'}">
+        <div>
+            <h3 style="margin:0">Node: {node.id}</h3>
+            {#if node.raftRole == "LEADER"}
+            <span
+                style="font-size: 0.65rem; background: rgba(99, 102, 241, 0.2); color: var(--primary); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700; margin-top: 0.25rem; display: inline-block; border: 1px solid var(--primary);">LEADER</span>
+            {/if}
+        </div>
+        <span
+            class="status-dot {node.status == 'ONLINE' || node.status == 'online' ? 'status-online' : 'status-offline'}"
+            style="background: {node.status == 'ONLINE' || node.status == 'online' ? '#10b981' : '#ef4444'}; box-shadow: 0 0 10px {node.status == 'ONLINE' || node.status == 'online' ? '#10b981' : '#ef4444'}">
         </span>
     </div>
     <p style="margin: 0.5rem 0">Role: {node.role}</p>

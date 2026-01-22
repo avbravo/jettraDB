@@ -16,12 +16,12 @@ public class Main {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
-        
-        String pdAddress = "localhost:8081"; 
+
+        String pdAddress = "localhost:8081";
 
         try {
             LOG.info("Iniciando JettraDB Java SE Example...");
-            
+
             // 1. Autenticación y obtención del Token
             LOG.info("Iniciando sesión para obtener el token...");
             JettraReactiveClient client = new JettraReactiveClient(pdAddress);
@@ -31,18 +31,23 @@ public class Main {
             // 2. Monitoreo del Cluster
             LOG.info("Consultando estado de los nodos y recursos...");
             List<NodeInfo> nodes = client.listNodes().await().indefinitely();
-            System.out.println("\n---------------------------------------------------------------------------------------------------------------------------");
-            System.out.printf("%-15s | %-10s | %-10s | %-8s | %-6s | %-12s | %-12s\n", "ID", "Role", "Raft Role", "Status", "CPU%", "Mem Usage", "Mem Max");
-            System.out.println("---------------------------------------------------------------------------------------------------------------------------");
+            System.out.println(
+                    "\n---------------------------------------------------------------------------------------------------------------------------");
+            System.out.printf("%-15s | %-10s | %-10s | %-8s | %-6s | %-12s | %-12s\n", "ID", "Role", "Raft Role",
+                    "Status", "CPU%", "Mem Usage", "Mem Max");
+            System.out.println(
+                    "---------------------------------------------------------------------------------------------------------------------------");
             for (NodeInfo node : nodes) {
                 double memUsedMb = node.memoryUsage() / (1024.0 * 1024.0);
                 double memMaxMb = node.memoryMax() / (1024.0 * 1024.0);
-                System.out.printf("%-15s | %-10s | %-10s | %-8s | %-6.1f | %-10.1f MB | %-10.1f MB\n", 
-                    node.id(), node.role(), node.raftRole(), node.status(), node.cpuUsage(), memUsedMb, memMaxMb);
+                System.out.printf("%-15s | %-10s | %-10s | %-8s | %-6.1f | %-10.1f MB | %-10.1f MB\n",
+                        node.id(), node.role(), node.raftRole(), node.status(), node.cpuUsage(), memUsedMb, memMaxMb);
             }
-            System.out.println("---------------------------------------------------------------------------------------------------------------------------\n");
+            System.out.println(
+                    "---------------------------------------------------------------------------------------------------------------------------\n");
 
-
+            // Check Connection Info
+            System.out.println("Connection Info: " + client.connectionInfo());
 
             // 2. Gestión de Bases de Datos
             String dbName = "shop";
@@ -56,7 +61,7 @@ public class Main {
 
             // 4. Real Document Engine Operations
             LOG.info("Probando operaciones REALES del Document Engine...");
-            
+
             // Generar un JettraID
             String jettraId = client.generateJettraId("main-bucket").await().indefinitely();
             LOG.info("Generated JettraID: {}", jettraId);
@@ -101,6 +106,54 @@ public class Main {
 
             List<String> cols = client.listCollections(dbName).await().indefinitely();
             LOG.info("Colecciones en {}: {}", dbName, cols);
+
+            // 7. Multi-Engine SQL Support
+            LOG.info("Probando consultas SQL unificadas...");
+
+            // SELECT
+            String sqlSelect = String.format("SELECT * FROM %s.%s", dbName, colName);
+            String selectResult = client.executeSql(sqlSelect).await().indefinitely();
+            LOG.info("SQL SELECT Result: {}", selectResult);
+
+            // INSERT
+            String sqlInsert = String.format("INSERT INTO %s.%s VALUES ('sql_id_1', 'SQL User', 25)", dbName, colName);
+            client.executeSql(sqlInsert).await().indefinitely();
+            LOG.info("SQL INSERT completed.");
+
+            // UPDATE
+            String sqlUpdate = String.format("UPDATE %s.%s SET age=26 WHERE id='sql_id_1'", dbName, colName);
+            client.executeSql(sqlUpdate).await().indefinitely();
+            LOG.info("SQL UPDATE completed.");
+
+            // DELETE
+            LOG.info("SQL DELETE completed.");
+
+            // 8. Sequential Keys (Sequences) Support ⭐
+            LOG.info("Probando soporte de llaves secuenciales (Sequences)...");
+            String seqName = "order_id_seq";
+
+            // Crear una secuencia
+            LOG.info("Creando secuencia: {}", seqName);
+            client.createSequence(seqName, dbName, 100, 1).await().indefinitely();
+
+            // Obtener el valor actual y el siguiente
+            long currentVal = client.currentSequenceValue(seqName).await().indefinitely();
+            LOG.info("Valor actual de la secuencia: {}", currentVal);
+
+            long nextVal = client.nextSequenceValue(seqName).await().indefinitely();
+            LOG.info("Siguiente valor de la secuencia: {}", nextVal);
+
+            // Listar secuencias
+            List<String> sequences = client.listSequences(dbName).await().indefinitely();
+            LOG.info("Secuencias en {}: {}", dbName, sequences);
+
+            // Reiniciar y eliminar
+            client.resetSequence(seqName, 500).await().indefinitely();
+            LOG.info("Secuencia reiniciada a 500. Nuevo valor siguiente: {}",
+                    client.nextSequenceValue(seqName).await().indefinitely());
+
+            client.deleteSequence(seqName).await().indefinitely();
+            LOG.info("Secuencia eliminada.");
 
             LOG.info("Ejemplo completado con éxito!");
 

@@ -725,6 +725,7 @@
         <!-- Sidebar Navigation -->
         <div class="nav-item active" onclick="showView('cluster')" id="nav-cluster">Cluster</div>
         <div class="nav-item" onclick="showView('security')" id="nav-security">Security</div>
+        <div class="nav-item" onclick="showView('query')" id="nav-query">Query</div>
 
         <div class="tree-container">
             <div class="tree-header">
@@ -827,7 +828,7 @@
             </header>
 
             <div class="grid"
-                style="grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); align-items: start; gap: 2rem;">
+                style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)); align-items: start; gap: 2rem;">
                 <!-- User Management Card -->
                 <div class="card">
                     <h3 class="mb-4" id="user-form-title">Create / Edit User</h3>
@@ -860,121 +861,229 @@
                     <div>
                         <label class="text-xs text-gray-400 block mb-2">Database Access & Roles</label>
                         <div
-                            style="background: rgba(0,0,0,0.2); border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); max-height: 250px; overflow-y: auto;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                                <thead
-                                    style="background: rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 10;">
-                                    <tr>
-                                        <th style="text-align: left; padding: 0.75rem; background: #1e293b;">
-                                            Database</th>
-                                        <th style="text-align: left; padding: 0.75rem; background: #1e293b;">Role
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="user-db-roles-body">
-                                    <!-- Will be populated with all databases -->
-                                    <tr>
-                                        <td colspan="2" style="padding: 1rem; text-align: center; color: #475569;">
-                                            Loading databases...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            style="background: rgba(0,0,0,0.2); border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); max-height: 350px; overflow-y: auto;">
+                            <!-- Responsive table wrapper -->
+                            <div style="overflow-x: auto;">
+                                <table
+                                    style="width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 400px;">
+                                    <thead
+                                        style="background: rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 10;">
+                                        <tr>
+                                            <th style="text-align: left; padding: 0.75rem; background: #1e293b;">
+                                                Database</th>
+                                            <th style="text-align: left; padding: 0.75rem; background: #1e293b;">Role
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="user-db-roles-body">
+                                        <tr>
+                                            <td colspan="2" style="padding: 1rem; text-align: center; color: #475569;">
+                                                Loading databases...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 1rem;">
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                         <button class="btn" id="user-save-btn" onclick="saveUser()" style="flex: 1;">Create
                             User</button>
                         <button class="btn hidden" id="user-cancel-btn" onclick="resetUserForm()"
                             style="background: rgba(255,255,255,0.1); color: #94a3b8;">Cancelar</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- User List Card -->
-            <div class="card">
-                <h3 class="mb-4">Registered Users</h3>
-                <div id="user-list-container">
-                    <p class="text-xs text-gray-400">Loading users...</p>
-                </div>
-            </div>
+                <!-- Column 2 -->
+                <div style="display: flex; flex-direction: column; gap: 2rem;">
+                    <!-- User List Card -->
+                    <div class="card">
+                        <h3 class="mb-4">Registered Users</h3>
+                        <div id="user-list-container">
+                            <p class="text-xs text-gray-400">Loading users...</p>
+                        </div>
+                    </div>
 
-            <!-- Role Management Card (Hidden or secondary) -->
-            <div class="card hidden">
-                <h3 class="mb-4">Roles (System)</h3>
-                <div id="role-list-container" style="max-height: 400px; overflow-y: auto;">
-                    <p class="text-xs text-gray-400">Loading roles...</p>
+                    <!-- Role Management Card (Hidden or secondary) -->
+                    <div class="card hidden">
+                        <h3 class="mb-4">Roles (System)</h3>
+                        <div id="role-list-container" style="max-height: 400px; overflow-y: auto;">
+                            <p class="text-xs text-gray-400">Loading roles...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Document Explorer View -->
-        <div id="view-document-explorer" class="hidden" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+        <!-- Query View -->
+        <div id="view-query" class="hidden" style="max-width: 1200px; margin: 0 auto;">
             <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <div>
-                    <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
-                        Document Explorer</h2>
-                    <p id="doc-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
-                        Exploring collection...</p>
-                </div>
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <!-- (+) Add Document Button -->
-                    <button class="btn"
-                        style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;"
-                        onclick="openAddDocModal()" title="Add New Document">
-                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                            </path>
-                        </svg>
-                    </button>
-                    <!-- Search Box -->
-                    <div style="position: relative;">
-                        <input type="text" id="doc-search-input" placeholder="Search documents..."
-                            onkeyup="if(event.key === 'Enter') searchDocuments()"
-                            style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.5rem; color: white; font-size: 0.9rem; width: 200px;">
-                        <svg style="width: 16px; height: 16px; color: #94a3b8; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);"
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-
-                    <div
-                        style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
-                        <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
-                            title="Table View">TABLE</button>
-                        <button class="view-mode-btn" onclick="setDocViewMode('json')" id="view-mode-json"
-                            title="JSON View">JSON</button>
-                        <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
-                            title="Tree View">TREE</button>
-                    </div>
-                    <button class="btn" style="background: rgba(255,255,255,0.1);"
-                        onclick="loadDocuments(currentSelectedCollection)">
-                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                            </path>
-                        </svg>
-                    </button>
-                    <div
-                        style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
-                        <button class="btn" onclick="prevPage()" id="btn-prev-page" disabled
-                            style="padding: 0.4rem 0.8rem;">&lt;</button>
-                        <span id="page-indicator"
-                            style="color: #94a3b8; font-size: 0.9rem; min-width: 60px; text-align: center;">Page
-                            1</span>
-                        <button class="btn" onclick="nextPage()" id="btn-next-page"
-                            style="padding: 0.4rem 0.8rem;">&gt;</button>
-                    </div>
-                </div>
+                <h2>SQL Query Console</h2>
             </header>
+            <div class="card mb-6">
+                <p class="text-gray-400 mb-4">Execute SQL commands across all engines. Supported: SELECT, INSERT,
+                    UPDATE, DELETE.</p>
+                <div class="mb-4">
+                    <textarea id="sql-input" placeholder="SELECT * FROM database.collection"
+                        style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #10b981; border-radius: 0.5rem; padding: 1rem; font-family: 'Fira Code', monospace; outline: none;"></textarea>
+                </div>
+                <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1rem;">
+                    <label
+                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #94a3b8; font-size: 0.9rem;">
+                        <input type="checkbox" id="sql-resolve-refs" style="width: auto; margin: 0;"> Resolve References
+                    </label>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn" onclick="executeSqlQuery()">Run Query</button>
+                    <button class="btn" style="background: rgba(255,255,255,0.05); color: #94a3b8;"
+                        onclick="document.getElementById('sql-input').value = ''">Clear</button>
+                </div>
+            </div>
 
-            <div class="card" id="document-list-card" style="padding: 0; overflow: hidden;">
-                <div id="document-list-container">
-                    <!-- Documents injected here -->
+            <div id="query-result-container" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Execution Result</h3>
+                    <div id="query-status-badge"
+                        style="font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 1rem; background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                        SUCCESS</div>
+                </div>
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div id="query-result-content" class="json-viewer" style="max-height: 500px;"></div>
                 </div>
             </div>
         </div>
+
+        <!-- Sequences View -->
+        <div id="view-sequences" class="hidden" style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>Sequential Keys (Sequences)</h2>
+                <button class="btn" onclick="showCreateSequenceModal()">Create Sequence</button>
+            </div>
+
+            <div class="card mb-6">
+                <div class="doc-table-container">
+                    <table class="doc-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Database</th>
+                                <th>Current Value</th>
+                                <th>Increment</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sequences-list">
+                            <!-- Sequences will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Sequence Modal -->
+        <div id="sequence-modal" class="modal-overlay hidden">
+            <div class="card" style="width: 100%; max-width: 450px;">
+                <h2 class="mb-6">New Sequence</h2>
+                <div class="mb-4">
+                    <label class="text-xs text-gray-400 mb-2 block">Sequence Name</label>
+                    <input type="text" id="seq-name" placeholder="user_id_seq">
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs text-gray-400 mb-2 block">Database</label>
+                    <input type="text" id="seq-db" placeholder="main_db">
+                </div>
+                <div class="grid mb-6">
+                    <div>
+                        <label class="text-xs text-gray-400 mb-2 block">Start Value</label>
+                        <input type="number" id="seq-start" value="0">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-400 mb-2 block">Increment</label>
+                        <input type="number" id="seq-inc" value="1">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn" onclick="createSequence()">Create</button>
+                    <button class="btn" style="background: rgba(255,255,255,0.05); color: white;"
+                        onclick="closeSequenceModal()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Explorer View -->
+    <div id="view-document-explorer" class="hidden" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+        <header
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
+                    Document Explorer</h2>
+                <p id="doc-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
+                    Exploring collection...</p>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                <!-- (+) Add Document Button -->
+                <button class="btn"
+                    style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; flex-shrink: 0;"
+                    onclick="openAddDocModal()" title="Add New Document">
+                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                        </path>
+                    </svg>
+                </button>
+                <!-- Search Box -->
+                <div style="position: relative; flex: 1; min-width: 200px;">
+                    <input type="text" id="doc-search-input" placeholder="Search documents..."
+                        onkeyup="if(event.key === 'Enter') searchDocuments()"
+                        style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.5rem; color: white; font-size: 0.9rem; width: 100%;">
+                    <svg style="width: 16px; height: 16px; color: #94a3b8; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+
+                <div
+                    style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;">
+                    <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
+                        title="Table View">TABLE</button>
+                    <button class="view-mode-btn" onclick="setDocViewMode('json')" id="view-mode-json"
+                        title="JSON View">JSON</button>
+                    <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
+                        title="Tree View">TREE</button>
+                </div>
+                <label
+                    style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #94a3b8; font-size: 0.85rem; background: rgba(0,0,0,0.2); padding: 0.4rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); white-space: nowrap;">
+                    <input type="checkbox" id="doc-resolve-refs" style="width: auto; margin: 0;"
+                        onchange="loadDocuments(currentSelectedCollection)"> Resolve Refs
+                </label>
+                <button class="btn" style="background: rgba(255,255,255,0.1); flex-shrink: 0;"
+                    onclick="loadDocuments(currentSelectedCollection)">
+                    <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                </button>
+                <div
+                    style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
+                    <button class="btn" onclick="prevPage()" id="btn-prev-page" disabled
+                        style="padding: 0.4rem 0.8rem;">&lt;</button>
+                    <span id="page-indicator"
+                        style="color: #94a3b8; font-size: 0.9rem; min-width: 60px; text-align: center;">Page
+                        1</span>
+                    <button class="btn" onclick="nextPage()" id="btn-next-page"
+                        style="padding: 0.4rem 0.8rem;">&gt;</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="card" id="document-list-card" style="padding: 0; overflow: hidden;">
+            <div id="document-list-container">
+                <!-- Documents injected here -->
+            </div>
+        </div>
+    </div>
     </div>
 
     <footer class="footer">
@@ -1422,6 +1531,7 @@
         let allNodes = [];
         let allDatabases = [];
         let allUsers = [];
+        let allSequences = [];
         let selectedNodeId = null;
         let dbToDelete = null;
 
@@ -1506,12 +1616,20 @@
             currentView = viewId;
             document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
             document.getElementById('view-security').classList.toggle('hidden', viewId !== 'security');
+            document.getElementById('view-query').classList.toggle('hidden', viewId !== 'query');
+            document.getElementById('view-sequences').classList.toggle('hidden', viewId !== 'sequences');
             document.getElementById('view-password').classList.toggle('hidden', viewId !== 'password');
             document.getElementById('view-document-explorer').classList.toggle('hidden', viewId !== 'document-explorer');
 
             document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
             document.getElementById('nav-security').classList.toggle('active', viewId === 'security');
+            document.getElementById('nav-query').classList.toggle('active', viewId === 'query');
+            document.getElementById('nav-sequences').classList.toggle('active', viewId === 'sequences');
             document.getElementById('nav-password').classList.toggle('active', viewId === 'password');
+
+            if (viewId === 'sequences') {
+                loadSequences();
+            }
 
             // Close sidebar on mobile
             if (window.innerWidth <= 768) {
@@ -1560,6 +1678,7 @@
                 // Fetch users and roles to have info for the tree
                 await fetchUsers();
                 await fetchRoles();
+                await fetchSequences();
 
                 // Fetch collections for all databases to populate tree
                 for (let db of allDatabases) {
@@ -1629,9 +1748,22 @@
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                          Documentos (CRUD)
                     </div>
+                    <div class="tree-type-node">
+                        <div class="tree-type-item" onclick="toggleSubtree('seq-list-${dbName}-${col}')" style="font-size: 0.75rem; color: #94a3b8;">
+                            <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
+                             sequences
+                        </div>
+                        <div id="seq-list-${dbName}-${col}" class="tree-children ${expandedNodes.has(`seq-list-${dbName}-${col}`) ? 'show' : 'hidden'}" style="padding-left: 1rem;">
+                            ${renderSequenceItems(dbName, col)}
+                        </div>
+                    </div>
                     <div class="tree-type-item" onclick="showAlert('Info', 'Gestión de índices para ${col}', 'info')" style="font-size: 0.75rem; color: #94a3b8;">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                          index
+                    </div>
+                    <div class="tree-type-item" onclick="openSequenceModalFromTree('${dbName}', '${col}')" style="font-size: 0.75rem; color: #94a3b8;">
+                        <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                         secuency
                     </div>
                     <div class="tree-type-item" onclick="showAlert('Info', 'Definición de reglas para ${col}', 'info')" style="font-size: 0.75rem; color: #94a3b8;">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
@@ -1679,6 +1811,193 @@
             }
         }
 
+        async function executeSqlQuery() {
+            const sql = document.getElementById('sql-input').value.trim();
+            if (!sql) {
+                showAlert('Warning', 'Please enter an SQL statement.');
+                return;
+            }
+
+            const resultContainer = document.getElementById('query-result-container');
+            const resultContent = document.getElementById('query-result-content');
+            const statusBadge = document.getElementById('query-status-badge');
+
+            resultContainer.classList.remove('hidden');
+            resultContent.textContent = 'Executing query...';
+            statusBadge.textContent = 'PENDING';
+            statusBadge.style.background = 'rgba(245, 158, 11, 0.1)';
+            statusBadge.style.color = '#f59e0b';
+
+            try {
+                const resolveRefs = document.getElementById('sql-resolve-refs').checked;
+                const response = await fetchWithAuth('/api/v1/sql', {
+                    method: 'POST',
+                    body: JSON.stringify({ sql, resolveRefs })
+                });
+
+                const data = await safeJson(response);
+
+                resultContent.textContent = JSON.stringify(data, null, 2);
+
+                if (response.ok) {
+                    statusBadge.textContent = 'SUCCESS';
+                    statusBadge.style.background = 'rgba(16, 185, 129, 0.1)';
+                    statusBadge.style.color = '#10b981';
+                } else {
+                    statusBadge.textContent = 'ERROR ' + response.status;
+                    statusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+                    statusBadge.style.color = '#ef4444';
+                }
+            } catch (error) {
+                resultContent.textContent = 'Error: ' + error.message;
+                statusBadge.textContent = 'FAILED';
+                statusBadge.style.background = 'rgba(239, 68, 68, 0.1)';
+                statusBadge.style.color = '#ef4444';
+            }
+        }
+
+
+        async function fetchSequences() {
+            try {
+                const response = await fetchWithAuth('/api/v1/sequence');
+                if (response.ok) {
+                    allSequences = await safeJson(response) || [];
+                }
+            } catch (error) {
+                console.error('Error fetching sequences:', error);
+            }
+        }
+
+        function renderSequenceItems(dbName, col) {
+            const sequences = allSequences.filter(s => s.database === dbName && (s.name.startsWith(col) || s.name.includes('.' + col + '.')));
+            if (sequences.length === 0) return '<div style="color: #475569; font-size: 0.7rem; padding-left: 0.5rem; padding-bottom: 0.5rem;">No sequences</div>';
+
+            return sequences.map(s => `
+                <div class="tree-type-item" onclick="showView('sequences')" style="font-size: 0.75rem; color: #e2e8f0; justify-content: space-between; padding-right: 0.5rem;">
+                    <div style="display: flex; align-items: center;">
+                        <svg style="width: 10px; height: 10px; margin-right: 0.4rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        ${s.name}
+                    </div>
+                    <span style="color: #10b981; font-family: monospace;">${s.currentValue}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderDbSequenceItems(dbName) {
+            const sequences = allSequences.filter(s => s.database === dbName);
+            if (sequences.length === 0) return '<div style="color: #475569; font-size: 0.75rem; padding-left: 1rem; padding-bottom: 0.5rem;">No sequences</div>';
+
+            return sequences.map(s => `
+                <div class="tree-type-item" onclick="showView('sequences')" style="font-size: 0.75rem; color: #e2e8f0; justify-content: space-between; padding-right: 0.5rem; padding-left: 1rem;">
+                    <div style="display: flex; align-items: center;">
+                        <svg style="width: 10px; height: 10px; margin-right: 0.4rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        ${s.name}
+                    </div>
+                    <span style="color: #10b981; font-family: monospace;">${s.currentValue}</span>
+                </div>
+            `).join('');
+        }
+
+        async function loadSequences() {
+            const list = document.getElementById('sequences-list');
+            list.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b;">Loading sequences...</td></tr>';
+
+            await fetchSequences();
+            const sequences = allSequences;
+
+            if (sequences.length === 0) {
+                list.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #64748b;">No sequences found.</td></tr>';
+                return;
+            }
+
+            list.innerHTML = sequences.map(s => `
+                <tr>
+                    <td style="font-weight: 600; color: white;">${s.name}</td>
+                    <td><span style="font-size: 0.75rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 4px;">${s.database}</span></td>
+                    <td style="font-family: 'Fira Code', monospace; color: #10b981;">${s.currentValue}</td>
+                    <td style="color: #94a3b8;">${s.increment}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="view-mode-btn" onclick="nextSequence('${s.name}')">NEXT</button>
+                            <button class="view-mode-btn" style="color: #ef4444;" onclick="deleteSequence('${s.name}')">DELETE</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showCreateSequenceModal() {
+            document.getElementById('sequence-modal').classList.remove('hidden');
+        }
+
+        function closeSequenceModal() {
+            document.getElementById('sequence-modal').classList.add('hidden');
+        }
+
+        async function createSequence() {
+            const name = document.getElementById('seq-name').value;
+            const db = document.getElementById('seq-db').value;
+            const start = parseInt(document.getElementById('seq-start').value);
+            const inc = parseInt(document.getElementById('seq-inc').value);
+
+            if (!name || !db) {
+                showAlert('Error', 'Name and Database are required.');
+                return;
+            }
+
+            try {
+                const response = await fetchWithAuth('/api/v1/sequence', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, database: db, startValue: start, increment: inc })
+                });
+
+                if (response.ok) {
+                    closeSequenceModal();
+                    loadSequences();
+                } else {
+                    showAlert('Error', 'Failed to create sequence: ' + response.status);
+                }
+            } catch (error) {
+                showAlert('Error', error.message);
+            }
+        }
+
+        function openSequenceModalFromTree(dbName, colName) {
+            document.getElementById('seq-name').value = colName + '_seq';
+            document.getElementById('seq-db').value = dbName;
+            document.getElementById('seq-start').value = '1';
+            document.getElementById('seq-inc').value = '1';
+            showCreateSequenceModal();
+        }
+
+        async function nextSequence(name) {
+            try {
+                const response = await fetchWithAuth(`/api/v1/sequence/${name}/next`);
+                if (response.ok) {
+                    loadSequences();
+                } else {
+                    showAlert('Error', 'Failed to increment sequence: ' + response.status);
+                }
+            } catch (error) {
+                showAlert('Error', error.message);
+            }
+        }
+
+        async function deleteSequence(name) {
+            if (!confirm(`Are you sure you want to delete sequence '${name}'?`)) return;
+            try {
+                const response = await fetchWithAuth(`/api/v1/sequence/${name}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    loadSequences();
+                } else {
+                    showAlert('Error', 'Failed to delete sequence: ' + response.status);
+                }
+            } catch (error) {
+                showAlert('Error', error.message);
+            }
+        }
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jettra_token');
             const headers = {
@@ -1770,9 +2089,13 @@
                 }
 
                 // Append pagination and search parameters
+                const resolveRefs = document.getElementById('doc-resolve-refs').checked;
                 let targetUrl = `http://${storeNode.address}/api/v1/document/${colName}?page=${currentPage}&size=${pageSize}`;
                 if (searchTerm) {
                     targetUrl += `&search=${encodeURIComponent(searchTerm)}`;
+                }
+                if (resolveRefs) {
+                    targetUrl += `&resolveRefs=true`;
                 }
 
                 const resp = await fetchWithAuth('/api/db/proxy/document', {
@@ -1922,7 +2245,8 @@
             const el = document.getElementById(id);
             if (el) {
                 el.classList.toggle('hidden');
-                if (!el.classList.contains('hidden')) {
+                el.classList.toggle('show');
+                if (el.classList.contains('show')) {
                     expandedNodes.add(id);
                 } else {
                     expandedNodes.delete(id);
@@ -2225,7 +2549,7 @@
 
                 return `
                 <div class="tree-db-item">
-                    <div class="tree-db-name" onclick="toggleTreeChildren(this)">
+                    <div class="tree-db-name ${expandedNodes.has(`children-${db.name}`) ? 'expanded' : ''}" onclick="toggleTreeChildren(this)">
                         <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"></path></svg>
                         <span>${db.name}</span>
                         <div class="db-tree-actions">
@@ -2245,7 +2569,7 @@
                             ` : ''}
                         </div>
                     </div>
-                    <div class="tree-children">
+                    <div id="children-${db.name}" class="tree-children ${expandedNodes.has(`children-${db.name}`) ? 'show' : ''}">
                         <!-- Users Subtree -->
                         <div class="tree-engine-node">
                             <div class="tree-type-item" onclick="toggleEngineActions(this)">
@@ -2267,7 +2591,7 @@
                     }
 
                     return `
-                            <div class="tree-engine-node" id="engine-${db.name}-${eng.name}">
+                            <div class="tree-engine-node ${expandedNodes.has(`col-list-${db.name}-${eng.name}`) ? 'active-engine' : ''}" id="engine-${db.name}-${eng.name}">
                                 <div class="tree-type-item" onclick="toggleEngineActions(this)">
                                     <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path></svg>
                                     ${eng.name}
@@ -2700,7 +3024,8 @@
                 return;
             }
             container.innerHTML = `
-                <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; overflow: hidden;">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; overflow: hidden; min-width: 600px;">
                     <thead style="background: rgba(255,255,255,0.05); font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">
                         <tr>
                             <th style="padding: 0.75rem; text-align: left;">Username</th>
@@ -2743,6 +3068,7 @@
                         `}).join('')}
                     </tbody>
                 </table>
+            </div>
             `;
         }
 

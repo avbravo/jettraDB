@@ -121,7 +121,8 @@ public class MonitoringResource {
         if (jwt != null) {
             String upn = jwt.getClaim("upn");
             java.util.Set<String> roles = jwt.getGroups();
-            isSuperUser = "admin".equals(upn) || (roles != null && roles.contains("system"));
+            isSuperUser = "admin".equals(upn) || "super-user".equals(upn)
+                    || (roles != null && roles.contains("system"));
         }
         return nodes.data("nodes", nodeList).data("isSuperUser", isSuperUser).render();
     }

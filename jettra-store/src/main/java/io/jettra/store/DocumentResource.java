@@ -50,15 +50,17 @@ public class DocumentResource {
     public Multi<String> list(@PathParam("collection") String collection,
             @QueryParam("page") @jakarta.ws.rs.DefaultValue("1") int page,
             @QueryParam("size") @jakarta.ws.rs.DefaultValue("20") int size,
-            @QueryParam("search") String search) {
-        return documentEngine.findAll(collection, page, size, search);
+            @QueryParam("search") String search,
+            @QueryParam("resolveRefs") @jakarta.ws.rs.DefaultValue("false") boolean resolveRefs) {
+        return documentEngine.findAll(collection, page, size, search, resolveRefs);
     }
 
     @GET
     @Path("/{collection}/{jettraID}")
     public Uni<String> get(@PathParam("collection") String collection,
-            @PathParam("jettraID") String jettraId) {
-        return documentEngine.findById(collection, jettraId);
+            @PathParam("jettraID") String jettraId,
+            @QueryParam("resolveRefs") @jakarta.ws.rs.DefaultValue("false") boolean resolveRefs) {
+        return documentEngine.findById(collection, jettraId, resolveRefs);
     }
 
     @GET
@@ -79,8 +81,10 @@ public class DocumentResource {
     @GET
     @Path("/{collection}/search/tag")
     public Multi<String> findByTag(@PathParam("collection") String collection,
-            @QueryParam("tag") String tag) {
-        return documentEngine.findByTag(collection, tag);
+            @QueryParam("tag") String tag,
+            @QueryParam("resolveRefs") @jakarta.ws.rs.DefaultValue("false") boolean resolveRefs) {
+        return documentEngine.findByTag(collection, tag); // Note: findByTag resolution not explicitly requested but
+                                                          // good for consistency
     }
 
     @DELETE

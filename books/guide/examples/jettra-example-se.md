@@ -131,6 +131,55 @@ public class Main {
             List<String> cols = client.listCollections(dbName).await().indefinitely();
             LOG.info("Colecciones en " + dbName + ": " + cols);
 
+            // 8. Consultas SQL Unificadas ⭐
+            LOG.info("Probando consultas SQL unificadas...");
+            
+            // SELECT
+            String sqlSelect = String.format("SELECT * FROM %s.%s", dbName, docCol);
+            String selectResult = client.executeSql(sqlSelect).await().indefinitely();
+            LOG.info("SQL SELECT Result: " + selectResult);
+
+            // INSERT vía SQL
+            String sqlInsert = String.format("INSERT INTO %s.%s VALUES ('sql1', 'SQL User', 25)", dbName, docCol);
+            client.executeSql(sqlInsert).await().indefinitely();
+            LOG.info("SQL INSERT completed.");
+
+            // UPDATE vía SQL
+            String sqlUpdate = String.format("UPDATE %s.%s SET age=26 WHERE id='sql1'", dbName, docCol);
+            client.executeSql(sqlUpdate).await().indefinitely();
+            LOG.info("SQL UPDATE completed.");
+
+            // DELETE vía SQL
+            String sqlDelete = String.format("DELETE FROM %s.%s WHERE id='sql1'", dbName, docCol);
+            client.executeSql(sqlDelete).await().indefinitely();
+            LOG.info("SQL DELETE completed.");
+
+            // 8. Sequential Keys (Sequences) Support ⭐
+            LOG.info("Probando soporte de llaves secuenciales (Sequences)...");
+            String seqName = "order_id_seq";
+            
+            // Crear una secuencia
+            LOG.info("Creando secuencia: " + seqName);
+            client.createSequence(seqName, dbName, 100, 1).await().indefinitely();
+            
+            // Obtener el valor actual y el siguiente
+            long currentVal = client.currentSequenceValue(seqName).await().indefinitely();
+            LOG.info("Valor actual de la secuencia: " + currentVal);
+            
+            long nextVal = client.nextSequenceValue(seqName).await().indefinitely();
+            LOG.info("Siguiente valor de la secuencia: " + nextVal);
+            
+            // Listar secuencias
+            List<String> sequences = client.listSequences(dbName).await().indefinitely();
+            LOG.info("Secuencias en " + dbName + ": " + sequences);
+            
+            // Reiniciar y eliminar
+            client.resetSequence(seqName, 500).await().indefinitely();
+            LOG.info("Secuencia reiniciada a 500. Nuevo valor siguiente: " + client.nextSequenceValue(seqName).await().indefinitely());
+            
+            client.deleteSequence(seqName).await().indefinitely();
+            LOG.info("Secuencia eliminada.");
+
             LOG.info("Ejemplo completado con éxito!");
 
         } catch (Exception e) {

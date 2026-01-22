@@ -38,6 +38,9 @@ public class DocumentEngine extends AbstractEngine {
     // Cache for documents (latest version)
     private final Map<String, String> documentCache = new ConcurrentHashMap<>();
 
+    // Index to find which collection owns a jettraID (per node)
+    private final Map<String, String> idToCollection = new ConcurrentHashMap<>();
+
     /**
      * Generates a unique jettraID.
      * Format: {bucketId}#{uuid}
@@ -52,6 +55,8 @@ public class DocumentEngine extends AbstractEngine {
      */
     public Uni<String> save(String collection, String jettraId, String json) {
         LOG.infof("Save request for %s/%s", collection, jettraId);
+
+        idToCollection.put(jettraId, collection); // Index it
 
         return findById(collection, jettraId)
                 .onItem().transformToUni(existingJson -> {
@@ -134,14 +139,82 @@ public class DocumentEngine extends AbstractEngine {
      * Retrieves the latest version of a document.
      */
     public Uni<String> findById(String collection, String jettraId) {
+        return findById(collection, jettraId, false);
+    }
+
+    public Uni<String> findById(String collection, String jettraId, boolean resolveRefs) {
         String key = "doc:" + collection + ":" + jettraId;
         if (documentCache.containsKey(key)) {
-            return Uni.createFrom().item(documentCache.get(key));
+            String json = documentCache.get(key);
+            return resolveRefs ? resolveDocumentRefs(json) : Uni.createFrom().item(json);
         }
-        return readData(key).onItem().invoke(val -> {
-            if (val != null && !val.isEmpty())
-                documentCache.put(key, val);
-        });
+        return readData(key)
+                .onItem().invoke(val -> {
+                    if (val != null && !val.isEmpty())
+                        documentCache.put(key, val);
+                })
+                .onItem().transformToUni(json -> {
+                    if (json == null || json.isEmpty())
+                        return Uni.createFrom().item("");
+                    return resolveRefs ? resolveDocumentRefs(json) : Uni.createFrom().item(json);
+                });
+    }
+
+    private Uni<String> resolveDocumentRefs(String json) {
+        try {
+            JsonNode node = objectMapper.readTree(json);
+            return resolveRefsRecursively(node).onItem().transform(n -> n.toString());
+        } catch (Exception e) {
+            LOG.error("Failed to parse JSON for resolution", e);
+            return Uni.createFrom().item(json);
+        }
+    }
+
+    private Uni<JsonNode> resolveRefsRecursively(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode obj = (ObjectNode) node;
+            if (obj.has("jettraID") && obj.size() == 1) {
+                // Potential reference! (Object with only jettraID)
+                String rid = obj.get("jettraID").asText();
+                String col = idToCollection.get(rid);
+                if (col != null) {
+                    return findById(col, rid, false) // Fetch without further recursion for now
+                            .onItem().transform(refJson -> {
+                                try {
+                                    return objectMapper.readTree(refJson);
+                                } catch (Exception e) {
+                                    return obj;
+                                }
+                            });
+                }
+            }
+
+            // Normal object, recurse through fields
+            List<Uni<Void>> unis = new ArrayList<>();
+            obj.fields().forEachRemaining(entry -> {
+                unis.add(resolveRefsRecursively(entry.getValue())
+                        .onItem().invoke(resolved -> obj.set(entry.getKey(), resolved))
+                        .onItem().ignore().andContinueWithNull());
+            });
+
+            if (unis.isEmpty())
+                return Uni.createFrom().item(obj);
+            return Uni.combine().all().unis(unis).discardItems().onItem().transform(v -> obj);
+
+        } else if (node.isArray()) {
+            ArrayNode arr = (ArrayNode) node;
+            List<Uni<Void>> unis = new ArrayList<>();
+            for (int i = 0; i < arr.size(); i++) {
+                final int index = i;
+                unis.add(resolveRefsRecursively(arr.get(i))
+                        .onItem().invoke(resolved -> arr.set(index, resolved))
+                        .onItem().ignore().andContinueWithNull());
+            }
+            if (unis.isEmpty())
+                return Uni.createFrom().item(arr);
+            return Uni.combine().all().unis(unis).discardItems().onItem().transform(v -> arr);
+        }
+        return Uni.createFrom().item(node);
     }
 
     /**
@@ -202,6 +275,10 @@ public class DocumentEngine extends AbstractEngine {
      * Lists documents in a collection with pagination and optional search.
      */
     public Multi<String> findAll(String collection, int page, int size, String search) {
+        return findAll(collection, page, size, search, false);
+    }
+
+    public Multi<String> findAll(String collection, int page, int size, String search, boolean resolveRefs) {
         int skip = (page - 1) * size;
         return Multi.createFrom().iterable(documentCache.entrySet())
                 .filter(e -> {
@@ -209,14 +286,18 @@ public class DocumentEngine extends AbstractEngine {
                     if (!key.startsWith("doc:" + collection + ":"))
                         return false;
                     if (search != null && !search.isEmpty()) {
-                        // Simple case-insensitive json contains check
                         return e.getValue().toLowerCase().contains(search.toLowerCase());
                     }
                     return true;
                 })
                 .skip().first(skip)
                 .select().first(size)
-                .onItem().transform(Map.Entry::getValue);
+                .onItem().transformToUniAndConcatenate(e -> {
+                    if (resolveRefs) {
+                        return resolveDocumentRefs(e.getValue());
+                    }
+                    return Uni.createFrom().item(e.getValue());
+                });
     }
 
     public Uni<Void> delete(String collection, String jettraId) {
