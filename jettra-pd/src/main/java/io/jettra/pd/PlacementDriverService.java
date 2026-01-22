@@ -27,7 +27,8 @@ public class PlacementDriverService {
                 NodeMetadata offlineNode = new NodeMetadata(
                         node.id(), node.address(), node.role(), "OFFLINE",
                         node.raftRole(),
-                        node.lastSeen(), node.cpuUsage(), node.memoryUsage(), node.memoryMax());
+                        node.lastSeen(), node.cpuUsage(), node.memoryUsage(), node.memoryMax(),
+                        node.diskUsage(), node.diskMax());
                 nodes.put(id, offlineNode);
 
                 // If this node was a leader of any group, trigger election
@@ -166,7 +167,8 @@ public class PlacementDriverService {
                 node.id(), node.address(), node.role(), node.status(),
                 node.raftRole(),
                 System.currentTimeMillis(), // Use local PD time for lastSeen
-                node.cpuUsage(), node.memoryUsage(), node.memoryMax());
+                node.cpuUsage(), node.memoryUsage(), node.memoryMax(),
+                node.diskUsage(), node.diskMax());
         nodes.put(node.id(), updatedNode);
     }
 
@@ -221,14 +223,15 @@ public class PlacementDriverService {
                 Thread.currentThread().interrupt();
             }
         } catch (Exception e) {
-             LOG.errorf("Unexpected error notifying node %s to stop: %s", nodeId, e.getMessage());
+            LOG.errorf("Unexpected error notifying node %s to stop: %s", nodeId, e.getMessage());
         }
 
         // Mark as OFFLINE immediately in PD metadata
         NodeMetadata offlineNode = new NodeMetadata(
                 node.id(), node.address(), node.role(), "OFFLINE",
                 node.raftRole(),
-                node.lastSeen(), node.cpuUsage(), node.memoryUsage(), node.memoryMax());
+                node.lastSeen(), node.cpuUsage(), node.memoryUsage(), node.memoryMax(),
+                node.diskUsage(), node.diskMax());
         nodes.put(nodeId, offlineNode);
         reassignLeadersFromOfflineNode(nodeId);
     }

@@ -1012,9 +1012,10 @@
     </div>
 
     <!-- Document Explorer View -->
-    <div id="view-document-explorer" class="hidden" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div id="view-document-explorer" class="hidden"
+        style="max-width: 1400px; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; align-items: center;">
         <header
-            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
             <div>
                 <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
                     Document Explorer</h2>
@@ -1053,9 +1054,13 @@
                         title="Tree View">TREE</button>
                 </div>
                 <label
-                    style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #94a3b8; font-size: 0.85rem; background: rgba(0,0,0,0.2); padding: 0.4rem 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); white-space: nowrap;">
-                    <input type="checkbox" id="doc-resolve-refs" style="width: auto; margin: 0;"
-                        onchange="loadDocuments(currentSelectedCollection)"> Resolve Refs
+                    style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: white; font-size: 0.9rem; background: rgba(99, 102, 241, 0.15); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid rgba(99, 102, 241, 0.3); white-space: nowrap; transition: all 0.2s; box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);"
+                    onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'"
+                    onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
+                    <input type="checkbox" id="doc-resolve-refs"
+                        style="width: 16px; height: 16px; accent-color: var(--primary); margin: 0; cursor: pointer;"
+                        onchange="loadDocuments(currentSelectedCollection)"> <span style="font-weight: 600;">Resolve
+                        Refs</span>
                 </label>
                 <button class="btn" style="background: rgba(255,255,255,0.1); flex-shrink: 0;"
                     onclick="loadDocuments(currentSelectedCollection)">
@@ -1078,7 +1083,7 @@
             </div>
         </header>
 
-        <div class="card" id="document-list-card" style="padding: 0; overflow: hidden;">
+        <div class="card" id="document-list-card" style="width: 100%; padding: 0; overflow: hidden;">
             <div id="document-list-container">
                 <!-- Documents injected here -->
             </div>
@@ -1165,6 +1170,16 @@
                 </div>
                 <div class="progress-container">
                     <div id="modal-mem-bar" class="progress-bar" style="width: 0%; background: var(--secondary);"></div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                    <span>Disk Space</span>
+                    <span id="modal-disk-val">0 / 0 GB</span>
+                </div>
+                <div class="progress-container">
+                    <div id="modal-disk-bar" class="progress-bar" style="width: 0%; background: #8b5cf6;"></div>
                 </div>
             </div>
 
@@ -1624,7 +1639,6 @@
             document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
             document.getElementById('nav-security').classList.toggle('active', viewId === 'security');
             document.getElementById('nav-query').classList.toggle('active', viewId === 'query');
-            document.getElementById('nav-sequences').classList.toggle('active', viewId === 'sequences');
             document.getElementById('nav-password').classList.toggle('active', viewId === 'password');
 
             if (viewId === 'sequences') {
@@ -1659,13 +1673,22 @@
             try {
                 const response = await fetchWithAuth('/api/monitor/nodes');
                 if (response.ok) {
-                    allNodes = await safeJson(response);
+                    const data = await safeJson(response);
+                    console.log('Nodes fetched:', data);
+                    allNodes = data || [];
                 }
                 if (selectedNodeId) updateModalContent();
             } catch (error) {
                 console.error('Error fetching nodes:', error);
             }
         }
+
+        // Refresh nodes every 5 seconds if on cluster view
+        setInterval(() => {
+            if (currentView === 'cluster') {
+                fetchNodes();
+            }
+        }, 5000);
 
 
         async function fetchDatabases() {
@@ -1747,15 +1770,6 @@
                     <div class="tree-type-item" onclick="selectCollection('${dbName}', '${col}', '${engine}')" style="font-size: 0.75rem; color: var(--primary);">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                          Documentos (CRUD)
-                    </div>
-                    <div class="tree-type-node">
-                        <div class="tree-type-item" onclick="toggleSubtree('seq-list-${dbName}-${col}')" style="font-size: 0.75rem; color: #94a3b8;">
-                            <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
-                             sequences
-                        </div>
-                        <div id="seq-list-${dbName}-${col}" class="tree-children ${expandedNodes.has(`seq-list-${dbName}-${col}`) ? 'show' : 'hidden'}" style="padding-left: 1rem;">
-                            ${renderSequenceItems(dbName, col)}
-                        </div>
                     </div>
                     <div class="tree-type-item" onclick="showAlert('Info', 'Gestión de índices para ${col}', 'info')" style="font-size: 0.75rem; color: #94a3b8;">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -2434,7 +2448,8 @@
                     showAlert('Error', 'Error al procesar la colección');
                 }
             } catch (e) {
-                showAlert('Error', 'Error de conexión');
+                console.error('Exception in handleSubmitCollection:', e);
+                showAlert('Error', 'Error de conexión: ' + e.message);
             }
         }
 
@@ -2465,7 +2480,8 @@
                     showAlert('Error', 'Error al eliminar');
                 }
             } catch (e) {
-                showAlert('Error', 'Error de conexión');
+                console.error('Exception in confirmDeleteCol:', e);
+                showAlert('Error', 'Error de conexión: ' + e.message);
             }
         }
 
@@ -2872,8 +2888,49 @@
 
         function showNodeResources(nodeId) {
             selectedNodeId = nodeId;
+            // Extract from event target or its parent card to ensure fresh data
+            const card = event.currentTarget.closest('.card');
+            if (card) {
+                const nodeData = {
+                    id: nodeId,
+                    cpuUsage: parseFloat(card.dataset.cpu || 0),
+                    memoryUsage: parseInt(card.dataset.memUsed || 0),
+                    memoryMax: parseInt(card.dataset.memMax || 1),
+                    diskUsage: parseInt(card.dataset.diskUsed || 0),
+                    diskMax: parseInt(card.dataset.diskMax || 1)
+                };
+                // Pre-update modal from data-attributes for instant response
+                renderResourceModal(nodeData);
+            }
+
             document.getElementById('resource-modal').classList.remove('hidden');
-            updateModalContent();
+            updateModalContent(); // Still call this for fallback/sync
+        }
+
+        function updateProgressBar(id, percent) {
+            const el = document.getElementById(id);
+            if (el) el.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+        }
+
+        function renderResourceModal(node) {
+            const cpuVal = document.getElementById('modal-cpu-val');
+            const memVal = document.getElementById('modal-mem-val');
+            const diskVal = document.getElementById('modal-disk-val');
+
+            if (cpuVal) cpuVal.textContent = `${(node.cpuUsage || 0).toFixed(1)}%`;
+            updateProgressBar('modal-cpu-bar', node.cpuUsage || 0);
+
+            const memUsedMB = ((node.memoryUsage || 0) / 1024 / 1024).toFixed(1);
+            const memMaxMB = ((node.memoryMax || 1) / 1024 / 1024).toFixed(1);
+            const memPercent = (node.memoryUsage / node.memoryMax * 100) || 0;
+            if (memVal) memVal.textContent = `${memUsedMB} / ${memMaxMB} MB`;
+            updateProgressBar('modal-mem-bar', memPercent);
+
+            const diskUsedGB = ((node.diskUsage || 0) / 1024 / 1024 / 1024).toFixed(1);
+            const diskMaxGB = ((node.diskMax || 1) / 1024 / 1024 / 1024).toFixed(1);
+            const diskPercent = (node.diskUsage / node.diskMax * 100) || 0;
+            if (diskVal) diskVal.textContent = `${diskUsedGB} / ${diskMaxGB} GB`;
+            updateProgressBar('modal-disk-bar', diskPercent);
         }
 
         function closeResourceModal() {
@@ -2887,19 +2944,26 @@
 
             document.getElementById('modal-node-id').textContent = `Recursos: ${node.id}`;
             document.getElementById('modal-cpu-val').textContent = `${(node.cpuUsage || 0).toFixed(1)}%`;
-            document.getElementById('modal-cpu-bar').style.width = `${Math.min(node.cpuUsage || 0, 100)}%`;
+            updateProgressBar('modal-cpu-bar', node.cpuUsage || 0);
 
             const memUsedMB = ((node.memoryUsage || 0) / 1024 / 1024).toFixed(1);
             const memMaxMB = ((node.memoryMax || 1) / 1024 / 1024).toFixed(1);
             const memPercent = (node.memoryUsage / node.memoryMax * 100) || 0;
 
             document.getElementById('modal-mem-val').textContent = `${memUsedMB} / ${memMaxMB} MB`;
-            document.getElementById('modal-mem-bar').style.width = `${Math.min(memPercent, 100)}%`;
+            updateProgressBar('modal-mem-bar', memPercent);
+
+            const diskUsedGB = ((node.diskUsage || 0) / 1024 / 1024 / 1024).toFixed(1);
+            const diskMaxGB = ((node.diskMax || 1) / 1024 / 1024 / 1024).toFixed(1);
+            const diskPercent = (node.diskUsage / node.diskMax * 100) || 0;
+
+            document.getElementById('modal-disk-val').textContent = `${diskUsedGB} / ${diskMaxGB} GB`;
+            updateProgressBar('modal-disk-bar', diskPercent);
 
             const lastSeenSec = Math.floor((Date.now() - node.lastSeen) / 1000);
             document.getElementById('modal-last-seen').textContent = lastSeenSec < 5 ? 'ahora mismo' : `hace ${lastSeenSec}s`;
             document.getElementById('modal-status').textContent = node.status;
-            document.getElementById('modal-status').style.color = node.status === 'ONLINE' ? '#10b981' : '#ef4444';
+            document.getElementById('modal-status').style.color = (node.status === 'ONLINE' || node.status === 'ACTIVE' || node.status === 'UP') ? '#10b981' : '#ef4444';
         }
 
         async function handleDeleteDb(name) {

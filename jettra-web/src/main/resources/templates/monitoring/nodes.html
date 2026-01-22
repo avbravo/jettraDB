@@ -1,17 +1,30 @@
 {#for node in nodes}
-<div class="card">
+<div class="card" data-cpu="{node.cpuUsage}" data-mem-used="{node.memoryUsage}" data-mem-max="{node.memoryMax}"
+    data-disk-used="{node.diskUsage}" data-disk-max="{node.diskMax}">
     <div style="display: flex; justify-content: space-between; align-items: start;">
         <div>
-            <h3 style="margin:0">Node: {node.id}</h3>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <h3 style="margin:0">Node: {node.id}</h3>
+                {#if node.cpuUsage > 0}
+                <span style="font-size: 0.7rem; color: #94a3b8;">({node.cpuUsage}% CPU)</span>
+                {/if}
+            </div>
             {#if node.raftRole == "LEADER"}
             <span
                 style="font-size: 0.65rem; background: rgba(99, 102, 241, 0.2); color: var(--primary); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700; margin-top: 0.25rem; display: inline-block; border: 1px solid var(--primary);">LEADER</span>
             {/if}
         </div>
-        <span
-            class="status-dot {node.status == 'ONLINE' || node.status == 'online' ? 'status-online' : 'status-offline'}"
-            style="background: {node.status == 'ONLINE' || node.status == 'online' ? '#10b981' : '#ef4444'}; box-shadow: 0 0 10px {node.status == 'ONLINE' || node.status == 'online' ? '#10b981' : '#ef4444'}">
-        </span>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            {#if node.status && (node.status.toUpperCase() == 'ONLINE' || node.status.toUpperCase() == 'ACTIVE' ||
+            node.status.toUpperCase() == 'UP')}
+            <span style="font-size: 0.75rem; font-weight: 600; color: #10b981;">{node.status.toUpperCase()}</span>
+            <span class="status-dot" style="background: #10b981; box-shadow: 0 0 10px #10b981"></span>
+            {#else}
+            <span style="font-size: 0.75rem; font-weight: 600; color: #ef4444;">{node.status ? node.status.toUpperCase()
+                : 'OFFLINE'}</span>
+            <span class="status-dot" style="background: #ef4444; box-shadow: 0 0 10px #ef4444"></span>
+            {/if}
+        </div>
     </div>
     <p style="margin: 0.5rem 0">Role: {node.role}</p>
     <small style="color: #94a3b8; display: block; margin-bottom: 1rem;">Address: {node.address}</small>

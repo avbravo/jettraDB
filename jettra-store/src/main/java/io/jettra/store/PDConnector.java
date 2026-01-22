@@ -37,31 +37,7 @@ public class PDConnector {
 
     void onStart(@Observes StartupEvent ev) {
         LOG.infof("Registering node %s with PD at %s", nodeId, pdAddress);
-
-        String host = pdAddress.split(":")[0];
-        // PD REST API is always on 8080 in our current architecture
-        String pdUrl = String.format("http://%s:8080/api/internal/pd/register", host);
-        String selfAddress = nodeId + ":" + port;
-
-        LOG.infof("Target PD Registration URL: %s", pdUrl);
-
-        String raftRole = getLocalRaftRole();
-        NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", raftRole,
-                System.currentTimeMillis(), 0.0, 0, 0);
-
-        try (jakarta.ws.rs.client.Client client = ClientBuilder.newClient()) {
-            jakarta.ws.rs.core.Response response = client.target(pdUrl)
-                    .request(MediaType.APPLICATION_JSON)
-                    .post(Entity.entity(me, MediaType.APPLICATION_JSON));
-
-            if (response.getStatus() == 200) {
-                LOG.info("Successfully registered with PD");
-            } else {
-                LOG.warnf("Failed to register with PD. Status: %d", response.getStatus());
-            }
-        } catch (Exception e) {
-            LOG.error("Initial registration attempt failed. Will retry in background: " + e.getMessage());
-        }
+        sendRegistration();
     }
 
     private volatile boolean stopped = false;
@@ -73,8 +49,12 @@ public class PDConnector {
 
     @Scheduled(every = "5s")
     void reportStatus() {
-        if (stopped) return;
+        if (stopped)
+            return;
+        sendRegistration();
+    }
 
+    private void sendRegistration() {
         String host = pdAddress.split(":")[0];
         String pdUrl = String.format("http://%s:8080/api/internal/pd/register", host);
         String selfAddress = nodeId + ":" + port;
@@ -89,20 +69,33 @@ public class PDConnector {
                     .getOperatingSystemMXBean();
             if (osBean instanceof com.sun.management.OperatingSystemMXBean sunBean) {
                 cpuUsageVal = sunBean.getProcessCpuLoad() * 100.0;
+                if (cpuUsageVal < 0)
+                    cpuUsageVal = 0.0;
             } else {
-                cpuUsageVal = osBean.getSystemLoadAverage(); // Fallback
+                cpuUsageVal = osBean.getSystemLoadAverage();
+                if (cpuUsageVal < 0)
+                    cpuUsageVal = 0.0;
             }
         } catch (Exception e) {
-            cpuUsageVal = Math.random() * 10.0; // Minimal fallback
+            cpuUsageVal = 0.0;
+        }
+
+        long diskUsage = 0;
+        long diskMax = 0;
+        try {
+            java.io.File file = new java.io.File("/");
+            diskMax = file.getTotalSpace();
+            diskUsage = diskMax - file.getFreeSpace();
+        } catch (Exception e) {
+            // Ignored
         }
 
         String raftRole = getLocalRaftRole();
         NodeMetadata me = new NodeMetadata(nodeId, selfAddress, "STORAGE", "ONLINE", raftRole,
-                System.currentTimeMillis(), cpuUsageVal, memoryUsage, memoryMax);
+                System.currentTimeMillis(), cpuUsageVal, memoryUsage, memoryMax, diskUsage, diskMax);
 
-        try {
-            ClientBuilder.newClient()
-                    .target(pdUrl)
+        try (jakarta.ws.rs.client.Client client = ClientBuilder.newClient()) {
+            client.target(pdUrl)
                     .request(MediaType.APPLICATION_JSON)
                     .post(Entity.entity(me, MediaType.APPLICATION_JSON));
         } catch (Exception e) {
@@ -112,7 +105,8 @@ public class PDConnector {
 
     @Scheduled(every = "10s")
     void reportGroups() {
-        if (stopped) return;
+        if (stopped)
+            return;
 
         LOG.debugf("Node %s reporting Raft groups status to PD...", nodeId);
         String host = pdAddress.split(":")[0];

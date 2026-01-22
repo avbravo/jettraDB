@@ -1,10 +1,14 @@
 {#for group in groups}
 <div class="card" style="border-left: 4px solid var(--primary);">
     <h3>Group ID: {group.groupId}</h3>
-    <p><span class="status-dot status-online"></span> Leader: <span
-            style="color: var(--primary);">{group.leaderId}</span></p>
+    <p style="display: flex; align-items: center; gap: 0.5rem;">
+        <span class="status-dot status-online" style="box-shadow: 0 0 8px #10b981;"></span>
+        <strong>Leader:</strong>
+        <span
+            style="color: #818cf8; background: rgba(129, 140, 248, 0.1); padding: 0.1rem 0.5rem; border-radius: 4px; border: 1px solid rgba(129, 140, 248, 0.2); font-weight: 600;">{group.leaderId}</span>
+    </p>
     <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #94a3b8;">
-        Peers: {group.peers.join(', ')}
+        Peers: {#for peer in group.peers}{peer}{#if peer_hasNext}, {/if}{/for}
     </div>
 </div>
 {#else}

@@ -1,16 +1,16 @@
 #!/bin/bash
 echo ".................................................................."
-echo "Stop preview docker images ..."
-# Use -r to avoid error if no containers are running
-docker ps -q | xargs -r docker stop
+echo "Stopping existing project containers..."
+docker-compose down
 
-echo "Building project with Java 21..."
-export JAVA_HOME=/usr/local/graalvm-community-openjdk-21.0.2+13.1
-export PATH=$JAVA_HOME/bin:$PATH
-mvn clean package -Pproduction
-
-echo "Run docker-compose up -d --build ..."
-
-docker-compose up -d --build
+echo "Building project from root..."
+# Ensure we build everything to resolve local dependencies
+if mvn clean install -DskipTests=true; then
+    echo "Build successful. Starting containers..."
+    docker-compose up -d --build
+else
+    echo "BUILD FAILED! Not starting containers."
+    exit 1
+fi
 
 echo ".................................................................."

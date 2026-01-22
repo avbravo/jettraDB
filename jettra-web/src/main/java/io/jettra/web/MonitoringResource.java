@@ -45,8 +45,10 @@ public class MonitoringResource {
                 if (response.getStatus() == 401 || response.getStatus() == 403) {
                     throw new jakarta.ws.rs.WebApplicationException(response);
                 }
-                return response.readEntity(new GenericType<java.util.List<NodeMetadata>>() {
-                });
+                Collection<NodeMetadata> nodeList = response
+                        .readEntity(new GenericType<java.util.List<NodeMetadata>>() {
+                        });
+                return nodeList;
             }
         } catch (jakarta.ws.rs.WebApplicationException e) {
             throw e;
