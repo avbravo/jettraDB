@@ -85,11 +85,11 @@ public class AuthFilter implements ContainerRequestFilter {
             // rendering
             if (path.startsWith("api/auth/users") || path.startsWith("api/auth/roles") ||
                     path.startsWith("api/web-auth/users") || path.startsWith("api/web-auth/roles") ||
-                    path.contains("/stop")) {
+                    (path.equals("stop") || path.contains("/stop"))) {
 
                 String method = requestContext.getMethod();
-                boolean isListing = method.equals("GET") && !path.contains("/stop");
-                boolean isStopNode = path.contains("/stop");
+                boolean isListing = method.equals("GET") && !(path.equals("stop") || path.contains("/stop"));
+                boolean isStopNode = path.equals("stop") || path.contains("/stop");
 
                 if (!canManageUsers && !isListing) {
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
@@ -98,15 +98,16 @@ public class AuthFilter implements ContainerRequestFilter {
                     return;
                 }
 
-                // Extra restriction: Only super-user profile can stop nodes
-                if (isStopNode) {
-                    if (user == null || !"super-user".equals(user.profile())) {
-                        requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-                                .entity("{\"error\":\"Only super-user can stop nodes.\"}")
-                                .build());
-                        return;
-                    }
+            // Extra restriction: Only super-user profile can stop nodes
+            // system-pd is allowed for internal operations
+            if (isStopNode) {
+                if (!"system-pd".equals(username) && (user == null || !"super-user".equals(user.profile()))) {
+                    requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                            .entity("{\"error\":\"Only super-user can stop nodes.\"}")
+                            .build());
+                    return;
                 }
+            }
             }
 
             // B. Database access filtering

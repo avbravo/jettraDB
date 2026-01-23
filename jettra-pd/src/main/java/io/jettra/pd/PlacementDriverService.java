@@ -162,6 +162,17 @@ public class PlacementDriverService {
     }
 
     public void registerNode(NodeMetadata node) {
+        NodeMetadata existing = nodes.get(node.id());
+        if (existing != null && "OFFLINE".equals(existing.status()) && "ONLINE".equals(node.status())) {
+            long lastSeenDiff = System.currentTimeMillis() - existing.lastSeen();
+            if (lastSeenDiff < 5000) {
+                // If it was marked OFFLINE but was seen very recently, it's likely a manual stop.
+                // Ignore the heartbeat to allow the node to stop and prevent UI flicker back to ONLINE.
+                LOG.debugf("Ignoring heartbeat for recently stopped node: %s", node.id());
+                return;
+            }
+        }
+
         LOG.debugf("Registering node: %s at %s", node.id(), node.address());
         NodeMetadata updatedNode = new NodeMetadata(
                 node.id(), node.address(), node.role(), node.status(),
