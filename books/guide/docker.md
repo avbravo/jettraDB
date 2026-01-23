@@ -52,21 +52,7 @@ services:
     networks:
       - jettra-net
 
-  # Web Vaadin Dashboard
-  jettra-web-vaadin:
-    build:
-      context: ./jettra-web-vaadin
-      dockerfile: src/main/docker/Dockerfile.jvm
-    container_name: jettra-web-vaadin
-    ports:
-      - "8082:8080" # Host 8082 -> Container 8080
-    depends_on:
-      - jettra-pd
-    environment:
-      - QUARKUS_HTTP_PORT=8080
-      - JETTRA_PD_URL=http://jettra-pd:8080
-    networks:
-      - jettra-net
+
 
   # Storage Nodes (Scale as needed)
   jettra-store-1:

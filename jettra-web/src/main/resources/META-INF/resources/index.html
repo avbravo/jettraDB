@@ -759,7 +759,7 @@
                     <h2>Cluster Overview</h2>
                 </header>
 
-                <div class="grid" id="node-grid" hx-get="/api/monitor/htmx/nodes" hx-trigger="load, every 5s"
+                <div class="grid" id="node-grid" hx-get="/api/monitor/htmx/nodes" hx-trigger="load, every 2s"
                     hx-swap="innerHTML">
                     <!-- Node cards injected via HTMX -->
                     <div style="color: #94a3b8; text-align: center; width: 100%;">Loading nodes...</div>
@@ -767,7 +767,7 @@
 
                 <h2 style="margin-top: 3rem;">Multi-Raft Groups</h2>
                 <div class="grid" id="group-grid" style="margin-top: 1.5rem;" hx-get="/api/monitor/htmx/groups"
-                    hx-trigger="load, every 5s" hx-swap="innerHTML">
+                    hx-trigger="load, every 2s" hx-swap="innerHTML">
                     <!-- Group cards injected via HTMX -->
                     <div style="color: #94a3b8; text-align: center; width: 100%;">Loading groups...</div>
                 </div>
@@ -1009,96 +1009,98 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Document Explorer View -->
-    <div id="view-document-explorer" class="hidden"
-        style="max-width: 1400px; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; align-items: center;">
-        <header
-            style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
-            <div>
-                <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
-                    Document Explorer</h2>
-                <p id="doc-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
-                    Exploring collection...</p>
-            </div>
-            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                <!-- (+) Add Document Button -->
-                <button class="btn"
-                    style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; flex-shrink: 0;"
-                    onclick="openAddDocModal()" title="Add New Document">
-                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                        </path>
-                    </svg>
-                </button>
-                <!-- Search Box -->
-                <div style="position: relative; flex: 1; min-width: 200px;">
-                    <input type="text" id="doc-search-input" placeholder="Search documents..."
-                        onkeyup="if(event.key === 'Enter') searchDocuments()"
-                        style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.5rem; color: white; font-size: 0.9rem; width: 100%;">
-                    <svg style="width: 16px; height: 16px; color: #94a3b8; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </div>
 
-                <div
-                    style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;">
-                    <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
-                        title="Table View">TABLE</button>
-                    <button class="view-mode-btn" onclick="setDocViewMode('json')" id="view-mode-json"
-                        title="JSON View">JSON</button>
-                    <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
-                        title="Tree View">TREE</button>
-                </div>
-                <label
-                    style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: white; font-size: 0.9rem; background: rgba(99, 102, 241, 0.15); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid rgba(99, 102, 241, 0.3); white-space: nowrap; transition: all 0.2s; box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);"
-                    onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'"
-                    onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
-                    <input type="checkbox" id="doc-resolve-refs"
-                        style="width: 16px; height: 16px; accent-color: var(--primary); margin: 0; cursor: pointer;"
-                        onchange="loadDocuments(currentSelectedCollection)"> <span style="font-weight: 600;">Resolve
-                        Refs</span>
-                </label>
-                <button class="btn" style="background: rgba(255,255,255,0.1); flex-shrink: 0;"
-                    onclick="loadDocuments(currentSelectedCollection)">
-                    <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                        </path>
-                    </svg>
-                </button>
-                <div
-                    style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
-                    <button class="btn" onclick="prevPage()" id="btn-prev-page" disabled
-                        style="padding: 0.4rem 0.8rem;">&lt;</button>
-                    <span id="page-indicator"
-                        style="color: #94a3b8; font-size: 0.9rem; min-width: 60px; text-align: center;">Page
-                        1</span>
-                    <button class="btn" onclick="nextPage()" id="btn-next-page"
-                        style="padding: 0.4rem 0.8rem;">&gt;</button>
-                </div>
-            </div>
-        </header>
 
-        <div class="card" id="document-list-card" style="width: 100%; padding: 0; overflow: hidden;">
-            <div id="document-list-container">
-                <!-- Documents injected here -->
+        <!-- Document Explorer View -->
+        <div id="view-document-explorer" class="hidden"
+            style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
+
+            <header
+                style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1.5rem;">
+                <div>
+                    <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
+                        Document Explorer</h2>
+                    <p id="doc-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
+                        Exploring collection...</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <!-- (+) Add Document Button -->
+                    <button class="btn"
+                        style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; flex-shrink: 0;"
+                        onclick="openAddDocModal()" title="Add New Document">
+                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                            </path>
+                        </svg>
+                    </button>
+                    <!-- Search Box -->
+                    <div style="position: relative; flex: 1; min-width: 200px;">
+                        <input type="text" id="doc-search-input" placeholder="Search documents..."
+                            onkeyup="if(event.key === 'Enter') searchDocuments()"
+                            style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.5rem; color: white; font-size: 0.9rem; width: 100%;">
+                        <svg style="width: 16px; height: 16px; color: #94a3b8; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+
+                    <div
+                        style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;">
+                        <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
+                            title="Table View">TABLE</button>
+                        <button class="view-mode-btn" onclick="setDocViewMode('json')" id="view-mode-json"
+                            title="JSON View">JSON</button>
+                        <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
+                            title="Tree View">TREE</button>
+                    </div>
+                    <label
+                        style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: white; font-size: 0.9rem; background: rgba(99, 102, 241, 0.15); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid rgba(99, 102, 241, 0.3); white-space: nowrap; transition: all 0.2s; box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);"
+                        onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'"
+                        onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
+                        <input type="checkbox" id="doc-resolve-refs"
+                            style="width: 16px; height: 16px; accent-color: var(--primary); margin: 0; cursor: pointer;"
+                            onchange="loadDocuments(currentSelectedCollection)"> <span style="font-weight: 600;">Resolve
+                            Refs</span>
+                    </label>
+                    <button class="btn" style="background: rgba(255,255,255,0.1); flex-shrink: 0;"
+                        onclick="loadDocuments(currentSelectedCollection)">
+                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                    </button>
+                    <div
+                        style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
+                        <button class="btn" onclick="prevPage()" id="btn-prev-page" disabled
+                            style="padding: 0.4rem 0.8rem;">&lt;</button>
+                        <span id="page-indicator"
+                            style="color: #94a3b8; font-size: 0.9rem; min-width: 60px; text-align: center;">Page
+                            1</span>
+                        <button class="btn" onclick="nextPage()" id="btn-next-page"
+                            style="padding: 0.4rem 0.8rem;">&gt;</button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="card" id="document-list-card" style="width: 100%; padding: 0; overflow: hidden;">
+                <div id="document-list-container">
+                    <!-- Documents injected here -->
+                </div>
             </div>
         </div>
-    </div>
-    </div>
 
-    <footer class="footer">
-        <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-            <img src="/logo/jettra-logo.png" alt="JettraDB Logo" style="width: 24px; height: 24px; opacity: 0.8;">
-            <span style="font-weight: 600; color: #94a3b8;">JettraDB</span>
-        </div>
-        <div>&copy; 2024 JettraDB. All rights reserved.</div>
-        <div style="font-size: 0.75rem; color: #475569;">v1.0.0-beta</div>
-    </footer>
+
+        <footer class="footer">
+            <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
+                <img src="/logo/jettra-logo.png" alt="JettraDB Logo" style="width: 24px; height: 24px; opacity: 0.8;">
+                <span style="font-weight: 600; color: #94a3b8;">JettraDB</span>
+            </div>
+            <div>&copy; 2024 JettraDB. All rights reserved.</div>
+            <div style="font-size: 0.75rem; color: #475569;">v1.0.0-beta</div>
+        </footer>
     </div>
 
     <!-- Password Change Modal -->
@@ -1688,7 +1690,7 @@
             if (currentView === 'cluster') {
                 fetchNodes();
             }
-        }, 5000);
+        }, 2000);
 
 
         async function fetchDatabases() {
@@ -1846,6 +1848,7 @@
                 const resolveRefs = document.getElementById('sql-resolve-refs').checked;
                 const response = await fetchWithAuth('/api/v1/sql', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sql, resolveRefs })
                 });
 
@@ -2689,11 +2692,24 @@
                 });
                 if (response.ok) {
                     closeStopModal();
+
+                    // Force local status update to OFFLINE for immediate UI feedback
+                    const node = allNodes.find(n => n.id === nodeId);
+                    if (node) {
+                        node.status = 'OFFLINE';
+                        // Re-render HTMX if it's currently showing
+                        htmx.trigger('#node-grid', 'load');
+                    }
+
                     showAlert('Éxito', `Solicitud de parada enviada para el nodo ${nodeId}`, 'success');
-                    // Trigger HTMX refresh
-                    htmx.trigger('#node-grid', 'load');
-                    fetchNodes();
+
+                    // Trigger HTMX refresh after a short delay to allow backend update
+                    setTimeout(() => {
+                        htmx.trigger('#node-grid', 'load');
+                        fetchNodes();
+                    }, 2000);
                 } else {
+
                     showAlert('Error', 'Error al enviar la solicitud de parada');
                 }
             } catch (error) {

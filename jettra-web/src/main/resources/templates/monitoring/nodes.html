@@ -31,7 +31,17 @@
     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
         <button class="btn"
             style="flex: 1; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3);"
-            onclick="showNodeResources('{node.id}')">🔍 Resources</button>
+            onclick="showNodeResources('{node.id}')">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2">
+                    </path>
+                </svg>
+                <span>Resources</span>
+            </div>
+        </button>
+
         {#if isSuperUser}
         <button class="btn" id="stop-btn-{node.id}"
             style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);"

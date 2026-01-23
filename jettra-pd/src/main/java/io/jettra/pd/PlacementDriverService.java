@@ -22,7 +22,7 @@ public class PlacementDriverService {
     void checkNodeHealth() {
         long now = System.currentTimeMillis();
         nodes.forEach((id, node) -> {
-            if (now - node.lastSeen() > 10000 && "ONLINE".equals(node.status())) { // 10 seconds threshold
+            if (now - node.lastSeen() > 5000 && "ONLINE".equals(node.status())) { // 5 seconds threshold
                 LOG.warnf("Node %s is unresponsive. Marking as OFFLINE.", id);
                 NodeMetadata offlineNode = new NodeMetadata(
                         node.id(), node.address(), node.role(), "OFFLINE",
@@ -166,8 +166,10 @@ public class PlacementDriverService {
         if (existing != null && "OFFLINE".equals(existing.status()) && "ONLINE".equals(node.status())) {
             long lastSeenDiff = System.currentTimeMillis() - existing.lastSeen();
             if (lastSeenDiff < 5000) {
-                // If it was marked OFFLINE but was seen very recently, it's likely a manual stop.
-                // Ignore the heartbeat to allow the node to stop and prevent UI flicker back to ONLINE.
+                // If it was marked OFFLINE but was seen very recently, it's likely a manual
+                // stop.
+                // Ignore the heartbeat to allow the node to stop and prevent UI flicker back to
+                // ONLINE.
                 LOG.debugf("Ignoring heartbeat for recently stopped node: %s", node.id());
                 return;
             }
