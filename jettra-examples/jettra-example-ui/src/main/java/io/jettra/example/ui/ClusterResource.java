@@ -60,7 +60,6 @@ public class ClusterResource {
                 cardGrid.setStyleClass("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8");
 
                 List<Node> nodes = clusterService.getNodes(token);
-                System.out.println("DEBUG: ClusterResource nodes size=" + (nodes != null ? nodes.size() : "null"));
                 if (nodes == null || nodes.isEmpty()) {
                         Label empty = new Label("empty-nodes", "No nodes found or unable to connect to PD.");
                         empty.setStyleClass("text-gray-500 dark:text-gray-400");
@@ -92,14 +91,6 @@ public class ClusterResource {
                 }
                 content.addComponent(groupGrid);
 
-                // Modals - Placeholders that will be populated via JS or simple structure
-                // Since jettra-ui Modals are static in structure, we need a way to pass ID to
-                // them.
-                // For now, we will use a generic modal and JS to populate the ID if possible,
-                // OR we just render the modal structure and use client-side attributes.
-                content.addComponent(createStopModal());
-                content.addComponent(createDetailsModal());
-
                 return Response.ok(content.render()).build();
         }
 
@@ -108,7 +99,6 @@ public class ClusterResource {
         public Response stopNode(@PathParam("id") String id) {
                 boolean success = clusterService.stopNode(id, getAuthToken());
                 if (success) {
-                        // Return HTMX redirect or simple success message
                         return Response.ok().header("HX-Refresh", "true").build();
                 } else {
                         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
@@ -186,8 +176,6 @@ public class ClusterResource {
                         stopBtn.setStyleClass(
                                         "w-full px-4 py-2.5 text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/20 transition-all");
                         stopBtn.addAttribute("onclick", "prepareStop('" + node.getId() + "')");
-                        stopBtn.addAttribute("data-modal-target", "stop-modal");
-                        stopBtn.addAttribute("data-modal-toggle", "stop-modal");
                         actions.addComponent(stopBtn);
 
                         card.addComponent(actions);
@@ -247,57 +235,5 @@ public class ClusterResource {
 
                 card.addComponent(info);
                 return card;
-        }
-
-        private Modal createStopModal() {
-                Modal modal = new Modal("stop-modal", "Stop Node");
-
-                Div content = new Div("stop-content");
-                content.addComponent(new Label("stop-msg",
-                                "Are you sure you want to stop node <span id='stop-node-id' class='font-bold'></span>? This action cannot be undone."));
-                modal.addComponent(content);
-
-                Div footer = new Div("stop-footer");
-                footer.setStyleClass(
-                                "flex items-center p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600");
-
-                Button confirmBtn = new Button("btn-stop-confirm", "Yes, Stop Node");
-                confirmBtn.setStyleClass(
-                                "text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800");
-                // We use a custom JS function to trigger HTMX
-                confirmBtn.addAttribute("onclick", "confirmStopNode()");
-                modal.addFooterComponent(confirmBtn);
-
-                Button cancelBtn = new Button("btn-stop-cancel", "Cancel");
-                cancelBtn.setStyleClass(
-                                "text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600");
-                cancelBtn.addAttribute("data-modal-hide", "stop-modal");
-                modal.addFooterComponent(cancelBtn);
-
-                // Add minimal script for passing ID
-                content.addComponent(new Label("script-stop",
-                                "<script> var targetNodeId = ''; function prepareStop(id) { targetNodeId = id; document.getElementById('stop-node-id').innerText = id; } function confirmStopNode() { if(targetNodeId) { htmx.ajax('POST', '/dashboard/cluster/stop/' + targetNodeId, { swap:'none' }).then(() => { FlowbiteInstances.getInstance('Modal', 'stop-modal').hide(); }); } }</script>"));
-
-                return modal;
-        }
-
-        private Modal createDetailsModal() {
-                Modal modal = new Modal("details-modal", "Node Details");
-
-                Div content = new Div("details-content");
-                content.addComponent(new Label("details-msg",
-                                "Details for <span id='detail-node-id' class='font-bold'></span>..."));
-                modal.addComponent(content);
-
-                Button closeBtn = new Button("btn-details-close", "Close");
-                closeBtn.setStyleClass(
-                                "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800");
-                closeBtn.addAttribute("data-modal-hide", "details-modal");
-
-                modal.addFooterComponent(closeBtn);
-                content.addComponent(new Label("script-detail",
-                                "<script> function openDetails(id) { document.getElementById('detail-node-id').innerText = id; } </script>"));
-
-                return modal;
         }
 }

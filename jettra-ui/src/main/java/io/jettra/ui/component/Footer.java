@@ -19,7 +19,8 @@ public class Footer extends Container {
         // goal.
 
         return String.format(
-                "<footer id='%s' class='text-center text-sm text-slate-500 flex flex-col items-center gap-2'>" +
+                "<footer id='%s' class='pt-8 border-t border-white/5 text-center text-sm text-slate-500 flex flex-col items-center gap-2'>"
+                        +
                         "  <div class='flex items-center gap-2 justify-center opacity-40'>" +
                         "    <img src='/logo/jettra-logo.png' alt='Logo' class='w-5 h-5'>" +
                         "    <span class='font-semibold'>JettraDB</span>" +

@@ -120,6 +120,10 @@ public class DashboardResource {
         // 4. Footer
         template.setFooter(new Footer());
 
+        // 5. Global Overlays (Modals stay in DOM even during HTMX content swaps)
+        template.addOverlay(createStopModal());
+        template.addOverlay(createDetailsModal());
+
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
 
@@ -178,6 +182,13 @@ public class DashboardResource {
                             themeToggleDarkIcon.classList.remove('hidden');
                         }
                     });
+
+                    // Re-init Flowbite after HTMX content is loaded
+                    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+                        if (typeof initFlowbite === 'function') {
+                            initFlowbite();
+                        }
+                    });
                 """;
 
         page.addScriptContent(themeScript);
@@ -186,5 +197,51 @@ public class DashboardResource {
         return Response.ok(page.render()).build();
     }
 
-    // Helper removed as it's now in ClusterResource
+    // Helper for Modals
+    private Modal createStopModal() {
+        Modal modal = new Modal("stop-modal", "Stop Node");
+        Div content = new Div("stop-content");
+        content.addComponent(new Label("stop-msg",
+                "Are you sure you want to stop node <span id='stop-node-id' class='font-bold'></span>? This action cannot be undone."));
+        modal.addComponent(content);
+
+        Button confirmBtn = new Button("btn-stop-confirm", "Yes, Stop Node Now");
+        confirmBtn.setStyleClass(
+                "flex-1 text-white bg-rose-600 hover:bg-rose-700 focus:ring-4 focus:outline-none focus:ring-rose-800 font-bold rounded-lg text-sm px-5 py-2.5 text-center transition-all");
+        confirmBtn.addAttribute("onclick", "confirmStopNode()");
+        confirmBtn.addAttribute("data-modal-hide", "stop-modal");
+        modal.addFooterComponent(confirmBtn);
+
+        Button cancelBtn = new Button("btn-stop-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "flex-1 text-slate-300 bg-white/5 hover:bg-white/10 focus:ring-4 focus:outline-none focus:ring-slate-700 rounded-lg border border-white/10 text-sm font-medium px-5 py-2.5 transition-all");
+        cancelBtn.addAttribute("onclick", "closeStopModal()");
+        modal.addFooterComponent(cancelBtn);
+
+        content.addComponent(new Label("script-stop",
+                "<script> var targetNodeId = ''; " +
+                        "function prepareStop(id) { targetNodeId = id; document.getElementById('stop-node-id').innerText = id; document.getElementById('stop-modal').classList.remove('hidden'); document.getElementById('stop-modal').classList.add('flex'); } "
+                        +
+                        "function closeStopModal() { document.getElementById('stop-modal').classList.add('hidden'); document.getElementById('stop-modal').classList.remove('flex'); } "
+                        +
+                        "function confirmStopNode() { if(targetNodeId) { htmx.ajax('POST', '/dashboard/cluster/stop/' + targetNodeId, { swap:'none' }); closeStopModal(); } }</script>"));
+        return modal;
+    }
+
+    private Modal createDetailsModal() {
+        Modal modal = new Modal("details-modal", "Node Details");
+        Div content = new Div("details-content");
+        content.addComponent(
+                new Label("details-msg", "Details for <span id='detail-node-id' class='font-bold'></span>..."));
+        modal.addComponent(content);
+
+        Button closeBtn = new Button("btn-details-close", "Close");
+        closeBtn.setStyleClass(
+                "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800");
+        closeBtn.addAttribute("data-modal-hide", "details-modal");
+        modal.addFooterComponent(closeBtn);
+        content.addComponent(new Label("script-detail",
+                "<script> function openDetails(id) { document.getElementById('detail-node-id').innerText = id; } </script>"));
+        return modal;
+    }
 }

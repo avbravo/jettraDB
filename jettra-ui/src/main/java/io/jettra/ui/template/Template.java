@@ -7,6 +7,11 @@ public class Template {
     private Container left;
     private Container center;
     private Container footer;
+    private java.util.List<io.jettra.ui.component.Component> overlays = new java.util.ArrayList<>();
+
+    public void addOverlay(io.jettra.ui.component.Component overlay) {
+        this.overlays.add(overlay);
+    }
 
     public Container getTop() {
         return top;
@@ -75,6 +80,11 @@ public class Template {
 
         sb.append("</main>");
         sb.append("</div>"); // End flex container
+
+        for (io.jettra.ui.component.Component overlay : overlays) {
+            sb.append(overlay.render());
+        }
+
         sb.append("</div>"); // End min-h-screen
 
         return sb.toString();
