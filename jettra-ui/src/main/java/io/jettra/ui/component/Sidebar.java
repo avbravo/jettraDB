@@ -8,7 +8,7 @@ public class Sidebar extends Container {
 
     public Sidebar(String id) {
         super(id);
-        this.styleClass = "fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full bg-white border-r border-gray-200 sm:translate-x-0 dark:bg-gray-800 dark:border-gray-700";
+        this.styleClass = "fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full border-r border-gray-100/10 sm:translate-x-0";
         this.addAttribute("aria-label", "Sidebar");
     }
 
@@ -19,14 +19,16 @@ public class Sidebar extends Container {
     @Override
     public String render() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("<aside id='%s' class='%s'%s>", id, styleClass, renderAttributes()));
-        sb.append("<div class='h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800'>");
+        sb.append(String.format(
+                "<aside id='%s' class='%s' style='background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);'%s>",
+                id, styleClass, renderAttributes()));
+        sb.append("<div class='h-full px-3 pb-4 overflow-y-auto'>");
         sb.append("<ul class='space-y-2 font-medium'>");
-        
+
         for (SidebarItem item : items) {
             sb.append(item.render());
         }
-        
+
         sb.append(renderChildren());
         sb.append("</ul>");
         sb.append("</div>");
@@ -47,23 +49,30 @@ public class Sidebar extends Container {
             this.icon = icon;
         }
 
-        public void setHxGet(String hxGet) { this.hxGet = hxGet; }
-        public void setHxTarget(String hxTarget) { this.hxTarget = hxTarget; }
+        public void setHxGet(String hxGet) {
+            this.hxGet = hxGet;
+        }
+
+        public void setHxTarget(String hxTarget) {
+            this.hxTarget = hxTarget;
+        }
 
         public String render() {
             String attrs = "";
-            if (hxGet != null) attrs += " hx-get='" + hxGet + "'";
-            if (hxTarget != null) attrs += " hx-target='" + hxTarget + "'";
+            if (hxGet != null)
+                attrs += " hx-get='" + hxGet + "'";
+            if (hxTarget != null)
+                attrs += " hx-target='" + hxTarget + "'";
 
             return String.format(
-                "<li>" +
-                "  <button id='%s' class='flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700'%s>" +
-                "    %s" +
-                "    <span class='ml-3'>%s</span>" +
-                "  </button>" +
-                "</li>",
-                id, attrs, icon != null ? icon : "", label
-            );
+                    "<li>" +
+                            "  <button id='%s' class='flex items-center w-full p-2 text-slate-300 transition duration-75 rounded-lg group hover:bg-indigo-600/20 hover:text-white'%s>"
+                            +
+                            "    %s" +
+                            "    <span class='ml-3'>%s</span>" +
+                            "  </button>" +
+                            "</li>",
+                    id, attrs, icon != null ? icon : "", label);
         }
     }
 }
