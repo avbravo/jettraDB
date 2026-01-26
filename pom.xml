@@ -36,7 +36,7 @@
         <module>jettra-web</module>
         <module>jettra-shell</module>
         <module>jettra-examples</module>
-
+        <module>jettra-ui</module>
     </modules>
     <build>
         <pluginManagement>

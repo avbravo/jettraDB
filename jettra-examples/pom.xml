@@ -18,5 +18,6 @@
 
     <modules>
         <module>jettra-example-se</module>
+        <module>jettra-example-ui</module>
     </modules>
 </project>
