@@ -36,6 +36,13 @@ public class MonitoringResource {
     public Collection<NodeMetadata> getNodes() {
         try {
             String authHeader = headers.getHeaderString("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                System.err.println("MonitoringResource: Missing or invalid Authorization header");
+                throw new jakarta.ws.rs.WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Missing or invalid Authorization header\"}")
+                        .type(MediaType.APPLICATION_JSON)
+                        .build());
+            }
             try (jakarta.ws.rs.client.Client client = jakarta.ws.rs.client.ClientBuilder.newClient()) {
                 jakarta.ws.rs.core.Response response = client.target(pdUrl + "/api/internal/pd/nodes")
                         .request(MediaType.APPLICATION_JSON)
@@ -45,10 +52,8 @@ public class MonitoringResource {
                 if (response.getStatus() == 401 || response.getStatus() == 403) {
                     throw new jakarta.ws.rs.WebApplicationException(response);
                 }
-                Collection<NodeMetadata> nodeList = response
-                        .readEntity(new GenericType<java.util.List<NodeMetadata>>() {
-                        });
-                return nodeList;
+                return response.readEntity(new GenericType<java.util.List<NodeMetadata>>() {
+                });
             }
         } catch (jakarta.ws.rs.WebApplicationException e) {
             throw e;
@@ -64,6 +69,12 @@ public class MonitoringResource {
     public Collection<RaftGroupMetadata> getGroups() {
         try {
             String authHeader = headers.getHeaderString("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                throw new jakarta.ws.rs.WebApplicationException(Response.status(Response.Status.UNAUTHORIZED)
+                        .entity("{\"error\":\"Missing or invalid Authorization header\"}")
+                        .type(MediaType.APPLICATION_JSON)
+                        .build());
+            }
             try (jakarta.ws.rs.client.Client client = jakarta.ws.rs.client.ClientBuilder.newClient()) {
                 Response response = client.target(pdUrl + "/api/internal/pd/groups")
                         .request(MediaType.APPLICATION_JSON)
