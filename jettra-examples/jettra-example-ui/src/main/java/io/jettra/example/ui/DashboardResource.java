@@ -124,6 +124,7 @@ public class DashboardResource {
         template.addOverlay(createStopModal());
         template.addOverlay(createDetailsModal());
         template.addOverlay(createUserModal());
+        template.addOverlay(createDeleteUserModal());
 
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
@@ -146,6 +147,17 @@ public class DashboardResource {
                         ::-webkit-scrollbar-track { background: transparent; }
                         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
                         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+                        /* Explicit background for themes */
+                        body {
+                            background-color: #ffffff; /* White by default */
+                            color: #1a202c;
+                            transition: background-color 0.3s, color 0.3s;
+                        }
+                        .dark body {
+                            background-color: #020617; /* Dark (slate-950) */
+                            color: #f8fafc;
+                        }
                     `;
                     document.head.appendChild(extraStyle);
                 """);
@@ -288,8 +300,61 @@ public class DashboardResource {
         return modal;
     }
 
+    private Modal createDeleteUserModal() {
+        Modal modal = new Modal("delete-user-modal", "Delete User");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("delete-user-content");
+        content.setStyleClass("text-center space-y-4");
+
+        Div iconBox = new Div("delete-user-icon-box");
+        iconBox.setStyleClass(
+                "w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20");
+        iconBox.addComponent(new Label("delete-user-icon",
+                "<svg class='w-8 h-8 text-rose-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg>"));
+        content.addComponent(iconBox);
+
+        Label msg = new Label("delete-user-msg",
+                "Are you sure you want to delete user <span id='delete-username-display' class='text-rose-400 font-mono font-bold'></span>?");
+        msg.setStyleClass("text-slate-300 block mb-1");
+        content.addComponent(msg);
+
+        Label warning = new Label("delete-user-warning",
+                "This action is permanent and cannot be undone.");
+        warning.setStyleClass("text-xs text-slate-500 block");
+        content.addComponent(warning);
+
+        modal.addComponent(content);
+
+        Button confirmBtn = new Button("btn-delete-user-confirm", "🗑️ Yes, Delete User");
+        confirmBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-rose-900/20");
+        confirmBtn.addAttribute("onclick", "confirmDeleteUser()");
+        modal.addFooterComponent(confirmBtn);
+
+        Button cancelBtn = new Button("btn-delete-user-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("onclick", "closeDeleteUserModal()");
+        modal.addFooterComponent(cancelBtn);
+
+        content.addComponent(new Label("script-delete-user",
+                "<script> var userToDelete = ''; " +
+                        "function prepareDeleteUser(username) { userToDelete = username; document.getElementById('delete-username-display').innerText = username; document.getElementById('delete-user-modal').classList.remove('hidden'); document.getElementById('delete-user-modal').classList.add('flex'); } "
+                        +
+                        "function closeDeleteUserModal() { document.getElementById('delete-user-modal').classList.add('hidden'); document.getElementById('delete-user-modal').classList.remove('flex'); } "
+                        +
+                        "function confirmDeleteUser() { if(userToDelete) { htmx.ajax('POST', '/dashboard/security/delete/' + userToDelete, { target: '#security-view', swap: 'outerHTML' }); closeDeleteUserModal(); } }</script>"));
+        return modal;
+    }
+
     private Modal createUserModal() {
         Modal modal = new Modal("user-modal", "Manage User");
+        // Add a hidden input to track if it's an edit
+        modal.addComponent(
+                new Label("user-is-edit-container", "<input type='hidden' id='user-is-edit' value='false'>"));
+
         modal.setStyleClass(
                 "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
 
@@ -332,16 +397,43 @@ public class DashboardResource {
                         "function closeUserModal() { document.getElementById('user-modal').classList.add('hidden'); document.getElementById('user-modal').classList.remove('flex'); } "
                         +
                         "function saveUser() { " +
+                        "  const isEdit = document.getElementById('user-is-edit').value === 'true'; " +
                         "  const data = { " +
                         "    username: document.getElementById('user-username').value, " +
                         "    email: document.getElementById('user-email').value, " +
                         "    password: document.getElementById('user-password').value, " +
                         "    profile: document.getElementById('user-profile').value " +
                         "  }; " +
-                        "  console.log('Saving user:', data); " +
-                        "  alert('Modulo de persistencia no implementado en este ejemplo UI - Datos capturados: ' + data.username); "
-                        +
+                        "  if(!data.username) { alert('Username is required'); return; } " +
+                        "  const url = isEdit ? '/dashboard/security/save?edit=true' : '/dashboard/security/save'; " +
+                        "  htmx.ajax('POST', url, { values: data, target: '#security-view', swap: 'outerHTML' }); " +
                         "  closeUserModal(); " +
+                        "} " +
+                        "function openEditUser(username, email, profile) { " +
+                        "  document.getElementById('user-is-edit').value = 'true'; " +
+                        "  document.getElementById('user-username').value = username; " +
+                        "  document.getElementById('user-username').disabled = true; " +
+                        "  document.getElementById('user-email').value = email || ''; " +
+                        "  document.getElementById('user-password').value = ''; " +
+                        "  document.getElementById('user-password').placeholder = '(Dejar en blanco para mantener)'; " +
+                        "  document.getElementById('user-profile').value = profile || 'end-user'; " +
+                        "  document.querySelector('#user-modal h3').innerText = 'Edit User: ' + username; " +
+                        "  document.getElementById('btn-user-save').innerText = 'Save Changes'; " +
+                        "  document.getElementById('user-modal').classList.remove('hidden'); " +
+                        "  document.getElementById('user-modal').classList.add('flex'); " +
+                        "} " +
+                        "function openAddUser() { " +
+                        "  document.getElementById('user-is-edit').value = 'false'; " +
+                        "  document.getElementById('user-username').value = ''; " +
+                        "  document.getElementById('user-username').disabled = false; " +
+                        "  document.getElementById('user-email').value = ''; " +
+                        "  document.getElementById('user-password').value = ''; " +
+                        "  document.getElementById('user-password').placeholder = 'Password'; " +
+                        "  document.getElementById('user-profile').value = 'end-user'; " +
+                        "  document.querySelector('#user-modal h3').innerText = 'Add New User'; " +
+                        "  document.getElementById('btn-user-save').innerText = 'Save User'; " +
+                        "  document.getElementById('user-modal').classList.remove('hidden'); " +
+                        "  document.getElementById('user-modal').classList.add('flex'); " +
                         "} " +
                         "</script>"));
 

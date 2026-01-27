@@ -51,4 +51,31 @@ public class SecurityService {
             return null;
         }
     }
+
+    public boolean saveUser(User user, boolean isEdit, String token) {
+        try {
+            String bearer = token != null ? "Bearer " + token : null;
+            jakarta.ws.rs.core.Response response;
+            if (isEdit) {
+                response = authClient.updateUser(user.getUsername(), user, bearer);
+            } else {
+                response = authClient.createUser(user, bearer);
+            }
+            return response.getStatus() >= 200 && response.getStatus() < 300;
+        } catch (Exception e) {
+            LOG.error("Failed to save user " + user.getUsername(), e);
+            return false;
+        }
+    }
+
+    public boolean deleteUser(String username, String token) {
+        try {
+            String bearer = token != null ? "Bearer " + token : null;
+            jakarta.ws.rs.core.Response response = authClient.deleteUser(username, bearer);
+            return response.getStatus() >= 200 && response.getStatus() < 300;
+        } catch (Exception e) {
+            LOG.error("Failed to delete user " + username, e);
+            return false;
+        }
+    }
 }
