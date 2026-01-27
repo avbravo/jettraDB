@@ -388,13 +388,29 @@
         .modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
-            z-index: 100;
-            display: flex;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            /* Changed from flex to none by default */
             align-items: center;
             justify-content: center;
             padding: 1rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-overlay.show {
+            display: flex;
         }
 
         .progress-container {
@@ -688,7 +704,7 @@
         </div>
     </nav>
     <!-- Stop Node Modal -->
-    <div id="stop-modal" class="modal-overlay hidden">
+    <div id="stop-modal" class="modal-overlay">
         <div class="modal-content"
             style="max-width: 450px; border: 1px solid rgba(239, 68, 68, 0.3); background: var(--bg); padding: 2rem; border-radius: 1rem; position: relative;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -825,33 +841,77 @@
         <div id="view-security" class="hidden" style="max-width: 1200px; margin: 0 auto;">
             <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                 <h2>Security & User Management</h2>
+                <button class="btn" onclick="openUserModal()" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    New User
+                </button>
             </header>
 
-            <div class="grid"
-                style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)); align-items: start; gap: 2rem;">
-                <!-- User Management Card -->
+            <!-- Global User List (Full Width) -->
+            <div style="width: 100%;">
                 <div class="card">
-                    <h3 class="mb-4" id="user-form-title">Create / Edit User</h3>
-                    <div style="display: flex; gap: 1.5rem; flex-direction: column; margin-bottom: 1.5rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;">Registered Users</h3>
+                        <div
+                            style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05);">
+                            <button class="btn" onclick="prevUserPage()" id="btn-prev-user-page" disabled
+                                style="padding: 0.4rem 0.8rem;">&lt;</button>
+                            <span id="user-page-indicator"
+                                style="color: #94a3b8; font-size: 0.85rem; min-width: 80px; text-align: center;">Page
+                                1</span>
+                            <button class="btn" onclick="nextUserPage()" id="btn-next-user-page"
+                                style="padding: 0.4rem 0.8rem;">&gt;</button>
+                        </div>
+                    </div>
+                    <div id="user-list-container">
+                        <p class="text-xs text-gray-400">Loading users...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Modal -->
+            <div id="user-modal" class="modal-overlay">
+                <div class="card" style="width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h3 id="user-form-title" style="margin: 0;">Create User</h3>
+                        <button onclick="closeUserModal()"
+                            style="background: none; border: none; color: #94a3b8; cursor: pointer;">
+                            <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                         <input type="hidden" id="user-is-edit" value="false">
-                        <div style="display: flex; flex-direction: column; gap: 1rem;">
-                            <div class="mb-4">
-                                <label style="display: block; margin-bottom: 0.5rem; color: #cbd5e1;">Username</label>
-                                <input type="text" id="user-username" placeholder="Enter username">
-                            </div>
-                            <div class="mb-4">
-                                <label style="display: block; margin-bottom: 0.5rem; color: #cbd5e1;">Email</label>
-                                <input type="email" id="user-email" placeholder="Enter email address">
-                            </div>
-                            <div class="mb-4">
-                                <label style="display: block; margin-bottom: 0.5rem; color: #cbd5e1;">Password</label>
-                                <input type="password" id="user-password" placeholder="Password">
-                            </div>
+                        <div class="mb-4">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: #cbd5e1; font-size: 0.9rem;">Username</label>
+                            <input type="text" id="user-username" placeholder="Enter username">
+                        </div>
+                        <div class="mb-4">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: #cbd5e1; font-size: 0.9rem;">Email</label>
+                            <input type="email" id="user-email" placeholder="Enter email address">
+                        </div>
+                        <div class="mb-4">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: #cbd5e1; font-size: 0.9rem;">Password</label>
+                            <input type="password" id="user-password" placeholder="Password">
                         </div>
                         <!-- User Profile (Application Level) -->
-                        <div>
-                            <label class="text-xs text-gray-400 block mb-1">User Profile</label>
+                        <div class="mb-4">
+                            <label
+                                style="display: block; margin-bottom: 0.5rem; color: #cbd5e1; font-size: 0.9rem;">User
+                                Profile</label>
                             <select id="user-profile">
+                                <option value="super-user">Super User (Full Access + Cluster Mgmt)</option>
                                 <option value="management">Management (Full Access except Stopping Nodes)</option>
                                 <option value="end-user">End User (Database Level Admin Only)</option>
                             </select>
@@ -861,246 +921,232 @@
                     <div>
                         <label class="text-xs text-gray-400 block mb-2">Database Access & Roles</label>
                         <div
-                            style="background: rgba(0,0,0,0.2); border-radius: 0.5rem; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); max-height: 350px; overflow-y: auto;">
-                            <!-- Responsive table wrapper -->
-                            <div style="overflow-x: auto;">
-                                <table
-                                    style="width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 400px;">
-                                    <thead
-                                        style="background: rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 10;">
-                                        <tr>
-                                            <th style="text-align: left; padding: 0.75rem; background: #1e293b;">
-                                                Database</th>
-                                            <th style="text-align: left; padding: 0.75rem; background: #1e293b;">Role
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="user-db-roles-body">
-                                        <tr>
-                                            <td colspan="2" style="padding: 1rem; text-align: center; color: #475569;">
-                                                Loading databases...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            style="background: rgba(0,0,0,0.2); border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); max-height: 250px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                                <thead
+                                    style="background: rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th style="text-align: left; padding: 0.75rem; background: #1e293b;">Database
+                                        </th>
+                                        <th style="text-align: left; padding: 0.75rem; background: #1e293b;">Role</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-db-roles-body">
+                                    <tr>
+                                        <td colspan="2" style="padding: 1rem; text-align: center; color: #475569;">
+                                            Cargando bases...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
                     <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                         <button class="btn" id="user-save-btn" onclick="saveUser()" style="flex: 1;">Create
                             User</button>
-                        <button class="btn hidden" id="user-cancel-btn" onclick="resetUserForm()"
-                            style="background: rgba(255,255,255,0.1); color: #94a3b8;">Cancelar</button>
+                        <button class="btn" onclick="closeUserModal()"
+                            style="background: rgba(255,255,255,0.1); color: #94a3b8; flex: 1;">Cancelar</button>
                     </div>
                 </div>
+            </div>
 
-                <!-- Column 2 -->
-                <div style="display: flex; flex-direction: column; gap: 2rem;">
-                    <!-- User List Card -->
-                    <div class="card">
-                        <h3 class="mb-4">Registered Users</h3>
-                        <div id="user-list-container">
-                            <p class="text-xs text-gray-400">Loading users...</p>
-                        </div>
-                    </div>
-
-                    <!-- Role Management Card (Hidden or secondary) -->
-                    <div class="card hidden">
-                        <h3 class="mb-4">Roles (System)</h3>
-                        <div id="role-list-container" style="max-height: 400px; overflow-y: auto;">
-                            <p class="text-xs text-gray-400">Loading roles...</p>
-                        </div>
-                    </div>
+            <!-- Role Management Card (Hidden or secondary) -->
+            <div class="card hidden">
+                <h3 class="mb-4">Roles (System)</h3>
+                <div id="role-list-container" style="max-height: 400px; overflow-y: auto;">
+                    <p class="text-xs text-gray-400">Loading roles...</p>
                 </div>
             </div>
         </div>
+    </div>
+    </div>
 
-        <!-- Query View -->
-        <div id="view-query" class="hidden" style="max-width: 1200px; margin: 0 auto;">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>SQL Query Console</h2>
-            </header>
-            <div class="card mb-6">
-                <p class="text-gray-400 mb-4">Execute SQL commands across all engines. Supported: SELECT, INSERT,
-                    UPDATE, DELETE.</p>
-                <div class="mb-4">
-                    <textarea id="sql-input" placeholder="SELECT * FROM database.collection"
-                        style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #10b981; border-radius: 0.5rem; padding: 1rem; font-family: 'Fira Code', monospace; outline: none;"></textarea>
-                </div>
-                <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1rem;">
-                    <label
-                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #94a3b8; font-size: 0.9rem;">
-                        <input type="checkbox" id="sql-resolve-refs" style="width: auto; margin: 0;"> Resolve References
-                    </label>
-                </div>
-                <div style="display: flex; gap: 1rem;">
-                    <button class="btn" onclick="executeSqlQuery()">Run Query</button>
-                    <button class="btn" style="background: rgba(255,255,255,0.05); color: #94a3b8;"
-                        onclick="document.getElementById('sql-input').value = ''">Clear</button>
-                </div>
+    <!-- Query View -->
+    <div id="view-query" class="hidden" style="max-width: 1200px; margin: 0 auto;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>SQL Query Console</h2>
+        </header>
+        <div class="card mb-6">
+            <p class="text-gray-400 mb-4">Execute SQL commands across all engines. Supported: SELECT, INSERT,
+                UPDATE, DELETE.</p>
+            <div class="mb-4">
+                <textarea id="sql-input" placeholder="SELECT * FROM database.collection"
+                    style="width: 100%; height: 120px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #10b981; border-radius: 0.5rem; padding: 1rem; font-family: 'Fira Code', monospace; outline: none;"></textarea>
             </div>
-
-            <div id="query-result-container" class="hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>Execution Result</h3>
-                    <div id="query-status-badge"
-                        style="font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 1rem; background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                        SUCCESS</div>
-                </div>
-                <div class="card" style="padding: 0; overflow: hidden;">
-                    <div id="query-result-content" class="json-viewer" style="max-height: 500px;"></div>
-                </div>
+            <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1rem;">
+                <label
+                    style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: #94a3b8; font-size: 0.9rem;">
+                    <input type="checkbox" id="sql-resolve-refs" style="width: auto; margin: 0;"> Resolve References
+                </label>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" onclick="executeSqlQuery()">Run Query</button>
+                <button class="btn" style="background: rgba(255,255,255,0.05); color: #94a3b8;"
+                    onclick="document.getElementById('sql-input').value = ''">Clear</button>
             </div>
         </div>
 
-        <!-- Sequences View -->
-        <div id="view-sequences" class="hidden" style="max-width: 1200px; margin: 0 auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h2>Sequential Keys (Sequences)</h2>
-                <button class="btn" onclick="showCreateSequenceModal()">Create Sequence</button>
+        <div id="query-result-container" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Execution Result</h3>
+                <div id="query-status-badge"
+                    style="font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 1rem; background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                    SUCCESS</div>
             </div>
-
-            <div class="card mb-6">
-                <div class="doc-table-container">
-                    <table class="doc-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Database</th>
-                                <th>Current Value</th>
-                                <th>Increment</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sequences-list">
-                            <!-- Sequences will be injected here -->
-                        </tbody>
-                    </table>
-                </div>
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <div id="query-result-content" class="json-viewer" style="max-height: 500px;"></div>
             </div>
         </div>
+    </div>
 
-        <!-- Create Sequence Modal -->
-        <div id="sequence-modal" class="modal-overlay hidden">
-            <div class="card" style="width: 100%; max-width: 450px;">
-                <h2 class="mb-6">New Sequence</h2>
-                <div class="mb-4">
-                    <label class="text-xs text-gray-400 mb-2 block">Sequence Name</label>
-                    <input type="text" id="seq-name" placeholder="user_id_seq">
-                </div>
-                <div class="mb-4">
-                    <label class="text-xs text-gray-400 mb-2 block">Database</label>
-                    <input type="text" id="seq-db" placeholder="main_db">
-                </div>
-                <div class="grid mb-6">
-                    <div>
-                        <label class="text-xs text-gray-400 mb-2 block">Start Value</label>
-                        <input type="number" id="seq-start" value="0">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-400 mb-2 block">Increment</label>
-                        <input type="number" id="seq-inc" value="1">
-                    </div>
-                </div>
-                <div style="display: flex; gap: 1rem;">
-                    <button class="btn" onclick="createSequence()">Create</button>
-                    <button class="btn" style="background: rgba(255,255,255,0.05); color: white;"
-                        onclick="closeSequenceModal()">Cancel</button>
-                </div>
-            </div>
+    <!-- Sequences View -->
+    <div id="view-sequences" class="hidden" style="max-width: 1200px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Sequential Keys (Sequences)</h2>
+            <button class="btn" onclick="showCreateSequenceModal()">Create Sequence</button>
         </div>
 
+        <div class="card mb-6">
+            <div class="doc-table-container">
+                <table class="doc-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Database</th>
+                            <th>Current Value</th>
+                            <th>Increment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sequences-list">
+                        <!-- Sequences will be injected here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-
-        <!-- Document Explorer View -->
-        <div id="view-document-explorer" class="hidden"
-            style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
-
-            <header
-                style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1.5rem;">
+    <!-- Create Sequence Modal -->
+    <div id="sequence-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 450px;">
+            <h2 class="mb-6">New Sequence</h2>
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 mb-2 block">Sequence Name</label>
+                <input type="text" id="seq-name" placeholder="user_id_seq">
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 mb-2 block">Database</label>
+                <input type="text" id="seq-db" placeholder="main_db">
+            </div>
+            <div class="grid mb-6">
                 <div>
-                    <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
-                        Document Explorer</h2>
-                    <p id="doc-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
-                        Exploring collection...</p>
+                    <label class="text-xs text-gray-400 mb-2 block">Start Value</label>
+                    <input type="number" id="seq-start" value="0">
                 </div>
-                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                    <!-- (+) Add Document Button -->
-                    <button class="btn"
-                        style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; flex-shrink: 0;"
-                        onclick="openAddDocModal()" title="Add New Document">
-                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
-                            </path>
-                        </svg>
-                    </button>
-                    <!-- Search Box -->
-                    <div style="position: relative; flex: 1; min-width: 200px;">
-                        <input type="text" id="doc-search-input" placeholder="Search documents..."
-                            onkeyup="if(event.key === 'Enter') searchDocuments()"
-                            style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.5rem; color: white; font-size: 0.9rem; width: 100%;">
-                        <svg style="width: 16px; height: 16px; color: #94a3b8; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);"
-                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                        </svg>
-                    </div>
-
-                    <div
-                        style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;">
-                        <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
-                            title="Table View">TABLE</button>
-                        <button class="view-mode-btn" onclick="setDocViewMode('json')" id="view-mode-json"
-                            title="JSON View">JSON</button>
-                        <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
-                            title="Tree View">TREE</button>
-                    </div>
-                    <label
-                        style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: white; font-size: 0.9rem; background: rgba(99, 102, 241, 0.15); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid rgba(99, 102, 241, 0.3); white-space: nowrap; transition: all 0.2s; box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);"
-                        onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'"
-                        onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
-                        <input type="checkbox" id="doc-resolve-refs"
-                            style="width: 16px; height: 16px; accent-color: var(--primary); margin: 0; cursor: pointer;"
-                            onchange="loadDocuments(currentSelectedCollection)"> <span style="font-weight: 600;">Resolve
-                            Refs</span>
-                    </label>
-                    <button class="btn" style="background: rgba(255,255,255,0.1); flex-shrink: 0;"
-                        onclick="loadDocuments(currentSelectedCollection)">
-                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-                            </path>
-                        </svg>
-                    </button>
-                    <div
-                        style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
-                        <button class="btn" onclick="prevPage()" id="btn-prev-page" disabled
-                            style="padding: 0.4rem 0.8rem;">&lt;</button>
-                        <span id="page-indicator"
-                            style="color: #94a3b8; font-size: 0.9rem; min-width: 60px; text-align: center;">Page
-                            1</span>
-                        <button class="btn" onclick="nextPage()" id="btn-next-page"
-                            style="padding: 0.4rem 0.8rem;">&gt;</button>
-                    </div>
+                <div>
+                    <label class="text-xs text-gray-400 mb-2 block">Increment</label>
+                    <input type="number" id="seq-inc" value="1">
                 </div>
-            </header>
-
-            <div class="card" id="document-list-card" style="width: 100%; padding: 0; overflow: hidden;">
-                <div id="document-list-container">
-                    <!-- Documents injected here -->
-                </div>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" onclick="createSequence()">Create</button>
+                <button class="btn" style="background: rgba(255,255,255,0.05); color: white;"
+                    onclick="closeSequenceModal()">Cancel</button>
             </div>
         </div>
+    </div>
 
 
-        <footer class="footer">
-            <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
-                <img src="/logo/jettra-logo.png" alt="JettraDB Logo" style="width: 24px; height: 24px; opacity: 0.8;">
-                <span style="font-weight: 600; color: #94a3b8;">JettraDB</span>
+
+    <!-- Document Explorer View -->
+    <div id="view-document-explorer" class="hidden"
+        style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
+
+        <header
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h2 id="doc-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
+                    Document Explorer</h2>
+                <p id="doc-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
+                    Exploring collection...</p>
             </div>
-            <div>&copy; 2024 JettraDB. All rights reserved.</div>
-            <div style="font-size: 0.75rem; color: #475569;">v1.0.0-beta</div>
-        </footer>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                <!-- (+) Add Document Button -->
+                <button class="btn"
+                    style="background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; flex-shrink: 0;"
+                    onclick="openAddDocModal()" title="Add New Document">
+                    <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4">
+                        </path>
+                    </svg>
+                </button>
+                <!-- Search Box -->
+                <div style="position: relative; flex: 1; min-width: 200px;">
+                    <input type="text" id="doc-search-input" placeholder="Search documents..."
+                        onkeyup="if(event.key === 'Enter') searchDocuments()"
+                        style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.5rem; color: white; font-size: 0.9rem; width: 100%;">
+                    <svg style="width: 16px; height: 16px; color: #94a3b8; position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%);"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+
+                <div
+                    style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-wrap: wrap;">
+                    <button class="view-mode-btn active" onclick="setDocViewMode('table')" id="view-mode-table"
+                        title="Table View">TABLE</button>
+                    <button class="view-mode-btn" onclick="setDocViewMode('json')" id="view-mode-json"
+                        title="JSON View">JSON</button>
+                    <button class="view-mode-btn" onclick="setDocViewMode('tree')" id="view-mode-tree"
+                        title="Tree View">TREE</button>
+                </div>
+                <label
+                    style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; color: white; font-size: 0.9rem; background: rgba(99, 102, 241, 0.15); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid rgba(99, 102, 241, 0.3); white-space: nowrap; transition: all 0.2s; box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);"
+                    onmouseover="this.style.background='rgba(99, 102, 241, 0.25)'"
+                    onmouseout="this.style.background='rgba(99, 102, 241, 0.15)'">
+                    <input type="checkbox" id="doc-resolve-refs"
+                        style="width: 16px; height: 16px; accent-color: var(--primary); margin: 0; cursor: pointer;"
+                        onchange="loadDocuments(currentSelectedCollection)"> <span style="font-weight: 600;">Resolve
+                        Refs</span>
+                </label>
+                <button class="btn" style="background: rgba(255,255,255,0.1); flex-shrink: 0;"
+                    onclick="loadDocuments(currentSelectedCollection)">
+                    <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                </button>
+                <div
+                    style="display: flex; gap: 0.5rem; align-items: center; background: rgba(0,0,0,0.2); padding: 0.25rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
+                    <button class="btn" onclick="prevPage()" id="btn-prev-page" disabled
+                        style="padding: 0.4rem 0.8rem;">&lt;</button>
+                    <span id="page-indicator"
+                        style="color: #94a3b8; font-size: 0.9rem; min-width: 60px; text-align: center;">Page
+                        1</span>
+                    <button class="btn" onclick="nextPage()" id="btn-next-page"
+                        style="padding: 0.4rem 0.8rem;">&gt;</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="card" id="document-list-card" style="width: 100%; padding: 0; overflow: hidden;">
+            <div id="document-list-container">
+                <!-- Documents injected here -->
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="footer">
+        <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
+            <img src="/logo/jettra-logo.png" alt="JettraDB Logo" style="width: 24px; height: 24px; opacity: 0.8;">
+            <span style="font-weight: 600; color: #94a3b8;">JettraDB</span>
+        </div>
+        <div>&copy; 2024 JettraDB. All rights reserved.</div>
+        <div style="font-size: 0.75rem; color: #475569;">v1.0.0-beta</div>
+    </footer>
     </div>
 
     <!-- Password Change Modal -->
@@ -1549,6 +1595,10 @@
         let allDatabases = [];
         let allUsers = [];
         let allSequences = [];
+
+        // Users Pagination
+        let userPage = 1;
+        const usersPerPage = 5;
         let selectedNodeId = null;
         let dbToDelete = null;
 
@@ -2670,16 +2720,18 @@
 
         let nodeToStop = null;
 
-        function stopNode(nodeId) {
-            nodeToStop = nodeId;
-            document.getElementById('stop-node-id-label').textContent = nodeId;
-            document.getElementById('stop-modal').classList.remove('hidden');
-            document.getElementById('confirm-stop-btn').onclick = confirmStopNode;
-        }
-
         function closeStopModal() {
             nodeToStop = null;
+            document.getElementById('stop-modal').classList.remove('show');
             document.getElementById('stop-modal').classList.add('hidden');
+        }
+
+        function stopNode(id) {
+            nodeToStop = id;
+            document.getElementById('stop-node-id-label').textContent = id;
+            const modal = document.getElementById('stop-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('show');
         }
 
         async function confirmStopNode() {
@@ -3103,6 +3155,19 @@
                 container.innerHTML = '<p class="text-xs text-gray-400">No users found.</p>';
                 return;
             }
+
+            const totalPages = Math.ceil(users.length / usersPerPage);
+            if (userPage > totalPages) userPage = totalPages || 1;
+
+            const start = (userPage - 1) * usersPerPage;
+            const end = start + usersPerPage;
+            const paginatedUsers = users.slice(start, end);
+
+            // Update Pagination UI
+            document.getElementById('user-page-indicator').textContent = `Page ${userPage} of ${totalPages || 1}`;
+            document.getElementById('btn-prev-user-page').disabled = userPage === 1;
+            document.getElementById('btn-next-user-page').disabled = userPage === totalPages || totalPages === 0;
+
             container.innerHTML = `
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; margin-top: 1rem; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; overflow: hidden; min-width: 600px;">
@@ -3127,7 +3192,10 @@
                                 <td style="padding: 0.75rem; font-weight: 500;">
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                                         <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">${user.username[0].toUpperCase()}</div>
-                                        ${user.username}
+                                        <div>
+                                            <div>${user.username}</div>
+                                            <div style="font-size: 0.65rem; color: #64748b;">${user.email || 'no email'}</div>
+                                        </div>
                                     </div>
                                 </td>
                                 <td style="padding: 0.75rem; font-size: 0.75rem;">
@@ -3135,11 +3203,11 @@
                                         ${user.profile || 'end-user'}
                                     </span>
                                 </td>
-                                <td style="padding: 0.75rem; font-size: 0.75rem; color: #94a3b8;">${roleDetails || 'no roles'}</td>
+                                <td style="padding: 0.75rem; font-size: 0.75rem; color: #94a3b8; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${roleDetails || 'no roles'}">${roleDetails || 'no roles'}</td>
                                 <td style="padding: 0.75rem; text-align: right;">
                                     <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                                         <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.7rem;" onclick="handleEditUser('${user.username}')">Editar</button>
-                                        ${user.username !== 'super-user' ? `
+                                        ${user.username !== 'super-user' && user.username !== 'admin' ? `
                                         <button class="btn" style="padding: 0.3rem 0.6rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.7rem;" onclick="deleteUser('${user.username}')">Delete</button>
                                         ` : ''}
                                     </div>
@@ -3210,191 +3278,220 @@
                 document.getElementById('user-save-btn').textContent = "Save Changes";
                 document.getElementById('user-cancel-btn').classList.remove('hidden');
 
-                // Set Global Role
-                // Set User Profile
-                const profileSelect = document.getElementById('user-profile');
-                profileSelect.value = user.profile || 'end-user';
-
-                await renderUserDbRoles(user);
-                window.scrollTo({ top: document.getElementById('view-security').offsetTop, behavior: 'smooth' });
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        function resetUserForm() {
-            document.getElementById('user-is-edit').value = "false";
-            document.getElementById('user-username').value = "";
-            document.getElementById('user-username').disabled = false;
-            document.getElementById('user-email').value = "";
-            document.getElementById('user-password').value = "";
-            document.getElementById('user-password').placeholder = "Password";
-            document.getElementById('user-form-title').textContent = "Create / Edit User";
-            document.getElementById('user-save-btn').textContent = "Create User";
-            document.getElementById('user-cancel-btn').classList.add('hidden');
-            document.getElementById('user-profile').value = 'end-user';
-
-            renderUserDbRoles();
-        }
-
-        async function saveUser() {
-            const username = document.getElementById('user-username').value.trim();
-            const email = document.getElementById('user-email').value.trim();
-            const password = document.getElementById('user-password').value.trim();
-            const isEdit = document.getElementById('user-is-edit').value === "true";
-            const profile = document.getElementById('user-profile').value;
-
-            if (!username) return showAlert('Error', 'Username is required');
-            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                return showAlert('Error', 'Invalid email format');
-            }
-            if (!isEdit && !password) return showAlert('Error', 'Password is required for new users');
-
-            const selects = document.querySelectorAll('.user-db-role-select');
-            const selectedRoles = [];
-
-            // Add Profile as a role for simplicity/compatibility if needed, 
-            // but the backend uses the profile field separately now.
-            // We still need to pass it in the JSON.
-            // ...
-            // Wait, the backend userData needs 'profile' field.
-            // ...
-
-            for (let s of selects) {
-                const db = s.dataset.db;
-                const roleType = s.value;
-
-                if (roleType !== 'none') {
-                    // Normalize role name: reader_db1, writer-reader_all, etc.
-                    const roleName = `${roleType}_${db.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                    selectedRoles.push(roleName);
-
-                    // Ensure this role exists in the PD
-                    await ensureRoleExists(roleName, db, roleType);
-                }
-            }
-
-            const userData = {
-                username,
-                password: password || undefined,
-                email: email || null,
-                roles: selectedRoles,
-                profile: profile,
-                forcePasswordChange: false
-            };
-
-            const url = isEdit ? `/api/web-auth/users/${username}` : '/api/web-auth/users';
-            const method = isEdit ? 'PUT' : 'POST';
-
-            try {
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(userData)
-                });
-
-                if (response.ok) {
-                    resetUserForm();
-                    await fetchUsers();
-                    await fetchDatabases(); // REFRESH THE TREE to show user in DB subtrees
-                    showAlert('Success', `User ${isEdit ? 'updated' : 'created'} successfully`, 'success');
-                } else {
-                    showAlert('Error', await response.text());
-                }
-            } catch (e) {
-                showAlert('Error', 'Connection error');
-            }
-        }
-
-        async function ensureRoleExists(roleName, db, roleType) {
-            // Check if already in our cache
-            if (allSystemRoles.some(r => r.name === roleName)) return;
-
-            // Map roleType to privileges
-            let privileges = ['READ'];
-            if (roleType === 'admin') privileges = ['ADMIN', 'READ', 'WRITE'];
-            else if (roleType === 'read-write') privileges = ['READ', 'WRITE'];
-            else if (roleType === 'read') privileges = ['READ'];
-
-            try {
-                await fetch('/api/web-auth/roles', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name: roleName, database: db, privileges })
-                });
-                await fetchRoles(); // Refresh cache
-            } catch (e) {
-                console.error("Error ensuring role exists:", e);
-            }
-        }
-
-        async function deleteUser(username) {
-            if (!confirm(`Are you sure you want to delete user ${username}?`)) return;
-            try {
-                const response = await fetchWithAuth(`/api/web-auth/users/${username}`, {
-                    method: 'DELETE'
-                });
-                if (response.ok) {
-                    await fetchUsers();
-                    showAlert('Success', 'User deleted', 'success');
-                } else {
-                    showAlert('Error', 'Failed to delete user');
-                }
-            } catch (e) {
-                showAlert('Error', 'Connection error');
-            }
-        }
-
-
-        // --- Permissions Management Logic ---
-
-        async function managePermissions(dbName) {
-            document.getElementById('perm-db-name-label').textContent = dbName;
-            document.getElementById('perm-db-name-hidden').value = dbName;
-            document.getElementById('db-permissions-modal').classList.remove('hidden');
-
-            // Ensure users are loaded
-            await fetchUsers();
-            await fetchRoles();
-
-            // Logic similar to editDb but strictly for this modal's list
-            renderPermRoleList(dbName);
-        }
-
-        async function renderPermRoleList(dbName) {
-            const container = document.getElementById('perm-role-list');
-            if (!allUsers || allUsers.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: #64748b;">No users available.</p>';
-                return;
-            }
-
-            container.innerHTML = allUsers.map(user => {
-                // Determine current role for this DB
-                // Role naming convention: {roleType}_{dbName} (e.g. admin_db1)
-                // We check if user has any role ending in _{dbName}
-
-                let currentRoleType = 'none';
-                if (user.roles) {
-                    const dbRole = user.roles.find(r => r.endsWith('_' + dbName));
-                    if (dbRole) {
-                        // Extract type: admin_db1 -> admin
-                        currentRoleType = dbRole.substring(0, dbRole.length - dbName.length - 1);
+                function nextUserPage() {
+                    const totalPages = Math.ceil(allUsers.length / usersPerPage);
+                    if (userPage < totalPages) {
+                        userPage++;
+                        renderUsers(allUsers);
                     }
                 }
 
-                // Protection for 'admin' user (super-user)
-                const isAdminUser = user.username === 'super-user';
-                if (isAdminUser) currentRoleType = 'admin';
+                function prevUserPage() {
+                    if (userPage > 1) {
+                        userPage--;
+                        renderUsers(allUsers);
+                    }
+                }
 
-                const isLocked = isAdminUser;
+                function openUserModal() {
+                    resetUserForm();
+                    document.getElementById('user-modal').classList.add('show');
+                }
 
-                return `
+                function closeUserModal() {
+                    document.getElementById('user-modal').classList.remove('show');
+                }
+
+                async function handleEditUser(username) {
+                    const user = allUsers.find(u => u.username === username);
+                    if (!user) return;
+
+                    resetUserForm();
+                    document.getElementById('user-is-edit').value = "true";
+                    document.getElementById('user-form-title').innerText = "Editar Usuario: " + username;
+                    document.getElementById('user-save-btn').innerText = "Guardar Cambios";
+                    document.getElementById('user-username').value = user.username;
+                    document.getElementById('user-username').disabled = true;
+                    document.getElementById('user-email').value = user.email || "";
+                    document.getElementById('user-profile').value = user.profile || "end-user";
+
+                    await renderUserDbRoles(user);
+                    document.getElementById('user-modal').classList.add('show');
+                }
+
+                function resetUserForm() {
+                    document.getElementById('user-is-edit').value = "false";
+                    document.getElementById('user-form-title').innerText = "Crear Usuario";
+                    document.getElementById('user-save-btn').innerText = "Crear Usuario";
+                    document.getElementById('user-username').value = "";
+                    document.getElementById('user-username').disabled = false;
+                    document.getElementById('user-email').value = "";
+                    document.getElementById('user-password').value = "";
+                    document.getElementById('user-password').placeholder = "Password";
+                    document.getElementById('user-profile').value = "end-user";
+
+                    renderUserDbRoles();
+                }
+
+                async function saveUser() {
+                    const username = document.getElementById('user-username').value.trim();
+                    const email = document.getElementById('user-email').value.trim();
+                    const password = document.getElementById('user-password').value.trim();
+                    const isEdit = document.getElementById('user-is-edit').value === "true";
+                    const profile = document.getElementById('user-profile').value;
+
+                    if (!username) return showAlert('Error', 'Username is required');
+                    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        return showAlert('Error', 'Invalid email format');
+                    }
+                    if (!isEdit && !password) return showAlert('Error', 'Password is required for new users');
+
+                    const selects = document.querySelectorAll('.user-db-role-select');
+                    const selectedRoles = [];
+
+                    // Add Profile as a role for simplicity/compatibility if needed, 
+                    // but the backend uses the profile field separately now.
+                    // We still need to pass it in the JSON.
+                    // ...
+                    // Wait, the backend userData needs 'profile' field.
+                    // ...
+
+                    for (let s of selects) {
+                        const db = s.dataset.db;
+                        const roleType = s.value;
+
+                        if (roleType !== 'none') {
+                            // Normalize role name: reader_db1, writer-reader_all, etc.
+                            const roleName = `${roleType}_${db.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                            selectedRoles.push(roleName);
+
+                            // Ensure this role exists in the PD
+                            await ensureRoleExists(roleName, db, roleType);
+                        }
+                    }
+
+                    const userData = {
+                        username,
+                        password: password || undefined,
+                        email: email || null,
+                        roles: selectedRoles,
+                        profile: profile,
+                        forcePasswordChange: false
+                    };
+
+                    const url = isEdit ? `/api/web-auth/users/${username}` : '/api/web-auth/users';
+                    const method = isEdit ? 'PUT' : 'POST';
+
+                    try {
+                        const response = await fetch(url, {
+                            method: method,
+                            headers: {
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(userData)
+                        });
+
+                        if (response.ok) {
+                            closeUserModal();
+                            resetUserForm();
+                            await fetchUsers();
+                            await fetchDatabases(); // REFRESH THE TREE to show user in DB subtrees
+                            showAlert('Éxito', `Usuario ${isEdit ? 'actualizado' : 'creado'} correctamente`, 'success');
+                        } else {
+                            showAlert('Error', await response.text());
+                        }
+                    } catch (e) {
+                        showAlert('Error', 'Error de conexión');
+                    }
+                }
+
+                async function ensureRoleExists(roleName, db, roleType) {
+                    // Check if already in our cache
+                    if (allSystemRoles.some(r => r.name === roleName)) return;
+
+                    // Map roleType to privileges
+                    let privileges = ['READ'];
+                    if (roleType === 'admin') privileges = ['ADMIN', 'READ', 'WRITE'];
+                    else if (roleType === 'read-write') privileges = ['READ', 'WRITE'];
+                    else if (roleType === 'read') privileges = ['READ'];
+
+                    try {
+                        await fetch('/api/web-auth/roles', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ name: roleName, database: db, privileges })
+                        });
+                        await fetchRoles(); // Refresh cache
+                    } catch (e) {
+                        console.error("Error ensuring role exists:", e);
+                    }
+                }
+
+                async function deleteUser(username) {
+                    if (!confirm(`Are you sure you want to delete user ${username}?`)) return;
+                    try {
+                        const response = await fetchWithAuth(`/api/web-auth/users/${username}`, {
+                            method: 'DELETE'
+                        });
+                        if (response.ok) {
+                            await fetchUsers();
+                            showAlert('Success', 'User deleted', 'success');
+                        } else {
+                            showAlert('Error', 'Failed to delete user');
+                        }
+                    } catch (e) {
+                        showAlert('Error', 'Connection error');
+                    }
+                }
+
+
+                // --- Permissions Management Logic ---
+
+                async function managePermissions(dbName) {
+                    document.getElementById('perm-db-name-label').textContent = dbName;
+                    document.getElementById('perm-db-name-hidden').value = dbName;
+                    document.getElementById('db-permissions-modal').classList.remove('hidden');
+
+                    // Ensure users are loaded
+                    await fetchUsers();
+                    await fetchRoles();
+
+                    // Logic similar to editDb but strictly for this modal's list
+                    renderPermRoleList(dbName);
+                }
+
+                async function renderPermRoleList(dbName) {
+                    const container = document.getElementById('perm-role-list');
+                    if (!allUsers || allUsers.length === 0) {
+                        container.innerHTML = '<p style="text-align: center; color: #64748b;">No users available.</p>';
+                        return;
+                    }
+
+                    container.innerHTML = allUsers.map(user => {
+                        // Determine current role for this DB
+                        // Role naming convention: {roleType}_{dbName} (e.g. admin_db1)
+                        // We check if user has any role ending in _{dbName}
+
+                        let currentRoleType = 'none';
+                        if (user.roles) {
+                            const dbRole = user.roles.find(r => r.endsWith('_' + dbName));
+                            if (dbRole) {
+                                // Extract type: admin_db1 -> admin
+                                currentRoleType = dbRole.substring(0, dbRole.length - dbName.length - 1);
+                            }
+                        }
+
+                        // Protection for 'admin' user (super-user)
+                        const isAdminUser = user.username === 'super-user';
+                        if (isAdminUser) currentRoleType = 'admin';
+
+                        const isLocked = isAdminUser;
+
+                        return `
                     <div class="role-assignment-item">
                         <span style="color: #e2e8f0; font-size: 0.9rem;">${user.username}</span>
                         <select class="perm-role-select" data-username="${user.username}" ${isLocked ? 'disabled style="opacity: 0.6; cursor: not-allowed;" title="Super-user privileges cannot be changed"' : ''}>
@@ -3406,115 +3503,115 @@
                         </select>
                     </div>
                 `;
-            }).join('');
-        }
+                    }).join('');
+                }
 
-        async function savePermissions() {
-            console.log('savePermissions called');
-            const dbNameInput = document.getElementById('perm-db-name-hidden');
-            if (!dbNameInput) {
-                showAlert('Error Crítico', 'No se encontró el campo oculto de nombre de BD.');
-                return;
-            }
-            const dbName = dbNameInput.value;
+                async function savePermissions() {
+                    console.log('savePermissions called');
+                    const dbNameInput = document.getElementById('perm-db-name-hidden');
+                    if (!dbNameInput) {
+                        showAlert('Error Crítico', 'No se encontró el campo oculto de nombre de BD.');
+                        return;
+                    }
+                    const dbName = dbNameInput.value;
 
-            if (!dbName) {
-                showAlert('Error', 'Nombre de base de datos no encontrado.');
-                return;
-            }
+                    if (!dbName) {
+                        showAlert('Error', 'Nombre de base de datos no encontrado.');
+                        return;
+                    }
 
-            const roleMappings = {};
-            const currentUsername = (localStorage.getItem('jettra_username') || 'unknown').trim();
-            let currentUserNewRole = 'unknown';
+                    const roleMappings = {};
+                    const currentUsername = (localStorage.getItem('jettra_username') || 'unknown').trim();
+                    let currentUserNewRole = 'unknown';
 
-            document.querySelectorAll('.perm-role-select').forEach(select => {
-                const username = select.dataset.username;
-                const type = select.value;
-                if (username && type) {
-                    roleMappings[username] = type;
-                    if (username.toLowerCase() === currentUsername.toLowerCase()) {
-                        currentUserNewRole = type;
+                    document.querySelectorAll('.perm-role-select').forEach(select => {
+                        const username = select.dataset.username;
+                        const type = select.value;
+                        if (username && type) {
+                            roleMappings[username] = type;
+                            if (username.toLowerCase() === currentUsername.toLowerCase()) {
+                                currentUserNewRole = type;
+                            }
+                        }
+                    });
+
+                    console.log('DEBUG: Permission mappings:', roleMappings);
+
+                    // Self-Lockout Prevention
+                    const isGlobalAdmin = (localStorage.getItem('jettra_username') === 'super-user') || (localStorage.getItem('jettra_is_admin') === 'true');
+
+                    console.log('DEBUG: isGlobalAdmin=', isGlobalAdmin, 'currentUserNewRole=', currentUserNewRole);
+
+                    // Check if user is demoting themselves
+                    if (!isGlobalAdmin) {
+                        if (currentUserNewRole === 'denied' || currentUserNewRole === 'none') {
+                            return showAlert('Acción Bloqueada', 'No puedes quitarte tu propio acceso completamente. Asigna otro administrador primero o contacta al administrador global.', 'error');
+                        }
+
+                        if (currentUserNewRole !== 'admin' && currentUserNewRole !== 'unknown') {
+                            // Warn only if demoting from Admin (presumed) to something else
+                            showPermissionConfirmModal(dbName, roleMappings);
+                            return;
+                        }
+                    }
+
+                    // Proceed directly
+                    await submitPermissions(dbName, roleMappings);
+                }
+
+                async function submitPermissions(dbName, roleMappings) {
+                    const syncUrl = `/api/web-auth/databases/${dbName}/sync-roles`;
+
+                    try {
+                        const syncResponse = await fetch(syncUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(roleMappings)
+                        });
+
+                        if (!syncResponse.ok) {
+                            const err = await syncResponse.text();
+                            console.error('Permission sync error:', err);
+                            showAlert('Error', 'Error guardando permisos: ' + (err || "Acceso Denegado"));
+                        } else {
+                            console.log('Permissions saved successfully');
+                            document.getElementById('db-permissions-modal').classList.add('hidden');
+                            document.getElementById('perm-confirm-modal').classList.add('hidden');
+                            showAlert('Éxito', 'Permisos actualizados correctamente', 'success');
+                            await fetchUsers();
+                            await fetchDatabases();
+                        }
+                    } catch (e) {
+                        console.error('Exception saving permissions:', e);
+                        showAlert('Error', 'Error de conexión: ' + e.message);
                     }
                 }
-            });
 
-            console.log('DEBUG: Permission mappings:', roleMappings);
-
-            // Self-Lockout Prevention
-            const isGlobalAdmin = (localStorage.getItem('jettra_username') === 'super-user') || (localStorage.getItem('jettra_is_admin') === 'true');
-
-            console.log('DEBUG: isGlobalAdmin=', isGlobalAdmin, 'currentUserNewRole=', currentUserNewRole);
-
-            // Check if user is demoting themselves
-            if (!isGlobalAdmin) {
-                if (currentUserNewRole === 'denied' || currentUserNewRole === 'none') {
-                    return showAlert('Acción Bloqueada', 'No puedes quitarte tu propio acceso completamente. Asigna otro administrador primero o contacta al administrador global.', 'error');
+                function showPermissionConfirmModal(dbName, roleMappings) {
+                    document.getElementById('perm-confirm-db').value = dbName;
+                    document.getElementById('perm-confirm-data').value = JSON.stringify(roleMappings);
+                    document.getElementById('perm-confirm-modal').classList.remove('hidden');
                 }
 
-                if (currentUserNewRole !== 'admin' && currentUserNewRole !== 'unknown') {
-                    // Warn only if demoting from Admin (presumed) to something else
-                    showPermissionConfirmModal(dbName, roleMappings);
-                    return;
-                }
-            }
-
-            // Proceed directly
-            await submitPermissions(dbName, roleMappings);
-        }
-
-        async function submitPermissions(dbName, roleMappings) {
-            const syncUrl = `/api/web-auth/databases/${dbName}/sync-roles`;
-
-            try {
-                const syncResponse = await fetch(syncUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(roleMappings)
-                });
-
-                if (!syncResponse.ok) {
-                    const err = await syncResponse.text();
-                    console.error('Permission sync error:', err);
-                    showAlert('Error', 'Error guardando permisos: ' + (err || "Acceso Denegado"));
-                } else {
-                    console.log('Permissions saved successfully');
-                    document.getElementById('db-permissions-modal').classList.add('hidden');
+                function closePermissionConfirmModal() {
                     document.getElementById('perm-confirm-modal').classList.add('hidden');
-                    showAlert('Éxito', 'Permisos actualizados correctamente', 'success');
-                    await fetchUsers();
-                    await fetchDatabases();
                 }
-            } catch (e) {
-                console.error('Exception saving permissions:', e);
-                showAlert('Error', 'Error de conexión: ' + e.message);
-            }
-        }
 
-        function showPermissionConfirmModal(dbName, roleMappings) {
-            document.getElementById('perm-confirm-db').value = dbName;
-            document.getElementById('perm-confirm-data').value = JSON.stringify(roleMappings);
-            document.getElementById('perm-confirm-modal').classList.remove('hidden');
-        }
+                function confirmSavePermissions() {
+                    const dbName = document.getElementById('perm-confirm-db').value;
+                    const dataStr = document.getElementById('perm-confirm-data').value;
+                    if (!dbName || !dataStr) return;
+                    const roleMappings = JSON.parse(dataStr);
+                    submitPermissions(dbName, roleMappings);
+                }
 
-        function closePermissionConfirmModal() {
-            document.getElementById('perm-confirm-modal').classList.add('hidden');
-        }
-
-        function confirmSavePermissions() {
-            const dbName = document.getElementById('perm-confirm-db').value;
-            const dataStr = document.getElementById('perm-confirm-data').value;
-            if (!dbName || !dataStr) return;
-            const roleMappings = JSON.parse(dataStr);
-            submitPermissions(dbName, roleMappings);
-        }
-
-        function logout() {
-            localStorage.removeItem('jettra_token');
-            window.location.href = '/login.html';
-        }
+                function logout() {
+                    localStorage.removeItem('jettra_token');
+                    window.location.href = '/login.html';
+                }
     </script>
     <!-- New/Edit Document Modal (Responsive) -->
     <div id="doc-modal" class="modal-overlay hidden" style="align-items: flex-start; padding-top: 92px;">
@@ -3632,49 +3729,49 @@
         </div>
     </div>
     <script>
-        async function showDocVersions(jid) {
-            document.getElementById('versions-doc-id').textContent = jid;
-            const container = document.getElementById('versions-list-container');
-            container.innerHTML = '<div style="color: #94a3b8; text-align: center;">Fetching versions...</div>';
-            showModal('versions-modal');
+                async function showDocVersions(jid) {
+                    document.getElementById('versions-doc-id').textContent = jid;
+                    const container = document.getElementById('versions-list-container');
+                    container.innerHTML = '<div style="color: #94a3b8; text-align: center;">Fetching versions...</div>';
+                    showModal('versions-modal');
 
-            try {
-                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-                const nodes = await safeJson(nodesResp) || [];
-                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+                    try {
+                        const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                        const nodes = await safeJson(nodesResp) || [];
+                        const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
 
-                if (!storeNode) {
-                    container.innerHTML = '<div style="color: #ef4444;">Error: No storage node available.</div>';
-                    return;
-                }
-
-                // Call Proxy
-                const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(jid)}/versions`;
-                const resp = await fetchWithAuth('/api/db/proxy/document', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: targetUrl, method: 'GET' })
-                });
-
-                if (resp.ok) {
-                    const data = await safeJson(resp);
-                    if (!data || data.length === 0) {
-                        container.innerHTML = '<div style="color: #94a3b8; font-style: italic;">No history found.</div>';
-                        return;
-                    }
-
-                    // Data is usually sorted oldest to newest from backend. Reverse to show newest first.
-                    let html = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
-                    data.reverse().forEach((vStr) => {
-                        let vObj = vStr;
-                        if (typeof vStr === 'string') {
-                            try { vObj = JSON.parse(vStr); } catch (e) { }
+                        if (!storeNode) {
+                            container.innerHTML = '<div style="color: #ef4444;">Error: No storage node available.</div>';
+                            return;
                         }
 
-                        const vNum = vObj._version || 'N/A';
-                        const vDate = vObj._lastModified || 'Unknown';
+                        // Call Proxy
+                        const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(jid)}/versions`;
+                        const resp = await fetchWithAuth('/api/db/proxy/document', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: targetUrl, method: 'GET' })
+                        });
 
-                        html += `
+                        if (resp.ok) {
+                            const data = await safeJson(resp);
+                            if (!data || data.length === 0) {
+                                container.innerHTML = '<div style="color: #94a3b8; font-style: italic;">No history found.</div>';
+                                return;
+                            }
+
+                            // Data is usually sorted oldest to newest from backend. Reverse to show newest first.
+                            let html = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
+                            data.reverse().forEach((vStr) => {
+                                let vObj = vStr;
+                                if (typeof vStr === 'string') {
+                                    try { vObj = JSON.parse(vStr); } catch (e) { }
+                                }
+
+                                const vNum = vObj._version || 'N/A';
+                                const vDate = vObj._lastModified || 'Unknown';
+
+                                html += `
                             <div class="card" style="padding: 1rem; border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
                                     <div>
@@ -3689,64 +3786,64 @@
                                 <pre style="margin: 0; font-size: 0.8rem; color: #a5b4fc; overflow-x: auto; max-height: 150px;">${JSON.stringify(vObj, null, 2)}</pre>
                             </div>
                         `;
-                    });
-                    html += '</div>';
-                    container.innerHTML = html;
-                } else {
-                    container.innerHTML = `<div style="color: #ef4444;">Failed to load versions (${resp.status}).</div>`;
-                }
-            } catch (e) {
-                container.innerHTML = `<div style="color: #ef4444;">Error: ${e.message}</div>`;
-            }
-        }
-
-        function openRestoreModal(jid, version) {
-            document.getElementById('restore-jid-hidden').value = jid;
-            document.getElementById('restore-ver-hidden').value = version;
-            document.getElementById('restore-ver-label').textContent = version;
-            document.getElementById('restore-modal').classList.remove('hidden');
-        }
-
-        function closeRestoreModal() {
-            document.getElementById('restore-modal').classList.add('hidden');
-        }
-
-        async function confirmRestore() {
-            const jid = document.getElementById('restore-jid-hidden').value;
-            const version = document.getElementById('restore-ver-hidden').value;
-
-            try {
-                // We need storeNode address again. 
-                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-                const nodes = await safeJson(nodesResp) || [];
-                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-                if (!storeNode) {
-                    showAlert('Error: No storage node available', 'error');
-                    return;
+                            });
+                            html += '</div>';
+                            container.innerHTML = html;
+                        } else {
+                            container.innerHTML = `<div style="color: #ef4444;">Failed to load versions (${resp.status}).</div>`;
+                        }
+                    } catch (e) {
+                        container.innerHTML = `<div style="color: #ef4444;">Error: ${e.message}</div>`;
+                    }
                 }
 
-                const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(jid)}/restore/${version}`;
-                const resp = await fetchWithAuth('/api/db/proxy/document', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: targetUrl, method: 'POST' })
-                });
-
-                if (resp.ok) {
-                    showAlert(`Version ${version} restored!`, 'success');
-                    closeRestoreModal();
-                    closeModal('versions-modal');
-                    // Refresh listing
-                    loadDocuments(currentSelectedCollection);
-                } else {
-                    const txt = await resp.text();
-                    showAlert('Restore failed: ' + txt, 'error');
+                function openRestoreModal(jid, version) {
+                    document.getElementById('restore-jid-hidden').value = jid;
+                    document.getElementById('restore-ver-hidden').value = version;
+                    document.getElementById('restore-ver-label').textContent = version;
+                    document.getElementById('restore-modal').classList.remove('hidden');
                 }
-            } catch (e) {
-                showAlert('Error: ' + e.message, 'error');
-            }
-        }
+
+                function closeRestoreModal() {
+                    document.getElementById('restore-modal').classList.add('hidden');
+                }
+
+                async function confirmRestore() {
+                    const jid = document.getElementById('restore-jid-hidden').value;
+                    const version = document.getElementById('restore-ver-hidden').value;
+
+                    try {
+                        // We need storeNode address again. 
+                        const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                        const nodes = await safeJson(nodesResp) || [];
+                        const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                        if (!storeNode) {
+                            showAlert('Error: No storage node available', 'error');
+                            return;
+                        }
+
+                        const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(jid)}/restore/${version}`;
+                        const resp = await fetchWithAuth('/api/db/proxy/document', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: targetUrl, method: 'POST' })
+                        });
+
+                        if (resp.ok) {
+                            showAlert(`Version ${version} restored!`, 'success');
+                            closeRestoreModal();
+                            closeModal('versions-modal');
+                            // Refresh listing
+                            loadDocuments(currentSelectedCollection);
+                        } else {
+                            const txt = await resp.text();
+                            showAlert('Restore failed: ' + txt, 'error');
+                        }
+                    } catch (e) {
+                        showAlert('Error: ' + e.message, 'error');
+                    }
+                }
     </script>
 </body>
 

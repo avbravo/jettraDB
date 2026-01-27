@@ -120,14 +120,37 @@ public class DashboardResource {
         // 4. Footer
         template.setFooter(new Footer());
 
-        // 5. Global Overlays (Modals stay in DOM even during HTMX content swaps)
+        // 5. Global Overlays
         template.addOverlay(createStopModal());
         template.addOverlay(createDetailsModal());
+        template.addOverlay(createUserModal());
 
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
 
-        // Add manual script for Theme Toggle
+        // Global Style for centering and premium look (using script injection since
+        // Page lacks addStyleContent)
+        page.addScriptContent("""
+                    const extraStyle = document.createElement('style');
+                    extraStyle.textContent = `
+                        .modal-overlay-centered {
+                            display: none;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                        .modal-overlay-centered.flex {
+                            display: flex !important;
+                        }
+                        /* Custom Scrollbar for dark theme */
+                        ::-webkit-scrollbar { width: 8px; }
+                        ::-webkit-scrollbar-track { background: transparent; }
+                        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+                        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+                    `;
+                    document.head.appendChild(extraStyle);
+                """);
+
+        // Add manual script
         String themeScript = """
                     // On page load or when changing themes, best to add inline in `head` to avoid FOUC
                     if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -200,21 +223,41 @@ public class DashboardResource {
     // Helper for Modals
     private Modal createStopModal() {
         Modal modal = new Modal("stop-modal", "Stop Node");
+        // Ensure perfect centering and premium look
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
         Div content = new Div("stop-content");
-        content.addComponent(new Label("stop-msg",
-                "Are you sure you want to stop node <span id='stop-node-id' class='font-bold'></span>? This action cannot be undone."));
+        content.setStyleClass("text-center space-y-4");
+
+        Div iconBox = new Div("stop-icon-box");
+        iconBox.setStyleClass(
+                "w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-500/20");
+        iconBox.addComponent(new Label("stop-icon",
+                "<svg class='w-8 h-8 text-rose-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12'></path></svg>"));
+        content.addComponent(iconBox);
+
+        Label msg = new Label("stop-msg",
+                "Are you sure you want to stop node <span id='stop-node-id' class='text-rose-400 font-mono font-bold'></span>?");
+        msg.setStyleClass("text-slate-300 block mb-1");
+        content.addComponent(msg);
+
+        Label warning = new Label("stop-warning",
+                "This action will temporarily remove this node from the cluster consensus.");
+        warning.setStyleClass("text-xs text-slate-500 block");
+        content.addComponent(warning);
+
         modal.addComponent(content);
 
-        Button confirmBtn = new Button("btn-stop-confirm", "Yes, Stop Node Now");
+        Button confirmBtn = new Button("btn-stop-confirm", "🛑 Yes, Stop Node");
         confirmBtn.setStyleClass(
-                "flex-1 text-white bg-rose-600 hover:bg-rose-700 focus:ring-4 focus:outline-none focus:ring-rose-800 font-bold rounded-lg text-sm px-5 py-2.5 text-center transition-all");
+                "flex-1 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-rose-900/20");
         confirmBtn.addAttribute("onclick", "confirmStopNode()");
-        confirmBtn.addAttribute("data-modal-hide", "stop-modal");
         modal.addFooterComponent(confirmBtn);
 
         Button cancelBtn = new Button("btn-stop-cancel", "Cancel");
         cancelBtn.setStyleClass(
-                "flex-1 text-slate-300 bg-white/5 hover:bg-white/10 focus:ring-4 focus:outline-none focus:ring-slate-700 rounded-lg border border-white/10 text-sm font-medium px-5 py-2.5 transition-all");
+                "flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
         cancelBtn.addAttribute("onclick", "closeStopModal()");
         modal.addFooterComponent(cancelBtn);
 
@@ -243,5 +286,75 @@ public class DashboardResource {
         content.addComponent(new Label("script-detail",
                 "<script> function openDetails(id) { document.getElementById('detail-node-id').innerText = id; } </script>"));
         return modal;
+    }
+
+    private Modal createUserModal() {
+        Modal modal = new Modal("user-modal", "Manage User");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("user-modal-body");
+        content.setStyleClass("space-y-4 min-w-[320px]");
+
+        // Form Fields
+        Div fields = new Div("user-fields");
+        fields.setStyleClass("space-y-4");
+
+        fields.addComponent(createFormField("Username", new InputText("user-username")));
+        fields.addComponent(createFormField("Email", new InputText("user-email")));
+        fields.addComponent(createFormField("Password", new Password("user-password")));
+
+        SelectOne profileSelect = new SelectOne("user-profile");
+        profileSelect.addOption("super-user", "Super User (Full Access + Cluster)");
+        profileSelect.addOption("management", "Management (Full Access except Stopping Nodes)");
+        profileSelect.addOption("end-user", "End User (Database Level Admin Only)");
+        fields.addComponent(createFormField("User Profile", profileSelect));
+
+        content.addComponent(fields);
+        modal.addComponent(content);
+
+        Button saveBtn = new Button("btn-user-save", "Save User");
+        saveBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all");
+        saveBtn.addAttribute("onclick", "saveUser()");
+        modal.addFooterComponent(saveBtn);
+
+        Button cancelBtn = new Button("btn-user-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("onclick", "closeUserModal()");
+        modal.addFooterComponent(cancelBtn);
+
+        content.addComponent(new Label("script-user",
+                "<script> " +
+                        "function openUserModal() { document.getElementById('user-modal').classList.remove('hidden'); document.getElementById('user-modal').classList.add('flex'); } "
+                        +
+                        "function closeUserModal() { document.getElementById('user-modal').classList.add('hidden'); document.getElementById('user-modal').classList.remove('flex'); } "
+                        +
+                        "function saveUser() { " +
+                        "  const data = { " +
+                        "    username: document.getElementById('user-username').value, " +
+                        "    email: document.getElementById('user-email').value, " +
+                        "    password: document.getElementById('user-password').value, " +
+                        "    profile: document.getElementById('user-profile').value " +
+                        "  }; " +
+                        "  console.log('Saving user:', data); " +
+                        "  alert('Modulo de persistencia no implementado en este ejemplo UI - Datos capturados: ' + data.username); "
+                        +
+                        "  closeUserModal(); " +
+                        "} " +
+                        "</script>"));
+
+        return modal;
+    }
+
+    private Div createFormField(String labelText, Component field) {
+        Div group = new Div("field-grp-" + labelText.toLowerCase().replace(" ", "-"));
+        group.setStyleClass("space-y-1.5");
+        Label label = new Label("lbl-" + group.getId(), labelText);
+        label.setStyleClass("block text-xs font-semibold text-slate-400 uppercase tracking-wider");
+        group.addComponent(label);
+        group.addComponent(field);
+        return group;
     }
 }

@@ -50,6 +50,9 @@ public class ClusterResource {
                 }
 
                 Div content = new Div("cluster-view");
+                content.addAttribute("hx-get", "/dashboard/cluster");
+                content.addAttribute("hx-trigger", "every 5s");
+                content.addAttribute("hx-swap", "outerHTML");
 
                 Label pageTitle = new Label("page-title", "Cluster Overview");
                 pageTitle.setStyleClass("text-2xl font-bold text-gray-900 dark:text-white mb-6");
@@ -168,7 +171,7 @@ public class ClusterResource {
                 card.addComponent(metrics);
 
                 // Actions
-                if (canStop) {
+                if (canStop && isOnline) {
                         Div actions = new Div(node.getId() + "-actions");
                         actions.setStyleClass("mt-6");
 

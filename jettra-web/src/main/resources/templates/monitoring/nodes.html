@@ -43,9 +43,12 @@
         </button>
 
         {#if isSuperUser}
+        {#if node.status && (node.status.toUpperCase() == 'ONLINE' || node.status.toUpperCase() == 'ACTIVE' ||
+        node.status.toUpperCase() == 'UP')}
         <button class="btn" id="stop-btn-{node.id}"
             style="flex: 1; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);"
             onclick="stopNode('{node.id}')">🛑 Stop</button>
+        {/if}
         {/if}
     </div>
 </div>

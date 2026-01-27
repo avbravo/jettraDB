@@ -49,38 +49,52 @@ public class SecurityResource {
         usersTable.addHeader("Actions");
 
         List<User> users = securityService.getUsers(token);
-        if (users.isEmpty()) {
-            // Mock if empty or failed? Or just show empty.
-            // Let's assume empty list is valid.
-        }
+        int pageSize = 5;
+        int totalUsers = users.size();
+        List<User> paginatedUsers = users.subList(0, Math.min(totalUsers, pageSize));
 
-        for (User user : users) {
+        for (User user : paginatedUsers) {
             List<String> row = new ArrayList<>();
-            row.add(user.getUsername());
-            row.add(user.getProfile() != null ? user.getProfile() : "N/A");
+            row.add("<div class='flex items-center gap-2'><div class='w-7 h-7 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center text-[10px] font-bold'>"
+                    + user.getUsername().substring(0, 1).toUpperCase() + "</div>" + user.getUsername() + "</div>");
+            row.add("<span class='px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 border border-slate-700'>"
+                    + (user.getProfile() != null ? user.getProfile() : "end-user") + "</span>");
             row.add(user.getRoles() != null ? String.join(", ", user.getRoles()) : "");
 
             // Actions
-            String actions = "<button class='text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-2'>Edit</button>"
-                    +
-                    "<button class='text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300'>Delete</button>";
+            String actions = "<button class='text-indigo-400 hover:text-indigo-300 font-medium mr-3 transition-colors'>Edit</button>"
+                    + "<button class='text-rose-400 hover:text-rose-300 font-medium transition-colors'>Delete</button>";
             row.add(actions);
 
             usersTable.addRow(row);
         }
 
         usersCard.addComponent(usersTable);
+
+        // Add Pagination Info
+        Div paginationInfo = new Div("sec-pagination");
+        paginationInfo.setStyleClass("mt-4 flex justify-between items-center text-xs text-slate-500");
+        paginationInfo.addComponent(
+                new Label("lbl-pagi", "Showing " + paginatedUsers.size() + " of " + totalUsers + " users"));
+
+        Div pagiBtns = new Div("pagi-btns");
+        pagiBtns.setStyleClass("flex gap-2");
+        pagiBtns.addComponent(new Label("btn-pagi-prev",
+                "<button class='px-2 py-1 bg-slate-800 rounded opacity-50 cursor-not-allowed'>&lt;</button>"));
+        pagiBtns.addComponent(new Label("btn-pagi-next",
+                "<button class='px-2 py-1 bg-slate-800 rounded hover:bg-slate-700 transition-colors'>&gt;</button>"));
+        paginationInfo.addComponent(pagiBtns);
+
+        usersCard.addComponent(paginationInfo);
         content.addComponent(usersCard);
 
-        // Add User Button (Mock)
+        // Add User Button
         Div actionsDiv = new Div("sec-actions");
-        actionsDiv.setStyleClass("mt-4");
-        Button addUserBtn = new Button("btn-add-user", "Add User");
-        // Reuse blue button style from Button default or ensure consistency
-        // Jettra-UI Button default might be generic, let's enforce Flowbite style
+        actionsDiv.setStyleClass("mt-6");
+        Button addUserBtn = new Button("btn-add-user", "+ Add New User");
         addUserBtn.setStyleClass(
-                "text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800");
-        addUserBtn.addAttribute("onclick", "alert('Add User modal not implemented yet')");
+                "px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-indigo-900/20");
+        addUserBtn.addAttribute("onclick", "openUserModal()");
         actionsDiv.addComponent(addUserBtn);
 
         content.addComponent(actionsDiv);
