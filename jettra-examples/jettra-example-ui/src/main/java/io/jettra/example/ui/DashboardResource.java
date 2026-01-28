@@ -98,9 +98,8 @@ public class DashboardResource {
         Button addDbBtn = new Button("btn-add-db", "+");
         addDbBtn.setStyleClass("text-gray-500 hover:text-white hover:bg-indigo-600 rounded px-1");
         addDbBtn.addAttribute("title", "Add Database");
-        // For now, simpler action or modal trigger can be added later as per user
-        // request just to have the button
-        addDbBtn.addAttribute("onclick", "alert('Add Database feature coming soon')");
+        addDbBtn.setHxGet("/dashboard/database/new");
+        addDbBtn.setHxTarget("#main-content-view");
         explorerTitle.addComponent(addDbBtn);
 
         sidebar.addComponent(explorerTitle);
