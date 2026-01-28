@@ -51,4 +51,11 @@ public interface AuthClient {
     @Path("/users/{username}")
     Response deleteUser(@jakarta.ws.rs.PathParam("username") String username,
             @jakarta.ws.rs.HeaderParam("Authorization") String token);
+    @POST
+    @Path("/change-password")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response changePassword(ChangePasswordRequest request);
+
+    public record ChangePasswordRequest(String username, String oldPassword, String newPassword) {
+    }
 }

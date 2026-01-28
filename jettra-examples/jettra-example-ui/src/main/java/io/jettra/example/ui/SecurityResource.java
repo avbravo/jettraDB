@@ -16,18 +16,18 @@ import java.util.ArrayList;
 @Path("/dashboard/security")
 public class SecurityResource {
 
-        @Inject
-        SecurityService securityService;
+    @Inject
+    SecurityService securityService;
 
-        @jakarta.ws.rs.core.Context
-        jakarta.ws.rs.core.HttpHeaders headers;
+    @jakarta.ws.rs.core.Context
+    jakarta.ws.rs.core.HttpHeaders headers;
 
-        private String getAuthToken() {
-                if (headers.getCookies().containsKey("auth_token")) {
-                        return headers.getCookies().get("auth_token").getValue();
-                }
-                return null;
+    private String getAuthToken() {
+        if (headers.getCookies().containsKey("auth_token")) {
+            return headers.getCookies().get("auth_token").getValue();
         }
+        return null;
+    }
 
         @GET
         @Produces(MediaType.TEXT_HTML)
@@ -210,5 +210,58 @@ public class SecurityResource {
                 } else {
                         return Response.status(500).build();
                 }
+        }
+
+        @GET
+        @Path("/password")
+        @Produces(MediaType.TEXT_HTML)
+        public Response getPasswordChangeView() {
+                Div content = new Div("password-change-view");
+                content.setStyleClass("max-w-md mx-auto mt-10");
+
+                Card card = new Card("pwd-card");
+                card.setTitle("Cambiar Contraseña");
+                card.setStyleClass("bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl");
+
+                io.jettra.example.ui.form.ChangePasswordForm form = new io.jettra.example.ui.form.ChangePasswordForm("pwd-form");
+                card.addComponent(form);
+
+                content.addComponent(card);
+                return Response.ok(content.render()).build();
+        }
+
+        @jakarta.ws.rs.POST
+        @Path("/change-password")
+        @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+        @Produces(MediaType.TEXT_HTML)
+        public Response changePassword(@jakarta.ws.rs.FormParam("oldPassword") String oldPassword,
+                        @jakarta.ws.rs.FormParam("newPassword") String newPassword,
+                        @jakarta.ws.rs.FormParam("confirmPassword") String confirmPassword) {
+
+                io.jettra.example.ui.form.ChangePasswordForm form = new io.jettra.example.ui.form.ChangePasswordForm("pwd-form");
+
+                if (!newPassword.equals(confirmPassword)) {
+                        form.setError("Las contraseñas no coinciden");
+                        return Response.ok(form.render()).build();
+                }
+
+                String username = headers.getCookies().containsKey("user_session")
+                                ? headers.getCookies().get("user_session").getValue()
+                                : null;
+
+                if (username == null) {
+                        form.setError("Sesión no válida");
+                        return Response.ok(form.render()).build();
+                }
+
+                boolean success = securityService.changePassword(username, oldPassword, newPassword);
+
+                if (success) {
+                        form.setSuccess("Contraseña actualizada exitosamente");
+                } else {
+                        form.setError("Error al cambiar contraseña. Verifique sus credenciales actuales.");
+                }
+
+                return Response.ok(form.render()).build();
         }
 }

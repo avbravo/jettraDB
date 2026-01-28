@@ -78,4 +78,15 @@ public class SecurityService {
             return false;
         }
     }
+
+    public boolean changePassword(String username, String oldPassword, String newPassword) {
+        try {
+            AuthClient.ChangePasswordRequest request = new AuthClient.ChangePasswordRequest(username, oldPassword, newPassword);
+            jakarta.ws.rs.core.Response response = authClient.changePassword(request);
+            return response.getStatus() >= 200 && response.getStatus() < 300;
+        } catch (Exception e) {
+            LOG.error("Failed to change password for user " + username, e);
+            return false;
+        }
+    }
 }
