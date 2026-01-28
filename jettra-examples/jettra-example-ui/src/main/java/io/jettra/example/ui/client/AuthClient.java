@@ -18,44 +18,51 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 @Path("/api/web-auth")
 public interface AuthClient {
 
-    @GET
-    @Path("/users")
-    @Produces(MediaType.APPLICATION_JSON)
-    List<User> getUsers(@jakarta.ws.rs.HeaderParam("Authorization") String token);
+        @GET
+        @Path("/users")
+        @Produces(MediaType.APPLICATION_JSON)
+        List<User> getUsers(@jakarta.ws.rs.HeaderParam("Authorization") String token);
 
-    @GET
-    @Path("/roles")
-    @Produces(MediaType.APPLICATION_JSON)
-    List<Role> getRoles(@jakarta.ws.rs.HeaderParam("Authorization") String token);
+        @GET
+        @Path("/roles")
+        @Produces(MediaType.APPLICATION_JSON)
+        List<Role> getRoles(@jakarta.ws.rs.HeaderParam("Authorization") String token);
 
-    @GET
-    @Path("/users/{username}")
-    @Produces(MediaType.APPLICATION_JSON)
-    User getUser(@jakarta.ws.rs.PathParam("username") String username,
-            @jakarta.ws.rs.HeaderParam("Authorization") String token);
+        @GET
+        @Path("/users/{username}")
+        @Produces(MediaType.APPLICATION_JSON)
+        User getUser(@jakarta.ws.rs.PathParam("username") String username,
+                        @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
-    @POST
-    @Path("/users")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    Response createUser(User user, @jakarta.ws.rs.HeaderParam("Authorization") String token);
+        @POST
+        @Path("/users")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @Produces(MediaType.APPLICATION_JSON)
+        Response createUser(User user, @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
-    @PUT
-    @Path("/users/{username}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    Response updateUser(@jakarta.ws.rs.PathParam("username") String username, User user,
-            @jakarta.ws.rs.HeaderParam("Authorization") String token);
+        @PUT
+        @Path("/users/{username}")
+        @Consumes(MediaType.APPLICATION_JSON)
+        @Produces(MediaType.APPLICATION_JSON)
+        Response updateUser(@jakarta.ws.rs.PathParam("username") String username, User user,
+                        @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
-    @DELETE
-    @Path("/users/{username}")
-    Response deleteUser(@jakarta.ws.rs.PathParam("username") String username,
-            @jakarta.ws.rs.HeaderParam("Authorization") String token);
-    @POST
-    @Path("/change-password")
-    @Consumes(MediaType.APPLICATION_JSON)
-    Response changePassword(ChangePasswordRequest request);
+        @DELETE
+        @Path("/users/{username}")
+        Response deleteUser(@jakarta.ws.rs.PathParam("username") String username,
+                        @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
-    public record ChangePasswordRequest(String username, String oldPassword, String newPassword) {
-    }
+        @POST
+        @Path("/change-password")
+        @Consumes(MediaType.APPLICATION_JSON)
+        Response changePassword(ChangePasswordRequest request);
+
+        public record ChangePasswordRequest(String username, String oldPassword, String newPassword) {
+        }
+
+        @POST
+        @Path("/databases/{dbName}/sync-roles")
+        @Consumes(MediaType.APPLICATION_JSON)
+        Response syncRoles(@jakarta.ws.rs.PathParam("dbName") String dbName, java.util.Map<String, String> roleMappings,
+                        @jakarta.ws.rs.HeaderParam("Authorization") String token);
 }

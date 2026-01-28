@@ -11,23 +11,36 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
+import io.jettra.example.ui.client.PlacementDriverClient;
+import io.jettra.example.ui.model.Database;
+import jakarta.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import java.net.URI;
+import java.util.List;
+import java.util.ArrayList;
 
 @Path("/dashboard")
 public class DashboardResource {
+    private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(DashboardResource.class);
 
     @Context
     HttpHeaders headers;
 
+    @Inject
+    @RestClient
+    PlacementDriverClient pdClient;
+
     @GET
     @Produces(MediaType.TEXT_HTML)
     public Response dashboard() {
-        // Simple security check (cookie-based)
         if (!headers.getCookies().containsKey("user_session")) {
+            LOG.warn("DEBUG (Dashboard): user_session cookie NOT FOUND");
             return Response.temporaryRedirect(URI.create("/")).build();
         }
 
         String username = headers.getCookies().get("user_session").getValue();
+        LOG.infof("DEBUG (Dashboard): Request by user: %s", username);
+        LOG.infof("DEBUG (Dashboard): Cookies present: %s", headers.getCookies().keySet());
 
         Template template = new Template();
 
@@ -104,17 +117,10 @@ public class DashboardResource {
 
         sidebar.addComponent(explorerTitle);
 
-        Tree dataTree = new Tree("data-explorer");
-        Tree.TreeNode db1 = new Tree.TreeNode("SalesDB", "📁");
-        db1.addChild(new Tree.TreeNode("Orders", "📄"));
-        db1.addChild(new Tree.TreeNode("Customers", "📄"));
-        dataTree.addNode(db1);
-
-        Tree.TreeNode db2 = new Tree.TreeNode("Inventory", "📁");
-        db2.addChild(new Tree.TreeNode("Products", "📄"));
-        dataTree.addNode(db2);
-
-        sidebar.addComponent(dataTree);
+        Div explorerContainer = new Div("sidebar-explorer-container");
+        explorerContainer.addAttribute("hx-get", "/dashboard/explorer");
+        explorerContainer.addAttribute("hx-trigger", "load, refreshExplorer from:body");
+        sidebar.addComponent(explorerContainer);
 
         template.setLeft(sidebar);
 
@@ -142,36 +148,37 @@ public class DashboardResource {
 
         // Global Style for centering and premium look (using script injection since
         // Page lacks addStyleContent)
-        page.addScriptContent("""
-                    const extraStyle = document.createElement('style');
-                    extraStyle.textContent = `
-                        .modal-overlay-centered {
-                            display: none;
-                            align-items: center;
-                            justify-content: center;
-                        }
-                        .modal-overlay-centered.flex {
-                            display: flex !important;
-                        }
-                        /* Custom Scrollbar for dark theme */
-                        ::-webkit-scrollbar { width: 8px; }
-                        ::-webkit-scrollbar-track { background: transparent; }
-                        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-                        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        page.addScriptContent(
+                """
+                            const extraStyle = document.createElement('style');
+                            extraStyle.textContent = `
+                                .modal-overlay-centered {
+                                    display: none;
+                                    align-items: center;
+                                    justify-content: center;
+                                }
+                                .modal-overlay-centered.flex {
+                                    display: flex !important;
+                                }
+                                /* Custom Scrollbar for dark theme */
+                                ::-webkit-scrollbar { width: 8px; }
+                                ::-webkit-scrollbar-track { background: transparent; }
+                                ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+                                ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-                        /* Explicit background for themes */
-                        body {
-                            background-color: #ffffff; /* White by default */
-                            color: #1a202c;
-                            transition: background-color 0.3s, color 0.3s;
-                        }
-                        .dark body {
-                            background-color: #020617; /* Dark (slate-950) */
-                            color: #f8fafc;
-                        }
-                    `;
-                    document.head.appendChild(extraStyle);
-                """);
+                                /* Explicit background for themes */
+                                body {
+                                    background-color: #ffffff; /* White by default */
+                                    color: #1a202c;
+                                    transition: background-color 0.3s, color 0.3s;
+                                }
+                                .dark body {
+                                    background-color: #020617; /* Dark (slate-950) */
+                                    color: #f8fafc;
+                                }
+                            `;
+                            document.head.appendChild(extraStyle);
+                        """);
 
         // Add manual script
         String themeScript = """
@@ -243,6 +250,62 @@ public class DashboardResource {
         return Response.ok(page.render()).build();
     }
 
+    @GET
+    @Path("/explorer")
+    @Produces(MediaType.TEXT_HTML)
+    public String getExplorerView() {
+        DataExplorer dataExplorer = new DataExplorer("data-explorer");
+
+        List<Database> dbs = new ArrayList<>();
+        try {
+            if (headers.getCookies().containsKey("auth_token")) {
+                String token = headers.getCookies().get("auth_token").getValue();
+                if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                    token = token.substring(1, token.length() - 1);
+                }
+                dbs = pdClient.getDatabases("Bearer " + token);
+            }
+        } catch (Exception e) {
+            LOG.error("Error fetching databases for explorer", e);
+        }
+
+        if (dbs != null && !dbs.isEmpty()) {
+            for (Database db : dbs) {
+                DataExplorer.DatabaseNode dbNode = new DataExplorer.DatabaseNode(db.getName());
+                // Add default engines
+                DataExplorer.EngineNode docEng = new DataExplorer.EngineNode("Document(Collections)",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                if ("mydb".equals(db.getName())) {
+                    docEng.addCollection(new DataExplorer.CollectionNode("micollection"));
+                }
+                dbNode.addEngine(docEng);
+                dbNode.addEngine(new DataExplorer.EngineNode("Column",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(new DataExplorer.EngineNode("Graph",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(new DataExplorer.EngineNode("Vector",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(new DataExplorer.EngineNode("Object",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(new DataExplorer.EngineNode("Key-Value",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(new DataExplorer.EngineNode("Geospatial",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(new DataExplorer.EngineNode("Time-Series",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(new DataExplorer.EngineNode("Files",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+
+                dataExplorer.addDatabase(dbNode);
+            }
+        } else {
+            DataExplorer.DatabaseNode emptyDb = new DataExplorer.DatabaseNode("No Databases");
+            dataExplorer.addDatabase(emptyDb);
+        }
+
+        return dataExplorer.render();
+    }
+
     // Helper for Modals
     private Modal createStopModal() {
         Modal modal = new Modal("stop-modal", "Stop Node");
@@ -298,7 +361,8 @@ public class DashboardResource {
         Modal modal = new Modal("details-modal", "Node Details");
         Div content = new Div("details-content");
         content.addComponent(
-                new Label("details-msg", "Details for <span id='detail-node-id' class='font-bold'></span>..."));
+                new Label("details-msg",
+                        "Details for <span id='detail-node-id' class='font-bold'></span>..."));
         modal.addComponent(content);
 
         Button closeBtn = new Button("btn-details-close", "Close");
@@ -364,7 +428,8 @@ public class DashboardResource {
         Modal modal = new Modal("user-modal", "Manage User");
         // Add a hidden input to track if it's an edit
         modal.addComponent(
-                new Label("user-is-edit-container", "<input type='hidden' id='user-is-edit' value='false'>"));
+                new Label("user-is-edit-container",
+                        "<input type='hidden' id='user-is-edit' value='false'>"));
 
         modal.setStyleClass(
                 "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
@@ -408,7 +473,8 @@ public class DashboardResource {
                         "function closeUserModal() { document.getElementById('user-modal').classList.add('hidden'); document.getElementById('user-modal').classList.remove('flex'); } "
                         +
                         "function saveUser() { " +
-                        "  const isEdit = document.getElementById('user-is-edit').value === 'true'; " +
+                        "  const isEdit = document.getElementById('user-is-edit').value === 'true'; "
+                        +
                         "  const data = { " +
                         "    username: document.getElementById('user-username').value, " +
                         "    email: document.getElementById('user-email').value, " +
@@ -416,8 +482,10 @@ public class DashboardResource {
                         "    profile: document.getElementById('user-profile').value " +
                         "  }; " +
                         "  if(!data.username) { alert('Username is required'); return; } " +
-                        "  const url = isEdit ? '/dashboard/security/save?edit=true' : '/dashboard/security/save'; " +
-                        "  htmx.ajax('POST', url, { values: data, target: '#security-view', swap: 'outerHTML' }); " +
+                        "  const url = isEdit ? '/dashboard/security/save?edit=true' : '/dashboard/security/save'; "
+                        +
+                        "  htmx.ajax('POST', url, { values: data, target: '#security-view', swap: 'outerHTML' }); "
+                        +
                         "  closeUserModal(); " +
                         "} " +
                         "function openEditUser(username, email, profile) { " +
@@ -426,10 +494,14 @@ public class DashboardResource {
                         "  document.getElementById('user-username').disabled = true; " +
                         "  document.getElementById('user-email').value = email || ''; " +
                         "  document.getElementById('user-password').value = ''; " +
-                        "  document.getElementById('user-password').placeholder = '(Dejar en blanco para mantener)'; " +
-                        "  document.getElementById('user-profile').value = profile || 'end-user'; " +
-                        "  document.querySelector('#user-modal h3').innerText = 'Edit User: ' + username; " +
-                        "  document.getElementById('btn-user-save').innerText = 'Save Changes'; " +
+                        "  document.getElementById('user-password').placeholder = '(Dejar en blanco para mantener)'; "
+                        +
+                        "  document.getElementById('user-profile').value = profile || 'end-user'; "
+                        +
+                        "  document.querySelector('#user-modal h3').innerText = 'Edit User: ' + username; "
+                        +
+                        "  document.getElementById('btn-user-save').innerText = 'Save Changes'; "
+                        +
                         "  document.getElementById('user-modal').classList.remove('hidden'); " +
                         "  document.getElementById('user-modal').classList.add('flex'); " +
                         "} " +
@@ -439,9 +511,11 @@ public class DashboardResource {
                         "  document.getElementById('user-username').disabled = false; " +
                         "  document.getElementById('user-email').value = ''; " +
                         "  document.getElementById('user-password').value = ''; " +
-                        "  document.getElementById('user-password').placeholder = 'Password'; " +
+                        "  document.getElementById('user-password').placeholder = 'Password'; "
+                        +
                         "  document.getElementById('user-profile').value = 'end-user'; " +
-                        "  document.querySelector('#user-modal h3').innerText = 'Add New User'; " +
+                        "  document.querySelector('#user-modal h3').innerText = 'Add New User'; "
+                        +
                         "  document.getElementById('btn-user-save').innerText = 'Save User'; " +
                         "  document.getElementById('user-modal').classList.remove('hidden'); " +
                         "  document.getElementById('user-modal').classList.add('flex'); " +

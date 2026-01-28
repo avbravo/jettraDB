@@ -81,11 +81,23 @@ public class SecurityService {
 
     public boolean changePassword(String username, String oldPassword, String newPassword) {
         try {
-            AuthClient.ChangePasswordRequest request = new AuthClient.ChangePasswordRequest(username, oldPassword, newPassword);
+            AuthClient.ChangePasswordRequest request = new AuthClient.ChangePasswordRequest(username, oldPassword,
+                    newPassword);
             jakarta.ws.rs.core.Response response = authClient.changePassword(request);
             return response.getStatus() >= 200 && response.getStatus() < 300;
         } catch (Exception e) {
             LOG.error("Failed to change password for user " + username, e);
+            return false;
+        }
+    }
+
+    public boolean syncDatabaseRoles(String dbName, java.util.Map<String, String> roleMappings, String token) {
+        try {
+            String bearer = token != null ? "Bearer " + token : null;
+            jakarta.ws.rs.core.Response response = authClient.syncRoles(dbName, roleMappings, bearer);
+            return response.getStatus() >= 200 && response.getStatus() < 300;
+        } catch (Exception e) {
+            LOG.error("Failed to sync roles for database " + dbName, e);
             return false;
         }
     }

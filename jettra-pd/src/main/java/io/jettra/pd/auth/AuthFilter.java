@@ -37,15 +37,20 @@ public class AuthFilter implements ContainerRequestFilter {
         if (path.equals("api/auth/login") || path.equals("api/web-auth/login") ||
                 path.equals("api/internal/pd/health") ||
                 path.equals("api/internal/pd/register") ||
-                path.equals("api/internal/pd/groups") ||
-                path.equals("api/internal/pd/nodes") ||
                 path.equals("health") || path.equals("health/box")) {
             return;
         }
 
         // 2. Token Validation for everything else
         String authHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null) {
+            LOG.warnf("AuthFilter: Missing Authorization header for path: %s", path);
+            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+            return;
+        }
+        if (!authHeader.startsWith("Bearer ")) {
+            LOG.warnf("AuthFilter: Invalid Authorization header format for path: %s. Header: %s", path,
+                    authHeader.length() > 10 ? authHeader.substring(0, 10) + "..." : authHeader);
             requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
             return;
         }
@@ -53,15 +58,19 @@ public class AuthFilter implements ContainerRequestFilter {
         String token = authHeader.substring(7);
         try {
             if (!tokenUtils.validateToken(token)) {
+                LOG.warnf("AuthFilter: Token validation failed for path: %s. Token parts: %d", path,
+                        token.split("\\.").length);
                 requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
                 return;
             }
 
             String username = tokenUtils.getUsername(token);
             if (username == null) {
+                LOG.warnf("AuthFilter: Could not extract username from token for path: %s", path);
                 requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
                 return;
             }
+            LOG.infof("AuthFilter: Authenticated user: %s for path: %s", username, path);
 
             // Store username for resource access
             requestContext.setProperty("auth.username", username);
@@ -98,34 +107,56 @@ public class AuthFilter implements ContainerRequestFilter {
                     return;
                 }
 
-            // Extra restriction: Only super-user profile can stop nodes
-            // system-pd is allowed for internal operations
-            if (isStopNode) {
-                if (!"system-pd".equals(username) && (user == null || !"super-user".equals(user.profile()))) {
-                    requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-                            .entity("{\"error\":\"Only super-user can stop nodes.\"}")
-                            .build());
-                    return;
+                // Extra restriction: Only super-user profile can stop nodes
+                // system-pd is allowed for internal operations
+                if (isStopNode) {
+                    boolean isAuthorized = "super-user".equals(username) || "system-pd".equals(username)
+                            || (user != null && "super-user".equals(user.profile()));
+                    if (!isAuthorized) {
+                        requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
+                                .entity("{\"error\":\"Only super-user can stop nodes.\"}")
+                                .build());
+                        return;
+                    }
                 }
-            }
             }
 
             // B. Database access filtering
             String dbName = null;
-            if (path.contains("/databases/") || path.contains("api/db/")) {
+            if (path.contains("databases") || path.contains("api/db/")) {
                 String sub = "";
-                if (path.contains("api/internal/pd/databases/")) {
-                    sub = path.substring(path.indexOf("api/internal/pd/databases/") + 26);
-                } else if (path.contains("api/web-auth/databases/")) {
-                    sub = path.substring(path.indexOf("api/web-auth/databases/") + 23);
-                } else if (path.contains("api/auth/databases/")) {
-                    sub = path.substring(path.indexOf("api/auth/databases/") + 19);
+                if (path.contains("api/internal/pd/databases")) {
+                    int idx = path.indexOf("api/internal/pd/databases") + 25;
+                    if (path.length() > idx) {
+                        sub = path.substring(idx);
+                        if (sub.startsWith("/"))
+                            sub = sub.substring(1);
+                    }
+                } else if (path.contains("api/web-auth/databases")) {
+                    int idx = path.indexOf("api/web-auth/databases") + 22;
+                    if (path.length() > idx) {
+                        sub = path.substring(idx);
+                        if (sub.startsWith("/"))
+                            sub = sub.substring(1);
+                    }
+                } else if (path.contains("api/auth/databases")) {
+                    int idx = path.indexOf("api/auth/databases") + 18;
+                    if (path.length() > idx) {
+                        sub = path.substring(idx);
+                        if (sub.startsWith("/"))
+                            sub = sub.substring(1);
+                    }
                 } else if (path.startsWith("api/db/")) {
                     sub = path.substring(7);
                 } else {
-                    int idx = path.indexOf("/databases/");
+                    int idx = path.indexOf("databases");
                     if (idx != -1) {
-                        sub = path.substring(idx + 11);
+                        int subIdx = idx + 9;
+                        if (path.length() > subIdx) {
+                            sub = path.substring(subIdx);
+                            if (sub.startsWith("/"))
+                                sub = sub.substring(1);
+                        }
                     }
                 }
 
@@ -163,15 +194,20 @@ public class AuthFilter implements ContainerRequestFilter {
             } else if (path.endsWith("databases") && requestContext.getMethod().equals("POST")) {
                 // Explicit check for database creation when no dbName is in path
                 if (!isGlobalAdmin) {
-                    LOG.warnf("Database creation denied for user %s (not global admin)", username);
+                    LOG.warnf("Database creation denied for user %s (not global admin). Profile: %s", username,
+                            user != null ? user.profile() : "null");
                     requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
-                            .entity("{\"error\":\"Database creation restricted to administrative users.\"}")
+                            .entity("{\"error\":\"Database creation restricted to administrative users. Your profile: "
+                                    + (user != null ? user.profile() : "guest") + "\"}")
                             .build());
+                    return;
                 }
             }
         } catch (Exception e) {
-            LOG.error("Authentication/Authorization error", e);
-            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+            LOG.error("Authentication/Authorization error for path: " + path, e);
+            requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED)
+                    .entity("{\"error\":\"Internal Auth Error: " + e.getMessage() + "\"}")
+                    .build());
         }
     }
 

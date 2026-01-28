@@ -17,39 +17,82 @@ public abstract class Component {
         this.id = id;
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    
-    public String getStyleClass() { return styleClass; }
-    public void setStyleClass(String styleClass) { this.styleClass = styleClass; }
+    public String getId() {
+        return id;
+    }
 
-    public Map<String, String> getAttributes() { return attributes; }
-    public void setAttributes(Map<String, String> attributes) { this.attributes = attributes; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public List<EventListener> getListeners() { return listeners; }
-    public void setListeners(List<EventListener> listeners) { this.listeners = listeners; }
+    public Component setStyleClass(String styleClass) {
+        this.styleClass = styleClass;
+        return this;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, String> attributes) {
+        this.attributes = attributes;
+    }
+
+    public List<EventListener> getListeners() {
+        return listeners;
+    }
+
+    public void setListeners(List<EventListener> listeners) {
+        this.listeners = listeners;
+    }
 
     public void addAttribute(String key, String value) {
         attributes.put(key, value);
     }
-    
+
     // HTMX Helpers
-    public void setHxGet(String url) { addAttribute("hx-get", url); }
-    public void setHxPost(String url) { addAttribute("hx-post", url); }
-    public void setHxPut(String url) { addAttribute("hx-put", url); }
-    public void setHxDelete(String url) { addAttribute("hx-delete", url); }
-    public void setHxTarget(String selector) { addAttribute("hx-target", selector); }
-    public void setHxSwap(String swap) { addAttribute("hx-swap", swap); }
-    public void setHxTrigger(String trigger) { addAttribute("hx-trigger", trigger); }
-    public void setHxConfirm(String message) { addAttribute("hx-confirm", message); }
-    public void setHxInclude(String selector) { addAttribute("hx-include", selector); }
+    public void setHxGet(String url) {
+        addAttribute("hx-get", url);
+    }
+
+    public void setHxPost(String url) {
+        addAttribute("hx-post", url);
+    }
+
+    public void setHxPut(String url) {
+        addAttribute("hx-put", url);
+    }
+
+    public void setHxDelete(String url) {
+        addAttribute("hx-delete", url);
+    }
+
+    public void setHxTarget(String selector) {
+        addAttribute("hx-target", selector);
+    }
+
+    public void setHxSwap(String swap) {
+        addAttribute("hx-swap", swap);
+    }
+
+    public void setHxTrigger(String trigger) {
+        addAttribute("hx-trigger", trigger);
+    }
+
+    public void setHxConfirm(String message) {
+        addAttribute("hx-confirm", message);
+    }
+
+    public void setHxInclude(String selector) {
+        addAttribute("hx-include", selector);
+    }
 
     public void addEventListener(EventListener listener) {
         listeners.add(listener);
     }
-    
+
     public void fireEvent(JettraEvent event) {
-        for(EventListener listener : listeners) {
+        for (EventListener listener : listeners) {
             listener.onEvent(event);
         }
     }

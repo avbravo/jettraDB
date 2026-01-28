@@ -10,6 +10,12 @@ public class Card extends Container {
         this.styleClass = "futu-card p-6";
     }
 
+    public Card(String id, String title) {
+        super(id);
+        this.title = title;
+        this.styleClass = "futu-card p-6";
+    }
+
     public void setTitle(String title) {
         this.title = title;
     }

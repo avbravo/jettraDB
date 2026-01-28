@@ -16,6 +16,7 @@ import java.util.List;
 
 @Path("/dashboard/cluster")
 public class ClusterResource {
+        private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(ClusterResource.class);
 
         @Inject
         ClusterService clusterService;
@@ -27,9 +28,20 @@ public class ClusterResource {
         jakarta.ws.rs.core.HttpHeaders headers;
 
         private String getAuthToken() {
-                if (headers.getCookies().containsKey("auth_token")) {
-                        return headers.getCookies().get("auth_token").getValue();
+                if (headers == null) {
+                        LOG.error("DEBUG: HttpHeaders @Context IS NULL!");
+                        return null;
                 }
+                if (headers.getCookies().containsKey("auth_token")) {
+                        String token = headers.getCookies().get("auth_token").getValue();
+                        LOG.infof("DEBUG (Cluster): Raw auth_token cookie: [%s]", token);
+                        if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                                token = token.substring(1, token.length() - 1);
+                                LOG.infof("DEBUG (Cluster): Cleaned auth_token: [%s]", token);
+                        }
+                        return token;
+                }
+                LOG.warn("DEBUG (Cluster): auth_token cookie NOT FOUND");
                 return null;
         }
 
@@ -37,9 +49,11 @@ public class ClusterResource {
         @Produces(MediaType.TEXT_HTML)
         public Response getClusterView() {
                 String token = getAuthToken();
+                LOG.infof("DEBUG (Cluster): Cookies present: %s", headers.getCookies().keySet());
                 String username = headers.getCookies().containsKey("user_session")
                                 ? headers.getCookies().get("user_session").getValue()
                                 : null;
+                LOG.infof("DEBUG (Cluster): Request by user: %s", username);
 
                 boolean isSuperUser = "admin".equalsIgnoreCase(username) || "super-user".equalsIgnoreCase(username);
                 if (!isSuperUser && username != null && token != null) {

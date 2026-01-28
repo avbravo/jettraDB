@@ -16,18 +16,22 @@ import java.util.ArrayList;
 @Path("/dashboard/security")
 public class SecurityResource {
 
-    @Inject
-    SecurityService securityService;
+        @Inject
+        SecurityService securityService;
 
-    @jakarta.ws.rs.core.Context
-    jakarta.ws.rs.core.HttpHeaders headers;
+        @jakarta.ws.rs.core.Context
+        jakarta.ws.rs.core.HttpHeaders headers;
 
-    private String getAuthToken() {
-        if (headers.getCookies().containsKey("auth_token")) {
-            return headers.getCookies().get("auth_token").getValue();
+        private String getAuthToken() {
+                if (headers.getCookies().containsKey("auth_token")) {
+                        String token = headers.getCookies().get("auth_token").getValue();
+                        if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                                token = token.substring(1, token.length() - 1);
+                        }
+                        return token;
+                }
+                return null;
         }
-        return null;
-    }
 
         @GET
         @Produces(MediaType.TEXT_HTML)
@@ -223,7 +227,8 @@ public class SecurityResource {
                 card.setTitle("Cambiar Contraseña");
                 card.setStyleClass("bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl");
 
-                io.jettra.example.ui.form.ChangePasswordForm form = new io.jettra.example.ui.form.ChangePasswordForm("pwd-form");
+                io.jettra.example.ui.form.ChangePasswordForm form = new io.jettra.example.ui.form.ChangePasswordForm(
+                                "pwd-form");
                 card.addComponent(form);
 
                 content.addComponent(card);
@@ -238,7 +243,8 @@ public class SecurityResource {
                         @jakarta.ws.rs.FormParam("newPassword") String newPassword,
                         @jakarta.ws.rs.FormParam("confirmPassword") String confirmPassword) {
 
-                io.jettra.example.ui.form.ChangePasswordForm form = new io.jettra.example.ui.form.ChangePasswordForm("pwd-form");
+                io.jettra.example.ui.form.ChangePasswordForm form = new io.jettra.example.ui.form.ChangePasswordForm(
+                                "pwd-form");
 
                 if (!newPassword.equals(confirmPassword)) {
                         form.setError("Las contraseñas no coinciden");
