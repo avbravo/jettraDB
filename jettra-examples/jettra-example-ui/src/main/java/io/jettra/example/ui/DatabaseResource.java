@@ -1,20 +1,39 @@
 package io.jettra.example.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.eclipse.microprofile.rest.client.inject.RestClient;
+
 import io.jettra.example.ui.client.PlacementDriverClient;
 import io.jettra.example.ui.form.DatabaseForm;
 import io.jettra.example.ui.model.Database;
 import io.jettra.example.ui.model.User;
 import io.jettra.example.ui.service.SecurityService;
-import io.jettra.ui.component.*;
+import io.jettra.ui.component.Alert;
+import io.jettra.ui.component.Badge;
+import io.jettra.ui.component.Button;
+import io.jettra.ui.component.Card;
+import io.jettra.ui.component.Div;
+import io.jettra.ui.component.Form;
+import io.jettra.ui.component.InputText;
+import io.jettra.ui.component.Label;
+import io.jettra.ui.component.SelectOne;
+import io.jettra.ui.component.Table;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.FormParam;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
-import java.util.ArrayList;
-import java.util.List;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 @Path("/dashboard/database")
 public class DatabaseResource {
@@ -296,50 +315,63 @@ public class DatabaseResource {
             row.add("<span class='px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 border border-slate-700'>"
                     + (user.getProfile() != null ? user.getProfile() : "end-user") + "</span>");
 
-            SelectOne roleSelect = new SelectOne("role-" + user.getUsername());
-            roleSelect.addOption("none", "No Access");
-
             boolean isSuperUser = "super-user".equals(user.getUsername());
             if (isSuperUser) {
-                roleSelect.addOption("super-user", "Super User (Reserved)");
-                roleSelect.addAttribute("disabled", "true");
-                roleSelect.addAttribute("title", "Super-user privileges cannot be changed");
+                // For super-user, we show a badge and use a hidden input to ensure it's submitted
+                // browsers don't submit disabled fields.
+                Div superUserDisplay = new Div("super-user-display-" + user.getUsername());
+                superUserDisplay.setStyleClass("flex items-center gap-2");
+                
+                Badge badge = new Badge("role-badge-" + user.getUsername(), "Super User");
+                badge.setColor("indigo");
+                superUserDisplay.addComponent(badge);
+                
+                // Hidden input to ensure it's sent in the form
+                InputText hiddenRole = new InputText("role-" + user.getUsername());
+                hiddenRole.setType("hidden");
+                hiddenRole.setValue("super-user");
+                superUserDisplay.addComponent(hiddenRole);
+                
+                row.add(superUserDisplay.render());
             } else {
+                SelectOne roleSelect = new SelectOne("role-" + user.getUsername());
+                roleSelect.addOption("denied", "No Access (Denied)");
                 roleSelect.addOption("read", "Read Only");
                 roleSelect.addOption("read-write", "Read-Write");
                 roleSelect.addOption("admin", "Admin");
-            }
 
-            // Determine current role (simplified logic)
-            String currentRole = "none";
-            if (user.getRoles() != null) {
-                for (String r : user.getRoles()) {
-                    if (r.contains(name)) { // Simplified role check
-                        if (r.startsWith("super-user"))
-                            currentRole = "super-user";
-                        else if (r.startsWith("admin"))
-                            currentRole = "admin";
-                        else if (r.startsWith("read-write"))
-                            currentRole = "read-write";
-                        else if (r.startsWith("read"))
-                            currentRole = "read";
+                // Determine current role (precise logic from index.html)
+                String currentRole = "denied";
+                if (user.getRoles() != null) {
+                    for (String r : user.getRoles()) {
+                        if (r.endsWith("_" + name)) {
+                            // Extract type: admin_mydb -> admin
+                            currentRole = r.substring(0, r.length() - name.length() - 1);
+                            break;
+                        }
                     }
                 }
+                roleSelect.setSelectedValue(currentRole);
+                row.add(roleSelect.render());
             }
-            roleSelect.setSelectedValue(currentRole);
-            row.add(roleSelect.render());
 
             table.addRow(row);
         }
 
         // Wrap table and save button in a form
-        DatabaseForm permForm = new DatabaseForm("perm-form");
+        Form permForm = new Form("perm-form");
         // We set attributes manually since DatabaseForm constructor sets defaults for
         // creating DB
         permForm.setStyleClass("w-full");
-        permForm.setHxPost("/dashboard/database/security/save?name=" + name);
+        permForm.setHxPost("/dashboard/database/security/save");
         permForm.setHxTarget("#main-content-view");
         permForm.setHxSwap("innerHTML");
+
+        // Add hidden field for DB name
+        InputText dbNameInput = new InputText("name");
+        dbNameInput.setType("hidden");
+        dbNameInput.setValue(name);
+        permForm.addComponent(dbNameInput);
 
         permForm.addComponent(table);
 
@@ -371,8 +403,10 @@ public class DatabaseResource {
     @Path("/security/save")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public Response saveDatabasePermissions(@QueryParam("name") String dbName,
-            jakarta.ws.rs.core.MultivaluedMap<String, String> formParams) {
+    public Response saveDatabasePermissions(jakarta.ws.rs.core.MultivaluedMap<String, String> formParams) {
+        LOG.infof("DEBUG: saveDatabasePermissions called. formParams: %s", formParams);
+        
+        String dbName = formParams.getFirst("name");
         String token = getAuthToken();
         if (token == null)
             return Response.status(Response.Status.UNAUTHORIZED).build();
@@ -392,28 +426,61 @@ public class DatabaseResource {
                 roleMappings.put(username, role);
             }
         }
+        
+        LOG.infof("DEBUG: roleMappings built: %s", roleMappings);
+
+        // Self-lockout prevention & special checks (as requested to match index.html logic)
+        String currentLoggedInUser = headers.getCookies().containsKey("user_session")
+                ? headers.getCookies().get("user_session").getValue()
+                : "";
+        
+        LOG.infof("DEBUG: Saving perms for DB [%s]. Current User: [%s]", dbName, currentLoggedInUser);
+
+        boolean isGlobalAdmin = "super-user".equalsIgnoreCase(currentLoggedInUser);
+
+        if (!isGlobalAdmin) {
+            String currentUserNewRole = roleMappings.get(currentLoggedInUser);
+            if (currentUserNewRole != null && ("denied".equals(currentUserNewRole) || "none".equals(currentUserNewRole))) {
+                Alert alert = new Alert("perm-error", "Action Blocked: You cannot remove your own access completely. Assign another administrator first or contact the global admin.");
+                alert.setType("danger");
+                alert.setStyleClass("bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-4");
+                return Response.ok(alert.render()).build();
+            }
+        }
 
         boolean success = securityService.syncDatabaseRoles(dbName, roleMappings, token);
 
         if (success) {
-            Alert alert = new Alert("perm-success", "Permissions updated successfully.");
-            alert.setType("success");
-            alert.setStyleClass("bg-green-500/10 border border-green-500/20 text-green-400 p-4 rounded-xl mb-4");
+            // Re-render the security view to show updated state
+            Response securityResponse = getDatabaseSecurity(dbName);
+            String securityHtml = (String) securityResponse.getEntity();
+            
+            // Success alert with premium styling (Flowbite-like)
+            String alertHtml = String.format("""
+                <div id='alert-success-perms' class='flex items-center p-6 mb-8 text-green-400 border border-green-500/20 bg-green-500/5 backdrop-blur-xl rounded-3xl animate-in fade-in slide-in-from-top-4 duration-500' role='alert'>
+                  <svg class='flex-shrink-0 w-6 h-6' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='currentColor' viewBox='0 0 20 20'>
+                    <path d='M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z'/>
+                  </svg>
+                  <span class='sr-only'>Success</span>
+                  <div class='ms-4 text-sm font-bold tracking-tight text-green-300'>
+                    SECURITY POLICY SYNCHRONIZED: The permissions for database '%s' have been successfully deployed. The data explorer has been updated with the authorized users.
+                  </div>
+                  <button type='button' class='ms-auto -mx-1.5 -my-1.5 bg-transparent text-green-400 hover:text-green-200 rounded-lg focus:ring-2 focus:ring-green-400 p-1.5 hover:bg-green-500/10 inline-flex items-center justify-center h-8 w-8' data-dismiss-target='#alert-success-perms' aria-label='Close' onclick='this.parentElement.remove()'>
+                    <span class='sr-only'>Close</span>
+                    <svg class='w-3 h-3' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 14 14'>
+                        <path stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6'/>
+                    </svg>
+                  </button>
+                </div>
+                """, dbName);
 
-            // We return just the alert and maybe a script to close modal or refresh?
-            // Since we are replacing the innerHTML of the target (the form container
-            // likely, or we can target a message area)
-            // Let's assume we target a message div or the entire container to refresh the
-            // table.
-            // Best UX: Refresh the table. So we call getDatabaseSecurity again?
-            // But HTMX handles redirects poorly with just HTML swap.
-            // We can return the updated view.
-            return getDatabaseSecurity(dbName);
+            return Response.ok(alertHtml + securityHtml)
+                    .header("HX-Trigger", "refreshExplorer")
+                    .build();
         } else {
-            Alert alert = new Alert("perm-error", "Failed to update permissions.");
+            Alert alert = new Alert("perm-error", "Failed to update permissions. Please check the system logs.");
             alert.setType("danger");
-            alert.setStyleClass("bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-4");
-            // Return alert to show on top?
+            alert.setStyleClass("bg-red-500/10 border border-red-500/20 text-red-400 p-6 rounded-2xl mb-4");
             return Response.ok(alert.render()).build();
         }
     }

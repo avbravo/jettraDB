@@ -18,6 +18,8 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
+import io.jettra.example.ui.service.SecurityService;
+import io.jettra.example.ui.model.User;
 
 @Path("/dashboard")
 public class DashboardResource {
@@ -29,6 +31,9 @@ public class DashboardResource {
     @Inject
     @RestClient
     PlacementDriverClient pdClient;
+
+    @Inject
+    SecurityService securityService;
 
     @GET
     @Produces(MediaType.TEXT_HTML)
@@ -257,6 +262,7 @@ public class DashboardResource {
         DataExplorer dataExplorer = new DataExplorer("data-explorer");
 
         List<Database> dbs = new ArrayList<>();
+        List<User> allUsers = new ArrayList<>();
         try {
             if (headers.getCookies().containsKey("auth_token")) {
                 String token = headers.getCookies().get("auth_token").getValue();
@@ -264,14 +270,33 @@ public class DashboardResource {
                     token = token.substring(1, token.length() - 1);
                 }
                 dbs = pdClient.getDatabases("Bearer " + token);
+                allUsers = securityService.getUsers(token);
             }
         } catch (Exception e) {
-            LOG.error("Error fetching databases for explorer", e);
+            LOG.error("Error fetching data for explorer", e);
         }
 
         if (dbs != null && !dbs.isEmpty()) {
             for (Database db : dbs) {
                 DataExplorer.DatabaseNode dbNode = new DataExplorer.DatabaseNode(db.getName());
+                
+                // Add authorized users to the node
+                for (User user : allUsers) {
+                    String userRole = null;
+                    if (user.getRoles() != null) {
+                        for (String role : user.getRoles()) {
+                            if (role.endsWith("_" + db.getName())) {
+                                // Extract role name: admin_mydb -> admin
+                                userRole = role.substring(0, role.length() - db.getName().length() - 1);
+                                break;
+                            }
+                        }
+                    }
+                    if (userRole != null) {
+                        dbNode.addUser(user.getUsername(), userRole);
+                    }
+                }
+
                 // Add default engines
                 DataExplorer.EngineNode docEng = new DataExplorer.EngineNode("Document(Collections)",
                         "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");

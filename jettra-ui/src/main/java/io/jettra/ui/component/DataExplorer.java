@@ -56,7 +56,7 @@ public class DataExplorer extends Component {
     public static class DatabaseNode {
         private String name;
         private List<EngineNode> engines = new ArrayList<>();
-        private List<String> users = new ArrayList<>();
+        private java.util.Map<String, String> usersWithRoles = new java.util.LinkedHashMap<>();
 
         public DatabaseNode(String name) {
             this.name = name;
@@ -66,8 +66,8 @@ public class DataExplorer extends Component {
             engines.add(engine);
         }
 
-        public void addUser(String user) {
-            users.add(user);
+        public void addUser(String username, String role) {
+            usersWithRoles.put(username, role);
         }
 
         public String render() {
@@ -123,7 +123,7 @@ public class DataExplorer extends Component {
                     .append("' class='tree-children hidden ml-4 border-l border-slate-700/30 pl-3 space-y-0.5'>");
 
             // Users node (Subtree)
-            if (!users.isEmpty() || true) { // Always show per user request example
+            if (!usersWithRoles.isEmpty() || true) { // Always show per user request example
                 String usersId = "users-" + safeName;
                 String usersIconId = "users-icon-" + safeName;
                 sb.append(
@@ -133,10 +133,22 @@ public class DataExplorer extends Component {
                         "<svg class='w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'></path></svg>");
                 sb.append("<span>users</span>");
                 sb.append("</div>");
-                sb.append("<div id='").append(usersId).append("' class='hidden ml-5 border-l border-slate-700/30'>");
-                for (String user : users) {
-                    sb.append("<div class='text-xs text-slate-500 py-1 pl-2 hover:text-slate-300 cursor-pointer'>")
-                            .append(user).append("</div>");
+                sb.append("<div id='").append(usersId).append("' class='hidden ml-5 border-l border-slate-700/30 space-y-1 py-1'>");
+                for (java.util.Map.Entry<String, String> entry : usersWithRoles.entrySet()) {
+                    String username = entry.getKey();
+                    String role = entry.getValue();
+                    String roleColor = switch (role.toLowerCase()) {
+                        case "admin" -> "text-amber-400 bg-amber-400/10 border-amber-400/20";
+                        case "read-write" -> "text-indigo-400 bg-indigo-400/10 border-indigo-400/20";
+                        case "super-user" -> "text-purple-400 bg-purple-400/10 border-purple-400/20";
+                        default -> "text-slate-400 bg-slate-400/10 border-slate-700/50";
+                    };
+                    
+                    sb.append("<div class='flex items-center justify-between group/user px-2 py-0.5 hover:bg-slate-800/50 rounded transition-colors'>");
+                    sb.append("<span class='text-[11px] text-slate-400 group-hover/user:text-slate-200'>").append(username).append("</span>");
+                    sb.append("<span class='text-[9px] px-1.5 py-0 border rounded-full font-bold uppercase tracking-tighter ").append(roleColor).append("'>")
+                      .append(role).append("</span>");
+                    sb.append("</div>");
                 }
                 sb.append("</div>");
             }

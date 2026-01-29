@@ -3,8 +3,8 @@ Base de datos realizar operaciones creacion, actualizar nombre o tipo o engine-s
 eliminar base de datos.
 
 # Terminados
-[325](https://github.com/avbravo/jettraDB/issues/325)
-[326](https://github.com/avbravo/jettraDB/issues/326)
+[329](https://github.com/avbravo/jettraDB/issues/329)
+
 
 # Pendientes
 
