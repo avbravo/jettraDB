@@ -284,26 +284,41 @@ public class DataExplorer extends Component {
                                         .append("' class='hidden ml-3 border-l border-slate-700/30 pl-2 flex flex-col gap-0.5 my-0.5'>");
                         sb.append(renderOption("Record(Document)",
                                         "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
-                                        "indigo-400"));
-                        sb.append(renderOption("Index", "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", "slate-500"));
-                        sb.append(renderOption("Sequences", "M12 4v16m8-8H4", "slate-500"));
+                                        "indigo-400",
+                                        "/dashboard/document/explorer?db=" + dbId + "&col=" + name,
+                                        "#main-content-view"));
+                        sb.append(renderOption("Index", "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", "slate-500",
+                                        null, null));
+                        sb.append(renderOption("Sequences", "M12 4v16m8-8H4", "slate-500", null, null));
                         sb.append(renderOption("Rules",
                                         "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
-                                        "slate-500"));
+                                        "slate-500", null, null));
                         sb.append("</div>");
                         sb.append("</div>");
                         return sb.toString();
                 }
 
-                private String renderOption(String label, String iconPath, String colorClass) {
-                        return String.format(
-                                        "<div class='flex items-center gap-2 p-0.5 cursor-pointer hover:text-white text-%s text-[10px] uppercase font-semibold tracking-wider transition-colors'>"
-                                                        +
-                                                        "<svg class='w-2.5 h-2.5 opacity-70' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='%s'></path></svg>"
-                                                        +
-                                                        "<span>%s</span>" +
-                                                        "</div>",
-                                        colorClass, iconPath, label);
+                private String renderOption(String label, String iconPath, String colorClass, String hxGet,
+                                String hxTarget) {
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("<div class='flex items-center gap-2 p-0.5 cursor-pointer hover:text-white text-")
+                                        .append(colorClass)
+                                        .append(" text-[10px] uppercase font-semibold tracking-wider transition-colors'");
+
+                        if (hxGet != null) {
+                                sb.append(" hx-get='").append(hxGet).append("'");
+                        }
+                        if (hxTarget != null) {
+                                sb.append(" hx-target='").append(hxTarget).append("'");
+                        }
+
+                        sb.append(">");
+                        sb.append("<svg class='w-2.5 h-2.5 opacity-70' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='")
+                                        .append(iconPath).append("'></path></svg>");
+                        sb.append("<span>").append(label).append("</span>");
+                        sb.append("</div>");
+
+                        return sb.toString();
                 }
         }
 }

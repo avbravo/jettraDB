@@ -150,6 +150,8 @@ public class DashboardResource {
         template.addOverlay(createUserModal());
         template.addOverlay(createDeleteUserModal());
         template.addOverlay(createCollectionModal());
+        template.addOverlay(createDocumentModal());
+        template.addOverlay(createDocumentDeleteModal());
 
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
@@ -683,5 +685,47 @@ public class DashboardResource {
             return Response.ok("<script>alert('Failed to create collection: " + e.getMessage() + "');</script>")
                     .build();
         }
+    }
+
+    private Modal createDocumentModal() {
+        Modal modal = new Modal("document-modal", "Manage Document");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("doc-modal-body");
+        content.setStyleClass("space-y-4 min-w-[500px] max-w-2xl text-white");
+        content.addComponent(new Label("doc-loading",
+                "<div class='text-center py-8 text-slate-500 font-medium'>Loading form...</div>"));
+
+        modal.addComponent(content);
+
+        Button cancelBtn = new Button("btn-doc-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "w-full px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("data-modal-hide", "document-modal");
+        modal.addFooterComponent(cancelBtn);
+
+        return modal;
+    }
+
+    private Modal createDocumentDeleteModal() {
+        Modal modal = new Modal("doc-delete-modal", "Delete Document");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("doc-del-body");
+        content.setStyleClass("text-center space-y-4 text-white");
+        content.addComponent(new Label("doc-del-loading",
+                "<div class='text-center py-8 text-slate-500 font-medium'>Loading...</div>"));
+
+        modal.addComponent(content);
+
+        Button cancelBtn = new Button("btn-doc-del-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "w-full px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("data-modal-hide", "doc-delete-modal");
+        modal.addFooterComponent(cancelBtn);
+
+        return modal;
     }
 }
