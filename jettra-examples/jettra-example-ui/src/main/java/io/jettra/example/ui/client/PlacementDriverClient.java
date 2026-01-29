@@ -40,14 +40,44 @@ public interface PlacementDriverClient {
     @POST
     @Path("/databases")
     @Consumes(MediaType.APPLICATION_JSON)
-    Response createDatabase(io.jettra.example.ui.model.Database db, @jakarta.ws.rs.HeaderParam("Authorization") String token);
+    Response createDatabase(io.jettra.example.ui.model.Database db,
+            @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
     @jakarta.ws.rs.PUT
     @Path("/databases/{oldName}")
     @Consumes(MediaType.APPLICATION_JSON)
-    Response updateDatabase(@jakarta.ws.rs.PathParam("oldName") String oldName, io.jettra.example.ui.model.Database db, @jakarta.ws.rs.HeaderParam("Authorization") String token);
+    Response updateDatabase(@jakarta.ws.rs.PathParam("oldName") String oldName, io.jettra.example.ui.model.Database db,
+            @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
     @jakarta.ws.rs.DELETE
     @Path("/databases/{name}")
-    Response deleteDatabase(@jakarta.ws.rs.PathParam("name") String name, @jakarta.ws.rs.HeaderParam("Authorization") String token);
+    Response deleteDatabase(@jakarta.ws.rs.PathParam("name") String name,
+            @jakarta.ws.rs.HeaderParam("Authorization") String token);
+
+    // Collection Management
+    @GET
+    @Path("/databases/{dbName}/collections")
+    @Produces(MediaType.APPLICATION_JSON)
+    List<io.jettra.example.ui.model.Collection> getCollections(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            @jakarta.ws.rs.HeaderParam("Authorization") String token);
+
+    @POST
+    @Path("/databases/{dbName}/collections/{colName}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response createCollection(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            @jakarta.ws.rs.PathParam("colName") String colName, io.jettra.example.ui.model.Collection col,
+            @jakarta.ws.rs.HeaderParam("Authorization") String token);
+
+    @jakarta.ws.rs.PUT
+    @Path("/databases/{dbName}/collections/{oldName}/{newName}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    Response renameCollection(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            @jakarta.ws.rs.PathParam("oldName") String oldName, @jakarta.ws.rs.PathParam("newName") String newName,
+            io.jettra.example.ui.model.Collection col, @jakarta.ws.rs.HeaderParam("Authorization") String token);
+
+    @jakarta.ws.rs.DELETE
+    @Path("/databases/{dbName}/collections/{colName}")
+    Response deleteCollection(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            @jakarta.ws.rs.PathParam("colName") String colName,
+            @jakarta.ws.rs.HeaderParam("Authorization") String token);
 }

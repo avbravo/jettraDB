@@ -5,6 +5,15 @@ eliminar base de datos.
 # Terminados
 [329](https://github.com/avbravo/jettraDB/issues/329)
 
+estudiar el archivo index.html del proyecto jettra-web y verificar 
+el subtree de Document dentro del subtree de la base de datos creada. 
+Luego implementa esa funcionalidad en el proyecto jettra-example-ui de agregar una coleccion, renombrar coleccion
+eliminar coleccion, una opcion info que indica cuantos documentos tiene, cuantos indices
+y cuanto ocupa en disco. 
+Recuerda que jettra-example-ui no usa html ni java script usa jettra-ui. Estas opciones 
+deben verse similar a la barra de opciones que se coloco a nivel de cada
+base de datos en el subtree correspondiente.    
+
 
 # Pendientes
 

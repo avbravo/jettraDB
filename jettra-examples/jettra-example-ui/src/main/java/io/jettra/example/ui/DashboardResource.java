@@ -5,6 +5,8 @@ import io.jettra.example.ui.component.ThemeToggle;
 import io.jettra.ui.template.Template;
 import io.jettra.ui.template.Page;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -147,6 +149,7 @@ public class DashboardResource {
         template.addOverlay(createDetailsModal());
         template.addOverlay(createUserModal());
         template.addOverlay(createDeleteUserModal());
+        template.addOverlay(createCollectionModal());
 
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
@@ -263,9 +266,10 @@ public class DashboardResource {
 
         List<Database> dbs = new ArrayList<>();
         List<User> allUsers = new ArrayList<>();
+        String token = null;
         try {
             if (headers.getCookies().containsKey("auth_token")) {
-                String token = headers.getCookies().get("auth_token").getValue();
+                token = headers.getCookies().get("auth_token").getValue();
                 if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
                     token = token.substring(1, token.length() - 1);
                 }
@@ -279,7 +283,7 @@ public class DashboardResource {
         if (dbs != null && !dbs.isEmpty()) {
             for (Database db : dbs) {
                 DataExplorer.DatabaseNode dbNode = new DataExplorer.DatabaseNode(db.getName());
-                
+
                 // Add authorized users to the node
                 for (User user : allUsers) {
                     String userRole = null;
@@ -298,11 +302,25 @@ public class DashboardResource {
                 }
 
                 // Add default engines
-                DataExplorer.EngineNode docEng = new DataExplorer.EngineNode("Document(Collections)",
+                DataExplorer.EngineNode docEng = new DataExplorer.EngineNode("Document (Collection)",
                         "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
-                if ("mydb".equals(db.getName())) {
-                    docEng.addCollection(new DataExplorer.CollectionNode("micollection"));
+
+                // Fetch collections for this DB
+                try {
+                    List<io.jettra.example.ui.model.Collection> cols = pdClient.getCollections(db.getName(),
+                            "Bearer " + token);
+                    if (cols != null) {
+                        for (io.jettra.example.ui.model.Collection col : cols) {
+                            if ("Document".equals(col.getEngine())) {
+                                docEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Fallback or log if fetch fails (e.g. legacy DBs)
+                    // LOG.warn("Could not fetch collections for " + db.getName());
                 }
+
                 dbNode.addEngine(docEng);
                 dbNode.addEngine(new DataExplorer.EngineNode("Column",
                         "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
@@ -313,7 +331,7 @@ public class DashboardResource {
                 dbNode.addEngine(new DataExplorer.EngineNode("Object",
                         "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
                 dbNode.addEngine(new DataExplorer.EngineNode("Key-Value",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
                 dbNode.addEngine(new DataExplorer.EngineNode("Geospatial",
                         "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
                 dbNode.addEngine(new DataExplorer.EngineNode("Time-Series",
@@ -558,5 +576,112 @@ public class DashboardResource {
         group.addComponent(label);
         group.addComponent(field);
         return group;
+    }
+
+    private Modal createCollectionModal() {
+        Modal modal = new Modal("collection-modal", "Create Collection");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("col-modal-body");
+        content.setStyleClass("space-y-4 min-w-[320px]");
+
+        // Hidden Inputs
+        content.addComponent(new Label("col-db-container", "<input type='hidden' id='col-db-name'>"));
+        content.addComponent(new Label("col-eng-container", "<input type='hidden' id='col-engine-name'>"));
+        // Edit mode flag if needed later, but focusing on Create for now
+        content.addComponent(new Label("col-edit-container", "<input type='hidden' id='col-is-edit' value='false'>"));
+
+        // Name Field
+        content.addComponent(createFormField("Collection Name", new InputText("col-name")));
+
+        modal.addComponent(content);
+
+        // Buttons
+        Button saveBtn = new Button("btn-col-save", "Create");
+        saveBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all");
+        saveBtn.addAttribute("onclick", "submitCollection()");
+        modal.addFooterComponent(saveBtn);
+
+        Button cancelBtn = new Button("btn-col-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("onclick", "closeCollectionModal()");
+        modal.addFooterComponent(cancelBtn);
+
+        // Script
+        content.addComponent(new Label("script-col",
+                "<script> " +
+                        "function openCollectionModal(dbName, engineName) { " +
+                        "  document.getElementById('col-db-name').value = dbName; " +
+                        "  document.getElementById('col-engine-name').value = engineName; " +
+                        "  document.getElementById('col-name').value = ''; " +
+                        "  document.querySelector('#collection-modal h3').innerText = 'Create Collection in ' + dbName; "
+                        +
+                        "  document.getElementById('collection-modal').classList.remove('hidden'); " +
+                        "  document.getElementById('collection-modal').classList.add('flex'); " +
+                        "  setTimeout(() => document.getElementById('col-name').focus(), 100); " +
+                        "} " +
+                        "function closeCollectionModal() { " +
+                        "  document.getElementById('collection-modal').classList.add('hidden'); " +
+                        "  document.getElementById('collection-modal').classList.remove('flex'); " +
+                        "} " +
+                        "function submitCollection() { " +
+                        "  const db = document.getElementById('col-db-name').value; " +
+                        "  const eng = document.getElementById('col-engine-name').value; " +
+                        "  const name = document.getElementById('col-name').value; " +
+                        "  if(!name) { alert('Collection name is required'); return; } " +
+                        "  htmx.ajax('POST', '/dashboard/collection/save', { " +
+                        "    values: { dbName: db, engine: eng, name: name }, " +
+                        "    target: '#main-content-view' " +
+                        // We use hx-trigger on response header to refresh explorer, or we can manually
+                        // refresh here if response doesn't trigger it.
+                        // But let's rely on standard htmx response handling.
+                        "  }); " +
+                        "  closeCollectionModal(); " +
+                        "} " +
+                        "</script>"));
+
+        return modal;
+    }
+
+    @POST
+    @Path("/collection/save")
+    @jakarta.ws.rs.Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Response saveCollection(@jakarta.ws.rs.FormParam("dbName") String dbName,
+            @jakarta.ws.rs.FormParam("name") String name,
+            @jakarta.ws.rs.FormParam("engine") String engine) {
+        String token = null;
+        if (headers.getCookies().containsKey("auth_token")) {
+            token = headers.getCookies().get("auth_token").getValue();
+            if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                token = token.substring(1, token.length() - 1);
+            }
+        }
+
+        if (token == null || token.isEmpty()) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+
+        // Normalize engine name (UI label "Document (Collection)" -> Backend type
+        // "Document")
+        if ("Document (Collection)".equals(engine)) {
+            engine = "Document";
+        }
+
+        io.jettra.example.ui.model.Collection col = new io.jettra.example.ui.model.Collection(name, engine);
+
+        try {
+            pdClient.createCollection(dbName, name, col, "Bearer " + token);
+            // Return empty response with trigger to refresh explorer
+            return Response.ok().header("HX-Trigger", "refreshExplorer").build();
+        } catch (Exception e) {
+            LOG.error("Failed to create collection", e);
+            // Return validation error or alert script
+            return Response.ok("<script>alert('Failed to create collection: " + e.getMessage() + "');</script>")
+                    .build();
+        }
     }
 }

@@ -23,6 +23,16 @@ Managed by `AuthResource.java`.
 - Sets session cookies on success.
 - Redirects to `/dashboard` using `HX-Redirect`.
 
+### Collection Management
+Located in `DashboardResource.java` and `DataExplorer.java`.
+- **Add Collection**: Available via **(+)** button on the "Document (Collection)" engine node. Opens a dialog to create a new collection.
+- **Manage Collections**: Each collection node features intuitive icons for **Info**, **Rename**, and **Delete**.
+- **Collection Subtree**: Automatically generates a subtree for each collection containing:
+  - **Record(Document)**: For document management.
+  - **Index**: For index management.
+  - **Sequences**: For sequence management.
+  - **Rules**: For rule definitions.
+
 ## Component Migration
 | Feature in HTML | Jettra UI Component |
 | --- | --- |
