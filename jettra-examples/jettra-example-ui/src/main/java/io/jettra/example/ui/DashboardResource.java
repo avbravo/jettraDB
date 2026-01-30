@@ -6,7 +6,6 @@ import io.jettra.ui.template.Template;
 import io.jettra.ui.template.Page;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
@@ -256,6 +255,20 @@ public class DashboardResource {
                         }
                     });
 
+                    // Explicit modal closure via HX-Trigger
+                    document.body.addEventListener('closeModal', function(evt) {
+                        const modalId = evt.detail.value || evt.detail || 'document-modal';
+                        const modalElement = document.getElementById(modalId);
+                        if (modalElement) {
+                            // Manual hide to ensure it works even if Flowbite JS is still loading/busy
+                            modalElement.classList.add('hidden');
+                            modalElement.classList.remove('flex');
+                            // Cleanup backdrop if present
+                            const backdrop = document.querySelector('[modal-backdrop]');
+                            if (backdrop) backdrop.remove();
+                        }
+                    });
+
                     function openDocumentModal() {
                         const modal = document.getElementById('document-modal');
                         if(modal) {
@@ -287,9 +300,15 @@ public class DashboardResource {
 
                     // Global listener for document actions
                     document.body.addEventListener('refreshDocuments', function(evt) {
-                        closeDocumentModal();
-                        closeDocumentDeleteModal();
-                        
+                        ['document-modal', 'doc-delete-modal'].forEach(id => {
+                            const m = document.getElementById(id);
+                            if(m) {
+                                m.classList.add('hidden');
+                                m.classList.remove('flex');
+                            }
+                        });
+                        document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+
                         // Show success message if provided in the event detail
                         const message = (evt.detail && evt.detail.value) ? evt.detail.value : "Action completed successfully";
                         showNotification(message, 'success');
@@ -298,10 +317,10 @@ public class DashboardResource {
                     function showNotification(message, type) {
                         const container = document.getElementById('main-content-view');
                         if(!container) return;
-                        
+
                         const alertDiv = document.createElement('div');
                         const colorClass = type === 'success' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-rose-400 bg-rose-400/10 border-rose-400/20';
-                        
+
                         alertDiv.className = `fixed bottom-4 right-4 z-[200] p-4 rounded-xl border animate-in slide-in-from-right-full duration-300 ${colorClass}`;
                         alertDiv.innerHTML = `
                             <div class="flex items-center gap-3">

@@ -106,9 +106,9 @@ public class DocumentResource {
                 "p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-indigo-500/20");
         addBtn.addAttribute("hx-get", String.format("/dashboard/document/add-form?db=%s&col=%s", db, col));
         addBtn.addAttribute("hx-target", "#doc-modal-body");
-        addBtn.addAttribute("data-modal-target", "document-modal");
-        addBtn.addAttribute("onclick", "openDocumentModal()");
         addBtn.addAttribute("type", "button");
+        addBtn.addAttribute("data-modal-target", "document-modal");
+        addBtn.addAttribute("data-modal-toggle", "document-modal");
         addBtn.addAttribute("title", "Add Document");
         filterForm.addComponent(addBtn);
 
@@ -134,7 +134,7 @@ public class DocumentResource {
         Div resolveGroup = new Div("resolve-group");
         resolveGroup.setStyleClass(
                 "flex items-center gap-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-indigo-500/20");
-        
+
         InputText checkResolve = new InputText("doc-resolve");
         checkResolve.setType("checkbox");
         checkResolve.addAttribute("name", "doc-resolve");
@@ -218,6 +218,8 @@ public class DocumentResource {
         submitBtn.addAttribute("hx-post", "/dashboard/document/save");
         submitBtn.addAttribute("hx-target", "#document-list-container");
         submitBtn.addAttribute("hx-swap", "none");
+        submitBtn.addAttribute("type", "button");
+        submitBtn.addAttribute("data-modal-target", "document-modal");
         submitBtn.addAttribute("data-modal-hide", "document-modal");
         form.addComponent(submitBtn);
 
@@ -233,13 +235,16 @@ public class DocumentResource {
         container.setStyleClass("text-center space-y-6 p-4");
 
         Div iconBox = new Div("del-icon-box");
-        iconBox.setStyleClass("w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto border border-rose-500/20");
-        iconBox.addComponent(new Label("del-icon-svg", "<svg class='w-8 h-8 text-rose-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg>"));
+        iconBox.setStyleClass(
+                "w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto border border-rose-500/20");
+        iconBox.addComponent(new Label("del-icon-svg",
+                "<svg class='w-8 h-8 text-rose-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg>"));
         container.addComponent(iconBox);
 
         Div msgDiv = new Div("del-msg-div");
         msgDiv.setStyleClass("text-slate-300");
-        msgDiv.addComponent(new Label("del-msg-text", String.format("Are you sure you want to delete document %s? This action cannot be undone.", jettraID)));
+        msgDiv.addComponent(new Label("del-msg-text",
+                String.format("Are you sure you want to delete document %s? This action cannot be undone.", jettraID)));
         container.addComponent(msgDiv);
 
         Form form = new Form("del-doc-form");
@@ -269,7 +274,9 @@ public class DocumentResource {
         confirmBtn.addAttribute("hx-post", "/dashboard/document/delete");
         confirmBtn.addAttribute("hx-target", "#document-list-container");
         confirmBtn.addAttribute("hx-swap", "none");
-        confirmBtn.addAttribute("data-modal-toggle", "doc-delete-modal");
+        confirmBtn.addAttribute("type", "button");
+        confirmBtn.addAttribute("data-modal-target", "doc-delete-modal");
+        confirmBtn.addAttribute("data-modal-hide", "doc-delete-modal");
         form.addComponent(confirmBtn);
 
         container.addComponent(form);
@@ -417,7 +424,7 @@ public class DocumentResource {
             String contentSnippet = raw;
             if (contentSnippet.length() > 80)
                 contentSnippet = contentSnippet.substring(0, 77) + "...";
-            
+
             Span contentSpan = new Span("content-span-" + jettraID, contentSnippet);
             contentSpan.setStyleClass("text-xs text-slate-400 font-mono truncate max-w-xs block");
             row.add(contentSpan.render());
@@ -432,9 +439,9 @@ public class DocumentResource {
                     String.format("/dashboard/document/edit-form?db=%s&col=%s&jettraID=%s&json=%s", db, col, jettraID,
                             java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8)));
             editBtn.addAttribute("hx-target", "#doc-modal-body");
-            editBtn.addAttribute("data-modal-target", "document-modal");
-            editBtn.addAttribute("onclick", "openDocumentModal()");
             editBtn.addAttribute("type", "button");
+            editBtn.addAttribute("data-modal-target", "document-modal");
+            editBtn.addAttribute("data-modal-toggle", "document-modal");
             actions.addComponent(editBtn);
 
             Button delBtn = new Button("del-" + jettraID,
@@ -443,9 +450,9 @@ public class DocumentResource {
             delBtn.addAttribute("hx-get",
                     String.format("/dashboard/document/delete-form?db=%s&col=%s&jettraID=%s", db, col, jettraID));
             delBtn.addAttribute("hx-target", "#doc-del-body");
-            delBtn.addAttribute("data-modal-target", "doc-delete-modal");
-            delBtn.addAttribute("onclick", "openDocumentDeleteModal()");
             delBtn.addAttribute("type", "button");
+            delBtn.addAttribute("data-modal-target", "doc-delete-modal");
+            delBtn.addAttribute("data-modal-toggle", "doc-delete-modal");
             actions.addComponent(delBtn);
 
             row.add(actions.render());
@@ -457,14 +464,17 @@ public class DocumentResource {
     private String renderJsonView(List<String> rawDocs) {
         Div container = new Div("json-view-container");
         container.setStyleClass("space-y-4 p-4 mt-4");
-        
+
         for (int i = 0; i < rawDocs.size(); i++) {
             Div item = new Div("json-item-" + i);
-            item.setStyleClass("bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-indigo-300 overflow-x-auto shadow-inner");
-            
+            item.setStyleClass(
+                    "bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-indigo-300 overflow-x-auto shadow-inner");
+
             Label code = new Label("json-code-" + i, rawDocs.get(i));
-            // Use pre-wrap style via CSS class if possible, or wrap in a pre tag if Jettra-UI Label allows it.
-            // Since Label just renders the text, we might need a way to preserve formatting.
+            // Use pre-wrap style via CSS class if possible, or wrap in a pre tag if
+            // Jettra-UI Label allows it.
+            // Since Label just renders the text, we might need a way to preserve
+            // formatting.
             // Let's assume the styleClass font-mono and overflow-x-auto on the parent help.
             item.addComponent(code);
             container.addComponent(item);
