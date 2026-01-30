@@ -22,6 +22,7 @@ public class InputText extends Component {
 
     @Override
     public String render() {
-        return String.format("<input type='%s' id='%s' name='%s' value='%s' placeholder='%s' class='%s'%s />", type, id, id, value, placeholder, styleClass, renderAttributes());
+        String nameAttr = attributes.containsKey("name") ? "" : String.format(" name='%s'", id);
+        return String.format("<input type='%s' id='%s'%s value='%s' placeholder='%s' class='%s'%s />", type, id, nameAttr, value, placeholder, styleClass, renderAttributes());
     }
 }

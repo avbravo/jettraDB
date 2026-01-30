@@ -35,7 +35,8 @@ public class SelectOne extends Component {
     @Override
     public String render() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("<select id='%s' name='%s' class='%s'%s>", id, id, styleClass, renderAttributes()));
+        String nameAttr = attributes.containsKey("name") ? "" : String.format(" name='%s'", id);
+        sb.append(String.format("<select id='%s'%s class='%s'%s>", id, nameAttr, styleClass, renderAttributes()));
         for (Map.Entry<String, String> entry : options.entrySet()) {
             String selected = entry.getKey().equals(selectedValue) ? " selected" : "";
             sb.append(String.format("<option value='%s'%s>%s</option>", entry.getKey(), selected, entry.getValue()));

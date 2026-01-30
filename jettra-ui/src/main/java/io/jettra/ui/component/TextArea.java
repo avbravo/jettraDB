@@ -36,7 +36,8 @@ public class TextArea extends Component {
 
     @Override
     public String render() {
-        return String.format("<textarea id='%s' name='%s' rows='%d' placeholder='%s' class='%s'%s>%s</textarea>",
-                id, id, rows, placeholder, styleClass, renderAttributes(), value);
+        String nameAttr = attributes.containsKey("name") ? "" : String.format(" name='%s'", id);
+        return String.format("<textarea id='%s'%s rows='%d' placeholder='%s' class='%s'%s>%s</textarea>",
+                id, nameAttr, rows, placeholder, styleClass, renderAttributes(), value);
     }
 }

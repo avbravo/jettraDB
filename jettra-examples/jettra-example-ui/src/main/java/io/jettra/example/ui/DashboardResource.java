@@ -163,12 +163,15 @@ public class DashboardResource {
                             const extraStyle = document.createElement('style');
                             extraStyle.textContent = `
                                 .modal-overlay-centered {
-                                    display: none;
+                                    display: flex;
                                     align-items: center;
                                     justify-content: center;
+                                    position: fixed;
+                                    inset: 0;
+                                    z-index: 100;
                                 }
-                                .modal-overlay-centered.flex {
-                                    display: flex !important;
+                                .modal-overlay-centered.hidden {
+                                    display: none !important;
                                 }
                                 /* Custom Scrollbar for dark theme */
                                 ::-webkit-scrollbar { width: 8px; }
@@ -252,6 +255,66 @@ public class DashboardResource {
                             initFlowbite();
                         }
                     });
+
+                    function openDocumentModal() {
+                        const modal = document.getElementById('document-modal');
+                        if(modal) {
+                            modal.classList.remove('hidden');
+                            modal.classList.add('flex');
+                        }
+                    }
+                    function openDocumentDeleteModal() {
+                        const modal = document.getElementById('doc-delete-modal');
+                        if(modal) {
+                            modal.classList.remove('hidden');
+                            modal.classList.add('flex');
+                        }
+                    }
+                    function closeDocumentModal() {
+                        const modal = document.getElementById('document-modal');
+                        if(modal) {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                        }
+                    }
+                    function closeDocumentDeleteModal() {
+                        const modal = document.getElementById('doc-delete-modal');
+                        if(modal) {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                        }
+                    }
+
+                    // Global listener for document actions
+                    document.body.addEventListener('refreshDocuments', function(evt) {
+                        closeDocumentModal();
+                        closeDocumentDeleteModal();
+                        
+                        // Show success message if provided in the event detail
+                        const message = (evt.detail && evt.detail.value) ? evt.detail.value : "Action completed successfully";
+                        showNotification(message, 'success');
+                    });
+
+                    function showNotification(message, type) {
+                        const container = document.getElementById('main-content-view');
+                        if(!container) return;
+                        
+                        const alertDiv = document.createElement('div');
+                        const colorClass = type === 'success' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-rose-400 bg-rose-400/10 border-rose-400/20';
+                        
+                        alertDiv.className = `fixed bottom-4 right-4 z-[200] p-4 rounded-xl border animate-in slide-in-from-right-full duration-300 ${colorClass}`;
+                        alertDiv.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span class="text-sm font-bold tracking-tight">${message}</span>
+                            </div>
+                        `;
+                        document.body.appendChild(alertDiv);
+                        setTimeout(() => {
+                            alertDiv.classList.add('animate-out', 'fade-out', 'slide-out-to-right-full');
+                            setTimeout(() => alertDiv.remove(), 300);
+                        }, 3000);
+                    }
                 """;
 
         page.addScriptContent(themeScript);
@@ -690,12 +753,11 @@ public class DashboardResource {
     private Modal createDocumentModal() {
         Modal modal = new Modal("document-modal", "Manage Document");
         modal.setStyleClass(
-                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+                "modal-overlay-centered fixed top-0 left-0 right-0 z-[100] hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
 
         Div content = new Div("doc-modal-body");
         content.setStyleClass("space-y-4 min-w-[500px] max-w-2xl text-white");
-        content.addComponent(new Label("doc-loading",
-                "<div class='text-center py-8 text-slate-500 font-medium'>Loading form...</div>"));
+        content.addComponent(new Label("doc-loading", "Loading form..."));
 
         modal.addComponent(content);
 
@@ -703,6 +765,7 @@ public class DashboardResource {
         cancelBtn.setStyleClass(
                 "w-full px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
         cancelBtn.addAttribute("data-modal-hide", "document-modal");
+        cancelBtn.addAttribute("type", "button");
         modal.addFooterComponent(cancelBtn);
 
         return modal;
@@ -711,12 +774,11 @@ public class DashboardResource {
     private Modal createDocumentDeleteModal() {
         Modal modal = new Modal("doc-delete-modal", "Delete Document");
         modal.setStyleClass(
-                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+                "modal-overlay-centered fixed top-0 left-0 right-0 z-[100] hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
 
         Div content = new Div("doc-del-body");
         content.setStyleClass("text-center space-y-4 text-white");
-        content.addComponent(new Label("doc-del-loading",
-                "<div class='text-center py-8 text-slate-500 font-medium'>Loading...</div>"));
+        content.addComponent(new Label("doc-del-loading", "Loading..."));
 
         modal.addComponent(content);
 
@@ -724,6 +786,7 @@ public class DashboardResource {
         cancelBtn.setStyleClass(
                 "w-full px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
         cancelBtn.addAttribute("data-modal-hide", "doc-delete-modal");
+        cancelBtn.addAttribute("type", "button");
         modal.addFooterComponent(cancelBtn);
 
         return modal;

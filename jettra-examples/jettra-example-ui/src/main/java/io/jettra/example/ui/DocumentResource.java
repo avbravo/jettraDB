@@ -85,8 +85,19 @@ public class DocumentResource {
                 "change from:select, change from:input[type='checkbox'], keyup delay:500ms from:input[type='text']");
 
         // Hidden fields for context
-        filterForm.addComponent(new Label("hidden-db", "<input type='hidden' name='db' value='" + db + "'>"));
-        filterForm.addComponent(new Label("hidden-col", "<input type='hidden' name='col' value='" + col + "'>"));
+        InputText hiddenDb = new InputText("hidden-db");
+        hiddenDb.setType("hidden");
+        hiddenDb.addAttribute("name", "db");
+        hiddenDb.setValue(db);
+        hiddenDb.setStyleClass("");
+        filterForm.addComponent(hiddenDb);
+
+        InputText hiddenCol = new InputText("hidden-col");
+        hiddenCol.setType("hidden");
+        hiddenCol.addAttribute("name", "col");
+        hiddenCol.setValue(col);
+        hiddenCol.setStyleClass("");
+        filterForm.addComponent(hiddenCol);
 
         // Add Button
         Button addBtn = new Button("btn-add-doc",
@@ -96,7 +107,8 @@ public class DocumentResource {
         addBtn.addAttribute("hx-get", String.format("/dashboard/document/add-form?db=%s&col=%s", db, col));
         addBtn.addAttribute("hx-target", "#doc-modal-body");
         addBtn.addAttribute("data-modal-target", "document-modal");
-        addBtn.addAttribute("data-modal-show", "document-modal");
+        addBtn.addAttribute("onclick", "openDocumentModal()");
+        addBtn.addAttribute("type", "button");
         addBtn.addAttribute("title", "Add Document");
         filterForm.addComponent(addBtn);
 
@@ -122,8 +134,14 @@ public class DocumentResource {
         Div resolveGroup = new Div("resolve-group");
         resolveGroup.setStyleClass(
                 "flex items-center gap-2 px-3 py-2 bg-slate-900/50 rounded-lg border border-indigo-500/20");
-        resolveGroup.addComponent(new Label("check-resolve",
-                "<input type='checkbox' name='doc-resolve' value='true' class='w-4 h-4 accent-indigo-500 cursor-pointer'>"));
+        
+        InputText checkResolve = new InputText("doc-resolve");
+        checkResolve.setType("checkbox");
+        checkResolve.addAttribute("name", "doc-resolve");
+        checkResolve.addAttribute("value", "true");
+        checkResolve.setStyleClass("w-4 h-4 accent-indigo-500 cursor-pointer");
+        resolveGroup.addComponent(checkResolve);
+
         Label resolveLabel = new Label("lbl-resolve", "Resolve Refs");
         resolveLabel.setStyleClass("text-xs font-semibold text-indigo-300 cursor-pointer select-none");
         resolveGroup.addComponent(resolveLabel);
@@ -214,13 +232,15 @@ public class DocumentResource {
         Div container = new Div("delete-confirm-container");
         container.setStyleClass("text-center space-y-6 p-4");
 
-        container.addComponent(new Label("del-icon",
-                "<div class='w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto border border-rose-500/20'><svg class='w-8 h-8 text-rose-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg></div>"));
+        Div iconBox = new Div("del-icon-box");
+        iconBox.setStyleClass("w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto border border-rose-500/20");
+        iconBox.addComponent(new Label("del-icon-svg", "<svg class='w-8 h-8 text-rose-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg>"));
+        container.addComponent(iconBox);
 
-        container.addComponent(new Label("del-msg",
-                String.format(
-                        "Are you sure you want to delete document <span class='font-mono text-rose-400 font-bold'>%s</span>? This action cannot be undone.",
-                        jettraID)));
+        Div msgDiv = new Div("del-msg-div");
+        msgDiv.setStyleClass("text-slate-300");
+        msgDiv.addComponent(new Label("del-msg-text", String.format("Are you sure you want to delete document %s? This action cannot be undone.", jettraID)));
+        container.addComponent(msgDiv);
 
         Form form = new Form("del-doc-form");
         form.setStyleClass("flex gap-3 justify-center");
@@ -249,7 +269,7 @@ public class DocumentResource {
         confirmBtn.addAttribute("hx-post", "/dashboard/document/delete");
         confirmBtn.addAttribute("hx-target", "#document-list-container");
         confirmBtn.addAttribute("hx-swap", "none");
-        confirmBtn.addAttribute("data-modal-hide", "doc-delete-modal");
+        confirmBtn.addAttribute("data-modal-toggle", "doc-delete-modal");
         form.addComponent(confirmBtn);
 
         container.addComponent(form);
@@ -271,9 +291,10 @@ public class DocumentResource {
 
         Node storeNode = findStorageNode(token);
         if (storeNode == null) {
-            return Response.ok(
-                    "<div class='p-4 text-rose-400 bg-rose-400/10 rounded-lg border border-rose-400/20'>Error: No online STORAGE nodes found.</div>")
-                    .build();
+            Div errorDiv = new Div("no-store-node-err");
+            errorDiv.setStyleClass("p-4 text-rose-400 bg-rose-400/10 rounded-lg border border-rose-400/20");
+            errorDiv.addComponent(new Label("lbl-err", "Error: No online STORAGE nodes found."));
+            return Response.ok(errorDiv.render()).build();
         }
 
         try {
@@ -306,8 +327,10 @@ public class DocumentResource {
                 listWrapper.setStyleClass("space-y-4");
 
                 if (rawDocs.isEmpty()) {
-                    listWrapper.addComponent(new Label("empty-msg",
-                            "<div class='text-center py-12 text-slate-500 italic'>No documents found.</div>"));
+                    Div emptyDiv = new Div("empty-docs-msg");
+                    emptyDiv.setStyleClass("text-center py-12 text-slate-500 italic");
+                    emptyDiv.addComponent(new Label("lbl-empty", "No documents found."));
+                    listWrapper.addComponent(emptyDiv);
                 } else {
                     if ("json".equalsIgnoreCase(viewMode)) {
                         listWrapper.addComponent(new Label("json-view", renderJsonView(rawDocs)));
@@ -323,8 +346,8 @@ public class DocumentResource {
                 pagination.setStyleClass(
                         "flex items-center justify-between p-4 border-t border-slate-800 bg-slate-900/30 rounded-b-xl");
 
-                Label pageInfo = new Label("page-info",
-                        String.format("<span class='text-xs font-mono text-slate-500'>Page %d</span>", page));
+                Label pageInfo = new Label("page-info", String.format("Page %d", page));
+                pageInfo.setStyleClass("text-xs font-mono text-slate-500");
                 pagination.addComponent(pageInfo);
 
                 Div pagerBtns = new Div("pager-btns");
@@ -361,14 +384,17 @@ public class DocumentResource {
 
                 return Response.ok(listWrapper.render()).build();
             } else {
-                return Response.ok("<div class='p-4 text-rose-400 bg-rose-400/10 rounded-lg'>Error fetching documents: "
-                        + response.statusCode() + "</div>").build();
+                Div errorDiv = new Div("list-err");
+                errorDiv.setStyleClass("p-4 text-rose-400 bg-rose-400/10 rounded-lg");
+                errorDiv.addComponent(new Label("lbl-list-err", "Error fetching documents: " + response.statusCode()));
+                return Response.ok(errorDiv.render()).build();
             }
         } catch (Exception e) {
             LOG.error("Error fetching documents", e);
-            return Response
-                    .ok("<div class='p-4 text-rose-400 bg-rose-400/10 rounded-lg'>Error: " + e.getMessage() + "</div>")
-                    .build();
+            Div errorDiv = new Div("list-catch-err");
+            errorDiv.setStyleClass("p-4 text-rose-400 bg-rose-400/10 rounded-lg");
+            errorDiv.addComponent(new Label("lbl-catch-err", "Error: " + e.getMessage()));
+            return Response.ok(errorDiv.render()).build();
         }
     }
 
@@ -384,13 +410,17 @@ public class DocumentResource {
             });
             List<String> row = new ArrayList<>();
             String jettraID = String.valueOf(doc.get("jettraID"));
-            row.add("<code class='text-[10px] text-indigo-400 bg-indigo-400/10 px-1 rounded'>" + jettraID + "</code>");
+            Span idSpan = new Span("id-span-" + jettraID, jettraID);
+            idSpan.setStyleClass("text-[10px] text-indigo-400 bg-indigo-400/10 px-1 rounded font-mono");
+            row.add(idSpan.render());
 
             String contentSnippet = raw;
             if (contentSnippet.length() > 80)
                 contentSnippet = contentSnippet.substring(0, 77) + "...";
-            row.add("<span class='text-xs text-slate-400 font-mono truncate max-w-xs block'>" + contentSnippet
-                    + "</span>");
+            
+            Span contentSpan = new Span("content-span-" + jettraID, contentSnippet);
+            contentSpan.setStyleClass("text-xs text-slate-400 font-mono truncate max-w-xs block");
+            row.add(contentSpan.render());
 
             Div actions = new Div("actions-" + jettraID);
             actions.setStyleClass("flex gap-2");
@@ -403,7 +433,8 @@ public class DocumentResource {
                             java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8)));
             editBtn.addAttribute("hx-target", "#doc-modal-body");
             editBtn.addAttribute("data-modal-target", "document-modal");
-            editBtn.addAttribute("data-modal-show", "document-modal");
+            editBtn.addAttribute("onclick", "openDocumentModal()");
+            editBtn.addAttribute("type", "button");
             actions.addComponent(editBtn);
 
             Button delBtn = new Button("del-" + jettraID,
@@ -413,7 +444,8 @@ public class DocumentResource {
                     String.format("/dashboard/document/delete-form?db=%s&col=%s&jettraID=%s", db, col, jettraID));
             delBtn.addAttribute("hx-target", "#doc-del-body");
             delBtn.addAttribute("data-modal-target", "doc-delete-modal");
-            delBtn.addAttribute("data-modal-show", "doc-delete-modal");
+            delBtn.addAttribute("onclick", "openDocumentDeleteModal()");
+            delBtn.addAttribute("type", "button");
             actions.addComponent(delBtn);
 
             row.add(actions.render());
@@ -423,16 +455,21 @@ public class DocumentResource {
     }
 
     private String renderJsonView(List<String> rawDocs) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<div class='space-y-4 p-4 mt-4'>");
-        for (String raw : rawDocs) {
-            sb.append(
-                    "<div class='bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-indigo-300 overflow-x-auto shadow-inner'>");
-            sb.append("<pre>").append(raw).append("</pre>");
-            sb.append("</div>");
+        Div container = new Div("json-view-container");
+        container.setStyleClass("space-y-4 p-4 mt-4");
+        
+        for (int i = 0; i < rawDocs.size(); i++) {
+            Div item = new Div("json-item-" + i);
+            item.setStyleClass("bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-indigo-300 overflow-x-auto shadow-inner");
+            
+            Label code = new Label("json-code-" + i, rawDocs.get(i));
+            // Use pre-wrap style via CSS class if possible, or wrap in a pre tag if Jettra-UI Label allows it.
+            // Since Label just renders the text, we might need a way to preserve formatting.
+            // Let's assume the styleClass font-mono and overflow-x-auto on the parent help.
+            item.addComponent(code);
+            container.addComponent(item);
         }
-        sb.append("</div>");
-        return sb.toString();
+        return container.render();
     }
 
     private String renderTreeView(List<String> rawDocs) {
@@ -516,7 +553,11 @@ public class DocumentResource {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                return Response.ok().header("HX-Trigger", "refreshDocuments").build();
+                String successMsg = jettraID == null || jettraID.strip().isEmpty() ? "Document created successfully!"
+                        : "Document updated successfully!";
+                return Response.ok()
+                        .header("HX-Trigger", String.format("{\"refreshDocuments\": \"%s\"}", successMsg))
+                        .build();
             } else {
                 return Response.ok("<script>alert('Error saving document (" + response.statusCode() + "): "
                         + response.body().replace("'", "\\'") + "');</script>").build();
@@ -552,7 +593,9 @@ public class DocumentResource {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                return Response.ok().header("HX-Trigger", "refreshDocuments").build();
+                return Response.ok()
+                        .header("HX-Trigger", "{\"refreshDocuments\": \"Document deleted successfully!\"}")
+                        .build();
             } else {
                 return Response.ok("<script>alert('Error deleting document: " + response.statusCode() + "');</script>")
                         .build();
