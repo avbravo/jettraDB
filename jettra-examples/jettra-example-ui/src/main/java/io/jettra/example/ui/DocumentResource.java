@@ -107,8 +107,7 @@ public class DocumentResource {
         addBtn.addAttribute("hx-get", String.format("/dashboard/document/add-form?db=%s&col=%s", db, col));
         addBtn.addAttribute("hx-target", "#doc-modal-body");
         addBtn.addAttribute("type", "button");
-        addBtn.addAttribute("data-modal-target", "document-modal");
-        addBtn.addAttribute("data-modal-toggle", "document-modal");
+        addBtn.addAttribute("onclick", "openDocumentModal()");
         addBtn.addAttribute("title", "Add Document");
         filterForm.addComponent(addBtn);
 
@@ -167,11 +166,38 @@ public class DocumentResource {
         return renderDocumentForm(db, col, "", "{\n  \"name\": \"New Document\"\n}");
     }
 
-    @GET
+    @POST
     @Path("/edit-form")
     @Produces(MediaType.TEXT_HTML)
     public Response getEditForm(@QueryParam("db") String db, @QueryParam("col") String col,
-            @QueryParam("jettraID") String jettraID, @QueryParam("json") String json) {
+            @QueryParam("jettraID") String jettraID, @QueryParam("json") String json,
+            @FormParam("json") String formJson) {
+        if (formJson != null) json = formJson;
+        
+        if (json == null || json.isEmpty() || "null".equals(json)) {
+            // Try to fetch from storage node if json is missing
+            String token = getAuthToken();
+            if (token != null) {
+                Node storeNode = findStorageNode(token);
+                if (storeNode != null) {
+                    try {
+                        String url = String.format("http://%s/api/v1/document/%s?jettraID=%s", storeNode.getAddress(), col,
+                                java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8));
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(URI.create(url))
+                                .header("Authorization", "Bearer " + token)
+                                .GET()
+                                .build();
+                        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                        if (response.statusCode() == 200) {
+                            json = response.body();
+                        }
+                    } catch (Exception e) {
+                        LOG.error("Error fetching document for edit", e);
+                    }
+                }
+            }
+        }
         return renderDocumentForm(db, col, jettraID, json);
     }
 
@@ -205,7 +231,7 @@ public class DocumentResource {
 
         TextArea textArea = new TextArea("form-json");
         textArea.addAttribute("name", "json");
-        textArea.setValue(json);
+        textArea.setValue(json == null ? "" : json);
         textArea.setStyleClass(
                 "w-full h-64 bg-slate-900 border border-slate-700 text-indigo-300 font-mono text-sm p-4 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-vertical");
         form.addComponent(textArea);
@@ -220,7 +246,7 @@ public class DocumentResource {
         submitBtn.addAttribute("hx-swap", "none");
         submitBtn.addAttribute("type", "button");
         submitBtn.addAttribute("data-modal-target", "document-modal");
-        submitBtn.addAttribute("data-modal-hide", "document-modal");
+        // Removed data-modal-hide to let HX-Trigger handle closure after success
         form.addComponent(submitBtn);
 
         return Response.ok(form.render()).build();
@@ -268,6 +294,13 @@ public class DocumentResource {
         idInput.setValue(jettraID);
         form.addComponent(idInput);
 
+        Button cancelBtn = new Button("btn-cancel-delete", "Cancel");
+        cancelBtn.setStyleClass(
+                "px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("onclick", "closeDocumentDeleteModal()");
+        cancelBtn.addAttribute("type", "button");
+        form.addComponent(cancelBtn);
+
         Button confirmBtn = new Button("btn-confirm-delete", "Yes, Delete Document");
         confirmBtn.setStyleClass(
                 "px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-rose-500/20");
@@ -276,7 +309,7 @@ public class DocumentResource {
         confirmBtn.addAttribute("hx-swap", "none");
         confirmBtn.addAttribute("type", "button");
         confirmBtn.addAttribute("data-modal-target", "doc-delete-modal");
-        confirmBtn.addAttribute("data-modal-hide", "doc-delete-modal");
+        // Removed data-modal-hide to let HX-Trigger handle closure after success
         form.addComponent(confirmBtn);
 
         container.addComponent(form);
@@ -426,7 +459,9 @@ public class DocumentResource {
                 contentSnippet = contentSnippet.substring(0, 77) + "...";
 
             Span contentSpan = new Span("content-span-" + jettraID, contentSnippet);
-            contentSpan.setStyleClass("text-xs text-slate-400 font-mono truncate max-w-xs block");
+            contentSpan.setStyleClass("content-snippet text-xs text-slate-400 font-mono truncate max-w-xs block");
+            // Store raw JSON in data attribute to avoid URL length issues
+            contentSpan.addAttribute("data-raw", raw.replace("\"", "&quot;"));
             row.add(contentSpan.render());
 
             Div actions = new Div("actions-" + jettraID);
@@ -435,13 +470,12 @@ public class DocumentResource {
             Button editBtn = new Button("edit-" + jettraID,
                     "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'></path></svg>");
             editBtn.setStyleClass("p-1 hover:text-amber-400 text-slate-500 transition-colors cursor-pointer");
-            editBtn.addAttribute("hx-get",
-                    String.format("/dashboard/document/edit-form?db=%s&col=%s&jettraID=%s&json=%s", db, col, jettraID,
-                            java.net.URLEncoder.encode(raw, java.nio.charset.StandardCharsets.UTF_8)));
+            // Use POST to send large JSON and avoid 'null' issues
+            editBtn.addAttribute("hx-post",
+                    String.format("/dashboard/document/edit-form?db=%s&col=%s&jettraID=%s", db, col, jettraID));
+            editBtn.addAttribute("hx-vals", "js:{json: event.target.closest('tr').querySelector('.content-snippet').getAttribute('data-raw')}");
             editBtn.addAttribute("hx-target", "#doc-modal-body");
-            editBtn.addAttribute("type", "button");
-            editBtn.addAttribute("data-modal-target", "document-modal");
-            editBtn.addAttribute("data-modal-toggle", "document-modal");
+            editBtn.addAttribute("onclick", "openDocumentModal()");
             actions.addComponent(editBtn);
 
             Button delBtn = new Button("del-" + jettraID,
@@ -450,9 +484,7 @@ public class DocumentResource {
             delBtn.addAttribute("hx-get",
                     String.format("/dashboard/document/delete-form?db=%s&col=%s&jettraID=%s", db, col, jettraID));
             delBtn.addAttribute("hx-target", "#doc-del-body");
-            delBtn.addAttribute("type", "button");
-            delBtn.addAttribute("data-modal-target", "doc-delete-modal");
-            delBtn.addAttribute("data-modal-toggle", "doc-delete-modal");
+            delBtn.addAttribute("onclick", "openDocumentDeleteModal()");
             actions.addComponent(delBtn);
 
             row.add(actions.render());

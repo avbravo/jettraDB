@@ -149,6 +149,7 @@ public class DashboardResource {
         template.addOverlay(createUserModal());
         template.addOverlay(createDeleteUserModal());
         template.addOverlay(createCollectionModal());
+        template.addOverlay(createCollectionDeleteModal()); // Added this
         template.addOverlay(createDocumentModal());
         template.addOverlay(createDocumentDeleteModal());
 
@@ -240,32 +241,65 @@ public class DashboardResource {
                         var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
                         var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
                         if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                            themeToggleLightIcon.classList.remove('hidden');
-                            themeToggleDarkIcon.classList.add('hidden');
+                            if (themeToggleLightIcon) themeToggleLightIcon.classList.remove('hidden');
+                            if (themeToggleDarkIcon) themeToggleDarkIcon.classList.add('hidden');
                         } else {
-                            themeToggleLightIcon.classList.add('hidden');
-                            themeToggleDarkIcon.classList.remove('hidden');
+                            if (themeToggleLightIcon) themeToggleLightIcon.classList.add('hidden');
+                            if (themeToggleDarkIcon) themeToggleDarkIcon.classList.remove('hidden');
                         }
                     });
 
                     // Re-init Flowbite after HTMX content is loaded
-                    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+                    document.addEventListener('htmx:afterOnLoad', function(evt) {
                         if (typeof initFlowbite === 'function') {
                             initFlowbite();
                         }
+                        // Ensure all data-modal-hide elements in the new content work
                     });
 
                     // Explicit modal closure via HX-Trigger
-                    document.body.addEventListener('closeModal', function(evt) {
+                    document.addEventListener('closeModal', function(evt) {
                         const modalId = evt.detail.value || evt.detail || 'document-modal';
                         const modalElement = document.getElementById(modalId);
                         if (modalElement) {
-                            // Manual hide to ensure it works even if Flowbite JS is still loading/busy
                             modalElement.classList.add('hidden');
                             modalElement.classList.remove('flex');
-                            // Cleanup backdrop if present
-                            const backdrop = document.querySelector('[modal-backdrop]');
-                            if (backdrop) backdrop.remove();
+                            document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+                            document.body.classList.remove('overflow-hidden');
+                        }
+                    });
+
+                    // Global listener for data-modal-hide - uses closest() to handle SVG/children clicks
+                    document.addEventListener('click', function(e) {
+                        const hideBtn = e.target.closest('[data-modal-hide]');
+                        if (hideBtn) {
+                            const modalId = hideBtn.getAttribute('data-modal-hide');
+                            
+                            // Only prevent default if it's not a button that should trigger an HTMX request
+                            const hasHx = hideBtn.hasAttribute('hx-post') || hideBtn.hasAttribute('hx-delete') || hideBtn.hasAttribute('hx-put') || hideBtn.hasAttribute('hx-get');
+                            if (!hasHx) {
+                                e.preventDefault();
+                            }
+
+                            if (modalId === 'document-modal') {
+                                closeDocumentModal();
+                            } else if (modalId === 'doc-delete-modal') {
+                                closeDocumentDeleteModal();
+                            } else if (modalId === 'col-delete-modal') {
+                                closeCollectionDeleteModal();
+                            } else if (modalId === 'collection-modal') {
+                                closeCollectionModal();
+                            } else {
+                                const m = document.getElementById(modalId);
+                                if (m) {
+                                    m.classList.add('hidden');
+                                    m.classList.remove('flex');
+                                    m.setAttribute('aria-hidden', 'true');
+                                    // Remove any backdrop
+                                    document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+                                    document.body.classList.remove('overflow-hidden');
+                                }
+                            }
                         }
                     });
 
@@ -274,6 +308,8 @@ public class DashboardResource {
                         if(modal) {
                             modal.classList.remove('hidden');
                             modal.classList.add('flex');
+                            modal.setAttribute('aria-hidden', 'false');
+                            document.body.classList.add('overflow-hidden');
                         }
                     }
                     function openDocumentDeleteModal() {
@@ -281,6 +317,18 @@ public class DashboardResource {
                         if(modal) {
                             modal.classList.remove('hidden');
                             modal.classList.add('flex');
+                            modal.setAttribute('aria-hidden', 'false');
+                            document.body.classList.add('overflow-hidden');
+                        }
+                    }
+                    function openCollectionDeleteModal(db, col) {
+                        const modal = document.getElementById('col-delete-modal');
+                        if(modal) {
+                            document.getElementById('col-del-body').innerHTML = '<div class=\"animate-pulse text-indigo-400\">Loading...</div>';
+                            modal.classList.remove('hidden');
+                            modal.classList.add('flex');
+                            modal.setAttribute('aria-hidden', 'false');
+                            htmx.ajax('GET', '/dashboard/collection/delete-form?db=' + db + '&col=' + col, {target: '#col-del-body'});
                         }
                     }
                     function closeDocumentModal() {
@@ -288,6 +336,9 @@ public class DashboardResource {
                         if(modal) {
                             modal.classList.add('hidden');
                             modal.classList.remove('flex');
+                            modal.setAttribute('aria-hidden', 'true');
+                            document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+                            document.body.classList.remove('overflow-hidden');
                         }
                     }
                     function closeDocumentDeleteModal() {
@@ -295,11 +346,23 @@ public class DashboardResource {
                         if(modal) {
                             modal.classList.add('hidden');
                             modal.classList.remove('flex');
+                            modal.setAttribute('aria-hidden', 'true');
+                            document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+                            document.body.classList.remove('overflow-hidden');
+                        }
+                    }
+                    function closeCollectionDeleteModal() {
+                        const modal = document.getElementById('col-delete-modal');
+                        if(modal) {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                            modal.setAttribute('aria-hidden', 'true');
+                            document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
                         }
                     }
 
                     // Global listener for document actions
-                    document.body.addEventListener('refreshDocuments', function(evt) {
+                    document.addEventListener('refreshDocuments', function(evt) {
                         ['document-modal', 'doc-delete-modal'].forEach(id => {
                             const m = document.getElementById(id);
                             if(m) {
@@ -308,9 +371,11 @@ public class DashboardResource {
                             }
                         });
                         document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+                        document.body.classList.remove('overflow-hidden');
 
-                        // Show success message if provided in the event detail
-                        const message = (evt.detail && evt.detail.value) ? evt.detail.value : "Action completed successfully";
+                        // Show success message
+                        const message = (evt.detail && evt.detail.value) ? evt.detail.value : 
+                                        (typeof evt.detail === 'string' ? evt.detail : "Action completed successfully");
                         showNotification(message, 'success');
                     });
 
@@ -768,6 +833,80 @@ public class DashboardResource {
                     .build();
         }
     }
+    @jakarta.ws.rs.DELETE
+    @Path("/collection/confirm-delete")
+    @Produces(MediaType.TEXT_HTML)
+    public Response confirmDeleteCollection(@jakarta.ws.rs.QueryParam("db") String dbName,
+            @jakarta.ws.rs.QueryParam("col") String colName) {
+        String token = null;
+        if (headers.getCookies().containsKey("auth_token")) {
+            token = headers.getCookies().get("auth_token").getValue();
+            if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                token = token.substring(1, token.length() - 1);
+            }
+        }
+
+        if (token == null || token.isEmpty()) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+
+        try {
+            pdClient.deleteCollection(dbName, colName, "Bearer " + token);
+            return Response.ok("<div class='p-4 text-green-400 font-bold'>Collection deleted successfully.</div>")
+                    .header("HX-Trigger", "refreshExplorer")
+                    .header("HX-Trigger-After-Swap", "{\"closeModal\": \"col-delete-modal\"}")
+                    .build();
+        } catch (Exception e) {
+            LOG.error("Failed to delete collection", e);
+            return Response.ok("<div class='p-4 text-red-400 font-bold'>Error: " + e.getMessage() + "</div>").build();
+        }
+    }
+
+    @GET
+    @Path("/collection/delete-form")
+    @Produces(MediaType.TEXT_HTML)
+    public Response getCollectionDeleteForm(@jakarta.ws.rs.QueryParam("db") String db,
+            @jakarta.ws.rs.QueryParam("col") String col) {
+        Div container = new Div("col-del-form-container");
+        container.setStyleClass("p-6 text-center space-y-4");
+
+        Label warning = new Label("del-warn", "Are you sure you want to delete the collection <strong>" + col + "</strong> from database <strong>" + db + "</strong>?");
+        warning.setStyleClass("text-white block mb-6 text-lg");
+        container.addComponent(warning);
+
+        Label danger = new Label("del-danger", "This action is permanent and all documents will be lost.");
+        danger.setStyleClass("text-red-400 text-sm font-bold block mb-8");
+        container.addComponent(danger);
+
+        Div btnGroup = new Div("del-btns");
+        btnGroup.setStyleClass("flex gap-3 justify-center");
+
+        Button cancelBtn = new Button("btn-col-del-cancel", "Cancel");
+        cancelBtn.setStyleClass("px-6 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700");
+        cancelBtn.addAttribute("onclick", "closeCollectionDeleteModal()");
+        btnGroup.addComponent(cancelBtn);
+
+        Button confirmBtn = new Button("btn-col-del-confirm", "Delete Now");
+        confirmBtn.setStyleClass("px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 font-bold shadow-lg shadow-red-500/20");
+        confirmBtn.addAttribute("hx-delete", "/dashboard/collection/confirm-delete?db=" + db + "&col=" + col);
+        confirmBtn.addAttribute("hx-target", "#col-del-body");
+        btnGroup.addComponent(confirmBtn);
+
+        container.addComponent(btnGroup);
+        return Response.ok(container.render()).build();
+    }
+
+    private Modal createCollectionDeleteModal() {
+        Modal modal = new Modal("col-delete-modal", "Delete Collection");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed top-0 left-0 right-0 z-[100] hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div body = new Div("col-del-body");
+        body.setStyleClass("min-w-[400px]");
+        modal.addComponent(body);
+
+        return modal;
+    }
 
     private Modal createDocumentModal() {
         Modal modal = new Modal("document-modal", "Manage Document");
@@ -783,6 +922,7 @@ public class DashboardResource {
         Button cancelBtn = new Button("btn-doc-cancel", "Cancel");
         cancelBtn.setStyleClass(
                 "w-full px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("onclick", "closeDocumentModal()");
         cancelBtn.addAttribute("data-modal-hide", "document-modal");
         cancelBtn.addAttribute("type", "button");
         modal.addFooterComponent(cancelBtn);

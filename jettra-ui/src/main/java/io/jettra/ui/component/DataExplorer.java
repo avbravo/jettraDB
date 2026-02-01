@@ -38,9 +38,11 @@ public class DataExplorer extends Component {
                 sb.append("    const el = document.getElementById(id);");
                 sb.append("    if (el) {");
                 sb.append("      el.classList.toggle('hidden');");
+                sb.append("      const isHidden = el.classList.contains('hidden');");
+                sb.append("      localStorage.setItem('data_explorer_expanded_' + id, !isHidden);");
                 sb.append("      const icon = document.getElementById(iconId);");
                 sb.append("      if (icon) {");
-                sb.append("        if (el.classList.contains('hidden')) {");
+                sb.append("        if (isHidden) {");
                 sb.append("          icon.style.transform = 'rotate(0deg)';");
                 sb.append("        } else {");
                 sb.append("          icon.style.transform = 'rotate(90deg)';");
@@ -49,6 +51,23 @@ public class DataExplorer extends Component {
                 sb.append("    }");
                 sb.append("  }");
                 sb.append("}");
+
+                sb.append("if (typeof restoreDataExplorerState !== 'function') {");
+                sb.append("  function restoreDataExplorerState() {");
+                sb.append("    document.querySelectorAll('[id^=\"db-children-\"], [id^=\"users-\"], [id^=\"engine-children-\"], [id^=\"col-children-\"]').forEach(el => {");
+                sb.append("      const expanded = localStorage.getItem('data_explorer_expanded_' + el.id) === 'true';");
+                sb.append("      if (expanded) {");
+                sb.append("        el.classList.remove('hidden');");
+                sb.append("        const iconId = el.id.replace('children', 'icon').replace('db-children', 'db-icon');");
+                sb.append("        const icon = document.getElementById(iconId);");
+                sb.append("        if (icon) icon.style.transform = 'rotate(90deg)';");
+                sb.append("      }");
+                sb.append("    });");
+                sb.append("  }");
+                sb.append("  document.addEventListener('DOMContentLoaded', restoreDataExplorerState);");
+                sb.append("  document.body.addEventListener('htmx:afterOnLoad', restoreDataExplorerState);");
+                sb.append("}");
+                sb.append("restoreDataExplorerState();"); // Run it once in case it just loaded via HTMX
                 sb.append("</script>");
                 return sb.toString();
         }
@@ -270,9 +289,9 @@ public class DataExplorer extends Component {
 
                         // Delete Button
                         sb.append("<div class='cursor-pointer text-slate-500 hover:text-red-400' title='Delete' ")
-                                        .append("onclick=\"event.stopPropagation(); htmx.ajax('GET', '/dashboard/collection/delete?db=")
-                                        .append(dbId).append("&col=").append(name)
-                                        .append("', {target:'#main-content-view'})\">")
+                                        .append("onclick=\"event.stopPropagation(); openCollectionDeleteModal('")
+                                        .append(dbId).append("', '").append(name)
+                                        .append("')\">")
                                         .append("<svg class='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg>")
                                         .append("</div>");
 
