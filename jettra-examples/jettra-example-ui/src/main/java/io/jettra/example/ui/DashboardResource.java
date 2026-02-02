@@ -152,6 +152,7 @@ public class DashboardResource {
         template.addOverlay(createCollectionDeleteModal()); // Added this
         template.addOverlay(createDocumentModal());
         template.addOverlay(createDocumentDeleteModal());
+        template.addOverlay(createVersionsModal()); // Added Versions Modal
 
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
@@ -228,7 +229,7 @@ public class DashboardResource {
                         } else {
                             if (document.documentElement.classList.contains('dark')) {
                                 document.documentElement.classList.remove('dark');
-                                localStorage.setItem('color-theme', 'light');
+                                localStorage.setItem('color-theme', 'dark');
                             } else {
                                 document.documentElement.classList.add('dark');
                                 localStorage.setItem('color-theme', 'dark');
@@ -247,6 +248,58 @@ public class DashboardResource {
                             if (themeToggleLightIcon) themeToggleLightIcon.classList.add('hidden');
                             if (themeToggleDarkIcon) themeToggleDarkIcon.classList.remove('hidden');
                         }
+                        
+                        restoreSidebarState();
+                    });
+                    
+                    // Sidebar Persistence Logic
+                    function restoreSidebarState() {
+                        const expandedNodes = JSON.parse(localStorage.getItem('jettra_expanded_nodes') || '[]');
+                        expandedNodes.forEach(id => {
+                            const node = document.getElementById(id);
+                            if (node) {
+                                // Find the children container, usually next sibling or inside
+                                // This depends on Jettra-UI DataExplorer rendering. 
+                                // Assuming typical details/summary or custom dive toggle
+                                // We'll assume a 'hidden' class toggle on the next sibling element
+                                const nextInfo = node.nextElementSibling;
+                                if(nextInfo && nextInfo.classList.contains('hidden')) {
+                                     nextInfo.classList.remove('hidden');
+                                }
+                            }
+                        });
+                    }
+
+                    function toggleExplorerNode(elementId) {
+                         const node = document.getElementById(elementId);
+                         if(!node) return;
+                         const nextInfo = node.nextElementSibling;
+                         if(nextInfo) {
+                             nextInfo.classList.toggle('hidden');
+                             
+                             // Save state
+                             let expanded = JSON.parse(localStorage.getItem('jettra_expanded_nodes') || '[]');
+                             if (!nextInfo.classList.contains('hidden')) {
+                                 if(!expanded.includes(elementId)) expanded.push(elementId);
+                             } else {
+                                 expanded = expanded.filter(id => id !== elementId);
+                             }
+                             localStorage.setItem('jettra_expanded_nodes', JSON.stringify(expanded));
+                         }
+                    }
+                    
+                    // Delegate clicks for sidebar toggles if they use a specific class
+                    document.addEventListener('click', function(e) {
+                        // Adjust selector relevant to Jettra-UI DataExplorer output
+                        // Assuming class 'db-node-toggle' or similar if we can control it.
+                        // Since we can't easily change DataExplorer java, we rely on what it renders.
+                        // If it uses onclick attributes, we might need to intercept or wrap.
+                        // For now, let's assume the user clicks the header.
+                        
+                        if (e.target.closest('.db-node-header')) { // Hypothetical class
+                             const header = e.target.closest('.db-node-header');
+                             toggleExplorerNode(header.id);
+                        }
                     });
 
                     // Re-init Flowbite after HTMX content is loaded
@@ -255,6 +308,10 @@ public class DashboardResource {
                             initFlowbite();
                         }
                         // Ensure all data-modal-hide elements in the new content work
+                        // Restore sidebar state if explorer was refreshed
+                        if(evt.detail.target.id === 'sidebar-explorer-container') {
+                             restoreSidebarState();
+                        }
                     });
 
                     // Explicit modal closure via HX-Trigger
@@ -289,6 +346,8 @@ public class DashboardResource {
                                 closeCollectionDeleteModal();
                             } else if (modalId === 'collection-modal') {
                                 closeCollectionModal();
+                            } else if (modalId === 'versions-modal') {
+                                closeVersionsModal();
                             } else {
                                 const m = document.getElementById(modalId);
                                 if (m) {
@@ -319,6 +378,25 @@ public class DashboardResource {
                             modal.classList.add('flex');
                             modal.setAttribute('aria-hidden', 'false');
                             document.body.classList.add('overflow-hidden');
+                        }
+                    }
+                    function openVersionsModal() {
+                        const modal = document.getElementById('versions-modal');
+                        if(modal) {
+                            modal.classList.remove('hidden');
+                            modal.classList.add('flex');
+                            modal.setAttribute('aria-hidden', 'false');
+                            document.body.classList.add('overflow-hidden');
+                        }
+                    }
+                    function closeVersionsModal() {
+                        const modal = document.getElementById('versions-modal');
+                        if(modal) {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                            modal.setAttribute('aria-hidden', 'true');
+                            document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+                            document.body.classList.remove('overflow-hidden');
                         }
                     }
                     function openCollectionDeleteModal(db, col) {
@@ -360,10 +438,19 @@ public class DashboardResource {
                             document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
                         }
                     }
+                    function closeCollectionModal() {
+                        const modal = document.getElementById('collection-modal');
+                        if(modal) {
+                            modal.classList.add('hidden');
+                            modal.classList.remove('flex');
+                            modal.setAttribute('aria-hidden', 'true');
+                            document.querySelectorAll('[modal-backdrop]').forEach(b => b.remove());
+                        }
+                    }
 
                     // Global listener for document actions
                     document.addEventListener('refreshDocuments', function(evt) {
-                        ['document-modal', 'doc-delete-modal'].forEach(id => {
+                        ['document-modal', 'doc-delete-modal', 'versions-modal'].forEach(id => {
                             const m = document.getElementById(id);
                             if(m) {
                                 m.classList.add('hidden');
@@ -945,6 +1032,27 @@ public class DashboardResource {
         cancelBtn.setStyleClass(
                 "w-full px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
         cancelBtn.addAttribute("data-modal-hide", "doc-delete-modal");
+        cancelBtn.addAttribute("type", "button");
+        modal.addFooterComponent(cancelBtn);
+
+        return modal;
+    }
+    private Modal createVersionsModal() {
+        Modal modal = new Modal("versions-modal", "Document Versions");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed top-0 left-0 right-0 z-[100] hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("versions-modal-body");
+        content.setStyleClass("space-y-4 min-w-[500px] max-w-2xl text-white");
+        content.addComponent(new Label("versions-loading", "Loading versions..."));
+
+        modal.addComponent(content);
+
+        Button cancelBtn = new Button("btn-ver-close", "Close");
+        cancelBtn.setStyleClass(
+                "w-full px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("onclick", "closeVersionsModal()");
+        cancelBtn.addAttribute("data-modal-hide", "versions-modal");
         cancelBtn.addAttribute("type", "button");
         modal.addFooterComponent(cancelBtn);
 

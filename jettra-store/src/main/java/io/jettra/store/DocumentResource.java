@@ -41,6 +41,10 @@ public class DocumentResource {
                 ? documentEngine.generateJettraId(nodeId + "/" + effectiveBucket)
                 : jettraId;
 
+        if (json == null || json.trim().isEmpty() || "{}".equals(json.trim())) {
+             throw new jakarta.ws.rs.WebApplicationException("Document cannot be empty", 400);
+        }
+
         LOG.infof("Direct document save request. Collection: %s, jettraID: %s", collection, finalJettraId);
         return documentEngine.save(collection, finalJettraId, json);
     }

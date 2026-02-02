@@ -168,6 +168,7 @@ JettraDB entiende la sintaxis de MongoDB y ahora la traduce internamente a llama
 
 ```bash
 # Inserción (Genera automáticamente jettraID y Versión 1)
+# Nota: No se permiten documentos vacíos ni JSON vacíos '{}'.
 mongo db.usuarios.insert({nombre: 'Alice', _tags: ['vip']})
 
 # Consulta por ID (Simplificado)

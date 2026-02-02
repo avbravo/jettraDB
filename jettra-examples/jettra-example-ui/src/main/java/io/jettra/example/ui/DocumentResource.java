@@ -243,6 +243,7 @@ public class DocumentResource {
                 "w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-indigo-500/20");
         submitBtn.addAttribute("hx-post", "/dashboard/document/save");
         submitBtn.addAttribute("hx-target", "#document-list-container");
+        submitBtn.addAttribute("hx-include", "closest form");
         submitBtn.addAttribute("hx-swap", "none");
         submitBtn.addAttribute("type", "button");
         submitBtn.addAttribute("data-modal-target", "document-modal");
@@ -273,46 +274,40 @@ public class DocumentResource {
                 String.format("Are you sure you want to delete document %s? This action cannot be undone.", jettraID)));
         container.addComponent(msgDiv);
 
-        Form form = new Form("del-doc-form");
-        form.setStyleClass("flex gap-3 justify-center");
-
-        InputText dbInput = new InputText("del-db");
-        dbInput.setType("hidden");
-        dbInput.addAttribute("name", "db");
-        dbInput.setValue(db);
-        form.addComponent(dbInput);
-
-        InputText colInput = new InputText("del-col");
-        colInput.setType("hidden");
-        colInput.addAttribute("name", "col");
-        colInput.setValue(col);
-        form.addComponent(colInput);
-
-        InputText idInput = new InputText("del-jettraID");
-        idInput.setType("hidden");
-        idInput.addAttribute("name", "jettraID");
-        idInput.setValue(jettraID);
-        form.addComponent(idInput);
+        Div btnContainer = new Div("del-btn-container");
+        btnContainer.setStyleClass("flex gap-3 justify-center");
 
         Button cancelBtn = new Button("btn-cancel-delete", "Cancel");
         cancelBtn.setStyleClass(
                 "px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
         cancelBtn.addAttribute("onclick", "closeDocumentDeleteModal()");
         cancelBtn.addAttribute("type", "button");
-        form.addComponent(cancelBtn);
+        btnContainer.addComponent(cancelBtn);
 
         Button confirmBtn = new Button("btn-confirm-delete", "Yes, Delete Document");
         confirmBtn.setStyleClass(
                 "px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-rose-500/20");
         confirmBtn.addAttribute("hx-post", "/dashboard/document/delete");
         confirmBtn.addAttribute("hx-target", "#document-list-container");
+        
+        try {
+            // Using a Map to ensure proper JSON formatting
+            java.util.Map<String, String> params = new java.util.HashMap<>();
+            params.put("db", db);
+            params.put("col", col);
+            params.put("jettraID", jettraID);
+            String jsonVals = mapper.writeValueAsString(params);
+            // Escape quotes because this goes into an HTML attribute
+            confirmBtn.addAttribute("hx-vals", jsonVals.replace("\"", "&quot;"));
+        } catch (Exception e) {
+            LOG.error("Error creating delete params", e);
+        }
+
         confirmBtn.addAttribute("hx-swap", "none");
         confirmBtn.addAttribute("type", "button");
-        confirmBtn.addAttribute("data-modal-target", "doc-delete-modal");
-        // Removed data-modal-hide to let HX-Trigger handle closure after success
-        form.addComponent(confirmBtn);
+        btnContainer.addComponent(confirmBtn);
 
-        container.addComponent(form);
+        container.addComponent(btnContainer);
         return Response.ok(container.render()).build();
     }
 
@@ -441,38 +436,82 @@ public class DocumentResource {
     private String renderTableView(String db, String col, List<String> rawDocs) throws Exception {
         Table table = new Table("doc-table-" + col);
         table.setStyleClass("w-full text-left border-collapse");
-        table.addHeader("jettraID");
-        table.addHeader("Content Snippet");
+        
+        // Collect dynamic headers
+        List<String> headers = new ArrayList<>();
+        headers.add("jettraID"); // Always first
+        
+        List<Map<String, Object>> docs = new ArrayList<>();
+        for(String raw : rawDocs) {
+            try {
+                Map<String, Object> map = mapper.readValue(raw, new TypeReference<Map<String, Object>>(){});
+                docs.add(map);
+                for(String key : map.keySet()) {
+                    if(!headers.contains(key) && !key.equals("jettraID") && !key.startsWith("_")) {
+                         headers.add(key);
+                    }
+                }
+            } catch (Exception e) {
+                 LOG.error("Skipping malformed document in Table View: " + e.getMessage());
+                 java.util.Map<String, Object> errMap = new java.util.HashMap<>();
+                 errMap.put("jettraID", "ERROR-PARSING");
+                 errMap.put("_raw", raw == null ? "null" : raw);
+                 docs.add(errMap);
+            }
+        }
+        
+        // Add headers to table
+        for(String h : headers) {
+             table.addHeader(h);
+        }
         table.addHeader("Actions");
 
-        for (String raw : rawDocs) {
-            Map<String, Object> doc = mapper.readValue(raw, new TypeReference<Map<String, Object>>() {
-            });
+        for (Map<String, Object> doc : docs) {
             List<String> row = new ArrayList<>();
             String jettraID = String.valueOf(doc.get("jettraID"));
-            Span idSpan = new Span("id-span-" + jettraID, jettraID);
-            idSpan.setStyleClass("text-[10px] text-indigo-400 bg-indigo-400/10 px-1 rounded font-mono");
-            row.add(idSpan.render());
-
-            String contentSnippet = raw;
-            if (contentSnippet.length() > 80)
-                contentSnippet = contentSnippet.substring(0, 77) + "...";
-
-            Span contentSpan = new Span("content-span-" + jettraID, contentSnippet);
-            contentSpan.setStyleClass("content-snippet text-xs text-slate-400 font-mono truncate max-w-xs block");
-            // Store raw JSON in data attribute to avoid URL length issues
-            contentSpan.addAttribute("data-raw", raw.replace("\"", "&quot;"));
-            row.add(contentSpan.render());
+            
+            // Render cells for each header
+            for(String h : headers) {
+                Object val = doc.get(h);
+                String valStr = (val == null) ? "-" : String.valueOf(val);
+                if(valStr.length() > 50) valStr = valStr.substring(0, 47) + "...";
+                
+                Span span = new Span("cell-" + h + "-" + jettraID, valStr);
+                if(h.equals("jettraID")) {
+                    span.setStyleClass("text-[10px] text-indigo-400 bg-indigo-400/10 px-1 rounded font-mono");
+                } else {
+                    span.setStyleClass("text-xs text-slate-400 font-mono");
+                }
+                
+                // Add raw data to ID cell for Edit logic
+                if(h.equals("jettraID")) {
+                     try {
+                        String raw = mapper.writeValueAsString(doc);
+                        span.addAttribute("data-raw", raw.replace("\"", "&quot;"));
+                        // Fixed: Removed getStyleClass() call
+                        span.setStyleClass("text-[10px] text-indigo-400 bg-indigo-400/10 px-1 rounded font-mono content-snippet"); 
+                     } catch(Exception e) {}
+                }
+                
+                row.add(span.render());
+            }
 
             Div actions = new Div("actions-" + jettraID);
-            actions.setStyleClass("flex gap-2");
+            actions.setStyleClass("flex gap-2 items-center");
 
             Button editBtn = new Button("edit-" + jettraID,
                     "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'></path></svg>");
             editBtn.setStyleClass("p-1 hover:text-amber-400 text-slate-500 transition-colors cursor-pointer");
+            
+            String encodedID = jettraID;
+            try {
+                encodedID = java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8);
+            } catch (Exception e) {}
+
             // Use POST to send large JSON and avoid 'null' issues
             editBtn.addAttribute("hx-post",
-                    String.format("/dashboard/document/edit-form?db=%s&col=%s&jettraID=%s", db, col, jettraID));
+                    String.format("/dashboard/document/edit-form?db=%s&col=%s&jettraID=%s", db, col, encodedID));
+            // Modified selector to find tr -> content-snippet
             editBtn.addAttribute("hx-vals", "js:{json: event.target.closest('tr').querySelector('.content-snippet').getAttribute('data-raw')}");
             editBtn.addAttribute("hx-target", "#doc-modal-body");
             editBtn.addAttribute("onclick", "openDocumentModal()");
@@ -482,10 +521,21 @@ public class DocumentResource {
                     "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg>");
             delBtn.setStyleClass("p-1 hover:text-red-400 text-slate-500 transition-colors cursor-pointer");
             delBtn.addAttribute("hx-get",
-                    String.format("/dashboard/document/delete-form?db=%s&col=%s&jettraID=%s", db, col, jettraID));
+                    String.format("/dashboard/document/delete-form?db=%s&col=%s&jettraID=%s", db, col, encodedID));
             delBtn.addAttribute("hx-target", "#doc-del-body");
             delBtn.addAttribute("onclick", "openDocumentDeleteModal()");
             actions.addComponent(delBtn);
+            
+            // Versions Button
+            Button verBtn = new Button("ver-" + jettraID,
+                    "<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'></path></svg>");
+            verBtn.setStyleClass("p-1 hover:text-cyan-400 text-slate-500 transition-colors cursor-pointer");
+            verBtn.addAttribute("title", "Versions History");
+            verBtn.addAttribute("hx-get", 
+                    String.format("/dashboard/document/versions?db=%s&col=%s&jettraID=%s", db, col, encodedID));
+            verBtn.addAttribute("hx-target", "#versions-modal-body");
+            verBtn.addAttribute("onclick", "openVersionsModal()");
+            actions.addComponent(verBtn);
 
             row.add(actions.render());
             table.addRow(row);
@@ -580,6 +630,25 @@ public class DocumentResource {
             return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity("No STORAGE nodes found").build();
 
         try {
+            // Sanitize JSON - remove system fields
+            String sanitizedJson = json;
+            if(json != null && !json.trim().isEmpty()) {
+                if ("{}".equals(json.trim())) {
+                     return Response.ok("<script>alert('Error: Document cannot be empty or just {}.');</script>").build();
+                }
+                try {
+                     Map<String, Object> map = mapper.readValue(json, new TypeReference<Map<String, Object>>(){});
+                     map.remove("jettraID");
+                     map.remove("_version");
+                     map.remove("_lastModified");
+                     map.remove("_tags");
+                     sanitizedJson = mapper.writeValueAsString(map);
+                } catch(Exception e) {
+                     // If parsing fails, use original, but might be risky. 
+                     // Assuming valid JSON from UI. If invalid, backend might reject.
+                }
+            }
+
             String url = String.format("http://%s/api/v1/document/%s", storeNode.getAddress(), col);
             if (jettraID != null && !jettraID.trim().isEmpty()) {
                 url += "?jettraID=" + java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8);
@@ -589,7 +658,7 @@ public class DocumentResource {
                     .uri(URI.create(url))
                     .header("Authorization", "Bearer " + token)
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .POST(HttpRequest.BodyPublishers.ofString(sanitizedJson))
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -607,6 +676,106 @@ public class DocumentResource {
         } catch (Exception e) {
             return Response.ok("<script>alert('Error: " + e.getMessage().replace("'", "\\'") + "');</script>").build();
         }
+    }
+    
+    @GET
+    @Path("/versions")
+    @Produces(MediaType.TEXT_HTML)
+    public Response getVersionsList(@QueryParam("db") String db, @QueryParam("col") String col, @QueryParam("jettraID") String jettraID) {
+        String token = getAuthToken();
+        if (token == null) return Response.status(Response.Status.UNAUTHORIZED).build();
+
+        Node storeNode = findStorageNode(token);
+        if (storeNode == null) return Response.ok("<div class='text-rose-400'>No storage node available</div>").build();
+
+        try {
+            String url = String.format("http://%s/api/v1/document/%s/%s/versions", 
+                    storeNode.getAddress(), col, java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8));
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + token)
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() == 200) {
+                List<String> versions = mapper.readValue(response.body(), new TypeReference<List<String>>(){});
+                
+                Div container = new Div("versions-container");
+                container.setStyleClass("space-y-3");
+                
+                // Sort by _version desc
+                List<Map<String, Object>> versionMaps = new ArrayList<>();
+                for(String v : versions) {
+                    versionMaps.add(mapper.readValue(v, new TypeReference<Map<String, Object>>(){}));
+                }
+                versionMaps.sort((a,b) -> {
+                    Integer v1 = (Integer) a.getOrDefault("_version", 0);
+                    Integer v2 = (Integer) b.getOrDefault("_version", 0);
+                    return v2.compareTo(v1);
+                });
+                
+                if(versionMaps.isEmpty()) {
+                     container.addComponent(new Label("no-versions", "No version history found."));
+                }
+                
+                for(Map<String, Object> vMap : versionMaps) {
+                    String vNum = String.valueOf(vMap.get("_version"));
+                    String vDate = String.valueOf(vMap.get("_lastModified"));
+                    String vRaw = mapper.writeValueAsString(vMap);
+                    
+                    Div row = new Div("ver-row-" + vNum);
+                    row.setStyleClass("flex justify-between items-center p-3 bg-slate-900 rounded-lg border border-slate-800 hover:border-indigo-500/30 transition-all");
+                    
+                    Div info = new Div("ver-info-" + vNum);
+                    info.addComponent(new Label("ver-lbl-" + vNum, "Version " + vNum));
+                    info.addComponent(new Label("date-lbl-" + vNum, "<span class='text-xs text-slate-500 block'>" + vDate + "</span>"));
+                    row.addComponent(info);
+                    
+                    Button restore = new Button("btn-restore-" + vNum, "Restore");
+                    restore.setStyleClass("px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded font-medium shadow-lg shadow-indigo-500/20");
+                    
+                    // Fix restore button to send valid JSON
+                    String attrJson = vRaw.replace("\"", "&quot;");
+                    restore.addAttribute("data-restore-json", attrJson);
+                    
+                    // Restore calls the restore-version endpoint
+                    restore.addAttribute("hx-post", "/dashboard/document/restore-version?db=" + db + "&col=" + col + "&jettraID=" + jettraID);
+                    // Use JS to read the attribute so we get proper JSON string
+                    restore.addAttribute("hx-vals", "js:{json: event.target.getAttribute('data-restore-json')}");
+                    restore.addAttribute("hx-target", "#versions-modal-body");
+                    
+                    row.addComponent(restore);
+                    container.addComponent(row);
+                }
+                
+                return Response.ok(container.render()).build();
+            } else {
+                return Response.ok("<div class='text-rose-400'>Failed to fetch versions (Status: " + response.statusCode() + ")</div>").build();
+            }
+        } catch (Exception e) {
+            LOG.error("Error fetching versions", e);
+            return Response.ok("<div class='text-rose-400'>Error: " + e.getMessage() + "</div>").build();
+        }
+    }
+    
+    @POST
+    @Path("/restore-version")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Response restoreVersion(@FormParam("db") String db, @FormParam("col") String col,
+            @FormParam("jettraID") String jettraID, @FormParam("json") String json) {
+        // Reuse saveDocument logic
+        Response saveResp = saveDocument(db, col, jettraID, json);
+        if(saveResp.getStatus() == 200) {
+             // If save was successful, we should probably close the modal and refresh list
+             // The saveDocument returns a success script/trigger.
+             // We can wrap/augment it.
+             return saveResp;
+        }
+        return saveResp;
     }
 
     @POST

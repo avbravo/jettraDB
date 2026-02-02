@@ -155,6 +155,7 @@ String jettraId = client.generateJettraId("node1/main-bucket").await().indefinit
 
 // 2. Guardar un documento (JSON String o POJO)
 // Si el documento ya existe, se crea una nueva versión automáticamente.
+// Nota: No se permiten documentos vacíos ni JSON vacíos "{}".
 String json = "{\"nombre\": \"Alice\", \"_tags\": [\"vip\", \"2024\"]}";
 client.save("usuarios", jettraId, json).await().indefinitely();
 

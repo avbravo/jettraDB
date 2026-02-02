@@ -307,6 +307,7 @@ Una vez creada la colección con motor `Document`, puedes interactuar directamen
 
 ### 1. Guardar un Documento (Save / Upsert)
 Si no se proporciona `jettraID`, el sistema lo generará automáticamente.
+Nota: No se permiten documentos vacíos ni JSON vacíos `{}`.
 
 ```bash
 # Se requiere hablar directamente con un nodo STORAGE (ej: puerto 8082)

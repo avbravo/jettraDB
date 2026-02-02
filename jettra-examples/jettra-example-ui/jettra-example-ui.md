@@ -32,6 +32,7 @@ Located in `DashboardResource.java` and `DataExplorer.java`.
   - **Index**: For index management.
   - **Sequences**: For sequence management.
   - **Rules**: For rule definitions.
+  - **Validation**: Empty documents or empty JSON objects `{}` are not allowed.
 
 ## Component Migration
 | Feature in HTML | Jettra UI Component |
