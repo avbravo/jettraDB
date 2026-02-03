@@ -271,8 +271,28 @@ public class DocumentResource {
     @Produces(MediaType.TEXT_HTML)
     public Response getDeleteForm(@QueryParam("db") String db, @QueryParam("col") String col,
             @QueryParam("jettraID") String jettraID) {
-        Div container = new Div("delete-confirm-container");
+        // Use a Form to ensure parameters are passed correctly without JSON escaping issues
+        Form container = new Form("delete-confirm-form");
         container.setStyleClass("text-center space-y-6 p-4");
+
+        // Hidden inputs for context
+        InputText dbInput = new InputText("del-db");
+        dbInput.setType("hidden");
+        dbInput.addAttribute("name", "db");
+        dbInput.setValue(db);
+        container.addComponent(dbInput);
+
+        InputText colInput = new InputText("del-col");
+        colInput.setType("hidden");
+        colInput.addAttribute("name", "col");
+        colInput.setValue(col);
+        container.addComponent(colInput);
+
+        InputText idInput = new InputText("del-jettraID");
+        idInput.setType("hidden");
+        idInput.addAttribute("name", "jettraID");
+        idInput.setValue(jettraID);
+        container.addComponent(idInput);
 
         Div iconBox = new Div("del-icon-box");
         iconBox.setStyleClass(
@@ -302,21 +322,11 @@ public class DocumentResource {
                 "px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold transition-all shadow-lg shadow-rose-500/20");
         confirmBtn.addAttribute("hx-post", "/dashboard/document/delete");
         confirmBtn.addAttribute("hx-target", "#document-list-container");
-
-        try {
-            // Using a Map to ensure proper JSON formatting
-            java.util.Map<String, String> params = new java.util.HashMap<>();
-            params.put("db", db);
-            params.put("col", col);
-            params.put("jettraID", jettraID);
-            String jsonVals = mapper.writeValueAsString(params);
-            // Escape quotes because this goes into an HTML attribute
-            confirmBtn.addAttribute("hx-vals", jsonVals.replace("\"", "&quot;"));
-        } catch (Exception e) {
-            LOG.error("Error creating delete params", e);
-        }
-
         confirmBtn.addAttribute("hx-swap", "none");
+        // Include the form values (closest form)
+        confirmBtn.addAttribute("hx-include", "closest form");
+        // Ensure modal closes on click (optimistic) or update handling
+        confirmBtn.addAttribute("onclick", "closeDocumentDeleteModal()"); 
         confirmBtn.addAttribute("type", "button");
         btnContainer.addComponent(confirmBtn);
 
@@ -453,6 +463,7 @@ public class DocumentResource {
         // Collect dynamic headers
         List<String> headers = new ArrayList<>();
         headers.add("jettraID"); // Always first
+        headers.add("Version"); // Explicitly add Version column
 
         List<Map<String, Object>> docs = new ArrayList<>();
         for (String raw : rawDocs) {
@@ -486,7 +497,12 @@ public class DocumentResource {
 
             // Render cells for each header
             for (String h : headers) {
-                Object val = doc.get(h);
+                Object val;
+                if ("Version".equals(h)) {
+                    val = doc.get("_version");
+                } else {
+                    val = doc.get(h);
+                }
                 String valStr = (val == null) ? "-" : String.valueOf(val);
                 if (valStr.length() > 50)
                     valStr = valStr.substring(0, 47) + "...";
@@ -494,6 +510,8 @@ public class DocumentResource {
                 Span span = new Span("cell-" + h + "-" + jettraID, valStr);
                 if (h.equals("jettraID")) {
                     span.setStyleClass("text-[10px] text-indigo-400 bg-indigo-400/10 px-1 rounded font-mono");
+                } else if (h.equals("Version")) {
+                    span.setStyleClass("text-xs text-emerald-400 font-mono font-bold bg-emerald-400/10 px-1 rounded");
                 } else {
                     span.setStyleClass("text-xs text-slate-400 font-mono");
                 }
