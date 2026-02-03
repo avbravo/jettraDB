@@ -798,8 +798,9 @@ public class DocumentResource {
 
                     String attrJson = vRaw.replace("\"", "&quot;");
                     restore.addAttribute("data-restore-json", attrJson);
+                    String encodedID = java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8);
                     restore.addAttribute("hx-post",
-                            "/dashboard/document/restore-version?db=" + db + "&col=" + col + "&jettraID=" + jettraID);
+                            "/dashboard/document/restore-version?db=" + db + "&col=" + col + "&jettraID=" + encodedID);
                     restore.addAttribute("hx-vals", "js:{json: event.target.getAttribute('data-restore-json')}");
                     restore.addAttribute("hx-target", "#versions-modal-body");
                     headerRow.addComponent(restore);

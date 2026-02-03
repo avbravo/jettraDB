@@ -249,10 +249,10 @@ public class DashboardResource {
                             if (themeToggleLightIcon) themeToggleLightIcon.classList.add('hidden');
                             if (themeToggleDarkIcon) themeToggleDarkIcon.classList.remove('hidden');
                         }
-                        
+
                         restoreSidebarState();
                     });
-                    
+
                     // Sidebar Persistence Logic
                     function restoreSidebarState() {
                         const expandedNodes = JSON.parse(localStorage.getItem('jettra_expanded_nodes') || '[]');
@@ -260,7 +260,7 @@ public class DashboardResource {
                             const node = document.getElementById(id);
                             if (node) {
                                 // Find the children container, usually next sibling or inside
-                                // This depends on Jettra-UI DataExplorer rendering. 
+                                // This depends on Jettra-UI DataExplorer rendering.
                                 // Assuming typical details/summary or custom dive toggle
                                 // We'll assume a 'hidden' class toggle on the next sibling element
                                 const nextInfo = node.nextElementSibling;
@@ -277,7 +277,7 @@ public class DashboardResource {
                          const nextInfo = node.nextElementSibling;
                          if(nextInfo) {
                              nextInfo.classList.toggle('hidden');
-                             
+
                              // Save state
                              let expanded = JSON.parse(localStorage.getItem('jettra_expanded_nodes') || '[]');
                              if (!nextInfo.classList.contains('hidden')) {
@@ -288,7 +288,7 @@ public class DashboardResource {
                              localStorage.setItem('jettra_expanded_nodes', JSON.stringify(expanded));
                          }
                     }
-                    
+
                     // Delegate clicks for sidebar toggles if they use a specific class
                     document.addEventListener('click', function(e) {
                         // Adjust selector relevant to Jettra-UI DataExplorer output
@@ -296,7 +296,7 @@ public class DashboardResource {
                         // Since we can't easily change DataExplorer java, we rely on what it renders.
                         // If it uses onclick attributes, we might need to intercept or wrap.
                         // For now, let's assume the user clicks the header.
-                        
+
                         if (e.target.closest('.db-node-header')) { // Hypothetical class
                              const header = e.target.closest('.db-node-header');
                              toggleExplorerNode(header.id);
@@ -332,7 +332,7 @@ public class DashboardResource {
                         const hideBtn = e.target.closest('[data-modal-hide]');
                         if (hideBtn) {
                             const modalId = hideBtn.getAttribute('data-modal-hide');
-                            
+
                             // Only prevent default if it's not a button that should trigger an HTMX request
                             const hasHx = hideBtn.hasAttribute('hx-post') || hideBtn.hasAttribute('hx-delete') || hideBtn.hasAttribute('hx-put') || hideBtn.hasAttribute('hx-get');
                             if (!hasHx) {
@@ -470,7 +470,7 @@ public class DashboardResource {
                         document.body.classList.remove('overflow-hidden');
 
                         // Show success message
-                        const message = (evt.detail && evt.detail.value) ? evt.detail.value : 
+                        const message = (evt.detail && evt.detail.value) ? evt.detail.value :
                                         (typeof evt.detail === 'string' ? evt.detail : "Action completed successfully");
                         showNotification(message, 'success');
                     }
@@ -930,6 +930,7 @@ public class DashboardResource {
                     .build();
         }
     }
+
     @jakarta.ws.rs.DELETE
     @Path("/collection/confirm-delete")
     @Produces(MediaType.TEXT_HTML)
@@ -967,7 +968,8 @@ public class DashboardResource {
         Div container = new Div("col-del-form-container");
         container.setStyleClass("p-6 text-center space-y-4");
 
-        Label warning = new Label("del-warn", "Are you sure you want to delete the collection <strong>" + col + "</strong> from database <strong>" + db + "</strong>?");
+        Label warning = new Label("del-warn", "Are you sure you want to delete the collection <strong>" + col
+                + "</strong> from database <strong>" + db + "</strong>?");
         warning.setStyleClass("text-white block mb-6 text-lg");
         container.addComponent(warning);
 
@@ -984,7 +986,8 @@ public class DashboardResource {
         btnGroup.addComponent(cancelBtn);
 
         Button confirmBtn = new Button("btn-col-del-confirm", "Delete Now");
-        confirmBtn.setStyleClass("px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 font-bold shadow-lg shadow-red-500/20");
+        confirmBtn.setStyleClass(
+                "px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 font-bold shadow-lg shadow-red-500/20");
         confirmBtn.addAttribute("hx-delete", "/dashboard/collection/confirm-delete?db=" + db + "&col=" + col);
         confirmBtn.addAttribute("hx-target", "#col-del-body");
         btnGroup.addComponent(confirmBtn);
@@ -1000,9 +1003,207 @@ public class DashboardResource {
 
         Div body = new Div("col-del-body");
         body.setStyleClass("min-w-[400px]");
+        body.addComponent(new Label("script-col-del",
+                "<script> " +
+                        "function openCollectionDeleteModal(db, col) { " +
+                        "  htmx.ajax('GET', '/dashboard/collection/delete-form?db=' + db + '&col=' + col, { " +
+                        "    target: '#col-del-body' " +
+                        "  }); " +
+                        "  document.getElementById('col-delete-modal').classList.remove('hidden'); " +
+                        "  document.getElementById('col-delete-modal').classList.add('flex'); " +
+                        "} " +
+                        "function closeCollectionDeleteModal() { " +
+                        "  document.getElementById('col-delete-modal').classList.add('hidden'); " +
+                        "  document.getElementById('col-delete-modal').classList.remove('flex'); " +
+                        "} " +
+                        "document.body.addEventListener('closeModal', function(evt) { " +
+                        "  if(evt.detail.value === 'col-delete-modal') closeCollectionDeleteModal(); " +
+                        "}); " +
+                        "</script>"));
         modal.addComponent(body);
 
         return modal;
+    }
+
+    @GET
+    @Path("/collection/info")
+    @Produces(MediaType.TEXT_HTML)
+    public Response getCollectionInfo(@jakarta.ws.rs.QueryParam("db") String db,
+            @jakarta.ws.rs.QueryParam("col") String colName) {
+        String token = null;
+        if (headers.getCookies().containsKey("auth_token")) {
+            token = headers.getCookies().get("auth_token").getValue();
+            if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                token = token.substring(1, token.length() - 1);
+            }
+        }
+
+        if (token == null || token.isEmpty()) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+
+        try {
+            List<io.jettra.example.ui.model.Collection> cols = pdClient.getCollections(db, "Bearer " + token);
+            io.jettra.example.ui.model.Collection col = cols.stream()
+                    .filter(c -> c.getName().equals(colName))
+                    .findFirst()
+                    .orElse(null);
+
+            Div container = new Div("col-info-container");
+            container.setStyleClass(
+                    "p-8 space-y-6 max-w-2xl mx-auto bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800 shadow-2xl");
+
+            Div header = new Div("col-info-header");
+            header.setStyleClass("flex items-center gap-4 border-b border-slate-800 pb-6");
+            header.addComponent(new Label("col-info-icon",
+                    "<div class='p-3 bg-indigo-500/20 text-indigo-400 rounded-xl'><svg class='w-8 h-8' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z'></path></svg></div>"));
+
+            Div titleGroup = new Div("col-title-grp");
+            Label title = new Label("col-info-title", colName);
+            title.setStyleClass("text-3xl font-bold text-white block");
+            Label subtitle = new Label("col-info-sub", "Collection in " + db);
+            subtitle.setStyleClass("text-sm text-slate-400 font-medium");
+            titleGroup.addComponent(title);
+            titleGroup.addComponent(subtitle);
+            header.addComponent(titleGroup);
+            container.addComponent(header);
+
+            Div grid = new Div("col-info-grid");
+            grid.setStyleClass("grid grid-cols-2 gap-6 pt-2");
+
+            if (col != null) {
+                grid.addComponent(createDetailItem("Engine Type", col.getEngine(), "indigo"));
+                // Add more details if available in the model
+            }
+            container.addComponent(grid);
+
+            Button backBtn = new Button("btn-col-info-back", "Back to Explorer");
+            backBtn.setStyleClass(
+                    "mt-8 w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all border border-slate-700");
+            backBtn.addAttribute("onclick", "htmx.trigger('#sidebar-explorer-container', 'refreshExplorer')");
+            container.addComponent(backBtn);
+
+            return Response.ok(container.render()).build();
+        } catch (Exception e) {
+            LOG.error("Failed to get collection info", e);
+            return Response.ok("<div class='p-4 text-red-500'>Error: " + e.getMessage() + "</div>").build();
+        }
+    }
+
+    private Div createDetailItem(String label, String value, String color) {
+        Div item = new Div("detail-" + label.toLowerCase().replace(" ", "-"));
+        item.setStyleClass("p-4 bg-slate-950/40 rounded-xl border border-slate-800/50");
+        Label lbl = new Label("lbl-" + item.getId(), label);
+        lbl.setStyleClass("text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1 block");
+        Label val = new Label("val-" + item.getId(), value);
+        val.setStyleClass("text-lg font-semibold text-" + color + "-400");
+        item.addComponent(lbl);
+        item.addComponent(val);
+        return item;
+    }
+
+    @GET
+    @Path("/collection/edit")
+    @Produces(MediaType.TEXT_HTML)
+    public Response getCollectionEditForm(@jakarta.ws.rs.QueryParam("db") String db,
+            @jakarta.ws.rs.QueryParam("col") String col,
+            @jakarta.ws.rs.QueryParam("engine") String engine) {
+        Div container = new Div("col-edit-container");
+        container.setStyleClass(
+                "p-8 max-w-xl mx-auto bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800 shadow-2xl space-y-6");
+
+        Label title = new Label("edit-title", "Rename Collection");
+        title.setStyleClass("text-2xl font-bold text-white mb-6");
+        container.addComponent(title);
+
+        Div formDiv = new Div("edit-form-wrapper");
+        formDiv.setStyleClass("space-y-4");
+
+        formDiv.addComponent(createFormField("Database", new InputText("edit-db").addAttribute("value", db)
+                .addAttribute("readonly", "true").setStyleClass("bg-slate-800/50 text-slate-400")));
+        formDiv.addComponent(createFormField("Current Name", new InputText("old-col-name").addAttribute("value", col)
+                .addAttribute("readonly", "true").setStyleClass("bg-slate-800/50 text-slate-400")));
+        formDiv.addComponent(createFormField("New Name", new InputText("new-col-name")
+                .addAttribute("placeholder", "Enter new name...").addAttribute("value", col)));
+
+        // Hidden engine field
+        formDiv.addComponent(new Label("hidden-eng", "<input type='hidden' id='edit-engine' value='" + engine + "'>"));
+
+        container.addComponent(formDiv);
+
+        Div actions = new Div("edit-actions");
+        actions.setStyleClass("flex gap-3 pt-6");
+
+        Button cancelBtn = new Button("btn-edit-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all");
+        cancelBtn.addAttribute("onclick", "htmx.trigger('#sidebar-explorer-container', 'refreshExplorer')");
+        actions.addComponent(cancelBtn);
+
+        Button saveBtn = new Button("btn-edit-save", "Rename Collection");
+        saveBtn.setStyleClass(
+                "flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20");
+        saveBtn.addAttribute("onclick", "submitRename()");
+        actions.addComponent(saveBtn);
+
+        container.addComponent(actions);
+
+        container.addComponent(new Label("script-rename",
+                "<script> " +
+                        "function submitRename() { " +
+                        "  const db = document.getElementById('edit-db').value; " +
+                        "  const oldName = document.getElementById('old-col-name').value; " +
+                        "  const newName = document.getElementById('new-col-name').value; " +
+                        "  const eng = document.getElementById('edit-engine').value; " +
+                        "  if(!newName || newName === oldName) { alert('A new name is required'); return; } " +
+                        "  htmx.ajax('POST', '/dashboard/collection/rename', { " +
+                        "    values: { db: db, oldName: oldName, newName: newName, engine: eng }, " +
+                        "    target: '#main-content-view' " +
+                        "  }); " +
+                        "} " +
+                        "</script>"));
+
+        return Response.ok(container.render()).build();
+    }
+
+    @POST
+    @Path("/collection/rename")
+    @jakarta.ws.rs.Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    public Response renameCollection(@jakarta.ws.rs.FormParam("db") String db,
+            @jakarta.ws.rs.FormParam("oldName") String oldName,
+            @jakarta.ws.rs.FormParam("newName") String newName,
+            @jakarta.ws.rs.FormParam("engine") String engine) {
+        String token = null;
+        if (headers.getCookies().containsKey("auth_token")) {
+            token = headers.getCookies().get("auth_token").getValue();
+            if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                token = token.substring(1, token.length() - 1);
+            }
+        }
+
+        if (token == null || token.isEmpty()) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+
+        try {
+            io.jettra.example.ui.model.Collection col = new io.jettra.example.ui.model.Collection(newName, engine);
+            pdClient.renameCollection(db, oldName, newName, col, "Bearer " + token);
+            return Response.ok("<div class='p-8 text-center space-y-4'>" +
+                    "<div class='inline-flex p-4 bg-green-500/20 text-green-400 rounded-full mb-4'><svg class='w-12 h-12' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg></div>"
+                    +
+                    "<h2 class='text-2xl font-bold text-white'>Collection Renamed!</h2>" +
+                    "<p class='text-slate-400 uppercase tracking-tighter'>The collection was successfully renamed to "
+                    + newName + "</p>" +
+                    "<button class='mt-6 px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold' onclick='htmx.trigger(\"#sidebar-explorer-container\", \"refreshExplorer\")'>Back to Dashboard</button>"
+                    +
+                    "</div>")
+                    .header("HX-Trigger", "refreshExplorer")
+                    .build();
+        } catch (Exception e) {
+            LOG.error("Failed to rename collection", e);
+            return Response.ok("<div class='p-4 text-red-500'>Error: " + e.getMessage() + "</div>").build();
+        }
     }
 
     private Modal createDocumentModal() {
@@ -1047,6 +1248,7 @@ public class DashboardResource {
 
         return modal;
     }
+
     private Modal createVersionsModal() {
         Modal modal = new Modal("versions-modal", "Document Versions");
         modal.setStyleClass(
@@ -1068,27 +1270,33 @@ public class DashboardResource {
 
         return modal;
     }
+
     private Modal createSequenceModal() {
         Modal modal = new Modal("sequence-modal", "Create Sequence");
-        modal.setStyleClass("modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
 
         Div content = new Div("seq-modal-body");
         content.setStyleClass("space-y-4 min-w-[320px]");
 
         content.addComponent(createFormField("Name", new InputText("seq-name")));
         content.addComponent(createFormField("Database", new InputText("seq-db"))); // Can be readonly if passed
-        content.addComponent(createFormField("Start Value", new InputText("seq-start").addAttribute("type", "number").addAttribute("value", "1")));
-        content.addComponent(createFormField("Increment", new InputText("seq-inc").addAttribute("type", "number").addAttribute("value", "1")));
+        content.addComponent(createFormField("Start Value",
+                new InputText("seq-start").addAttribute("type", "number").addAttribute("value", "1")));
+        content.addComponent(createFormField("Increment",
+                new InputText("seq-inc").addAttribute("type", "number").addAttribute("value", "1")));
 
         modal.addComponent(content);
 
         Button saveBtn = new Button("btn-seq-save", "Create");
-        saveBtn.setStyleClass("flex-1 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all");
+        saveBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all");
         saveBtn.addAttribute("onclick", "saveSequence()");
         modal.addFooterComponent(saveBtn);
 
         Button cancelBtn = new Button("btn-seq-cancel", "Cancel");
-        cancelBtn.setStyleClass("flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
         cancelBtn.addAttribute("onclick", "closeSequenceModal()");
         modal.addFooterComponent(cancelBtn);
 

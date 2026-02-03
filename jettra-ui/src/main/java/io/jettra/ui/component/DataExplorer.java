@@ -190,7 +190,7 @@ public class DataExplorer extends Component {
                                 }
 
                                 for (EngineNode engine : engines) {
-                                        sb.append(engine.render(safeName));
+                                        sb.append(engine.render(name, safeName));
                                 }
                                 sb.append("</div>");
                         }
@@ -214,7 +214,7 @@ public class DataExplorer extends Component {
                         collections.add(col);
                 }
 
-                public String render(String dbId) {
+                public String render(String dbName, String dbId) {
                         String safeName = name.replaceAll("[^a-zA-Z0-9]", "-");
                         String childrenId = "engine-children-" + dbId + "-" + safeName;
                         String iconId = "engine-icon-" + dbId + "-" + safeName;
@@ -254,7 +254,7 @@ public class DataExplorer extends Component {
                         sb.append("<div id='").append(childrenId)
                                         .append("' class='hidden ml-5 border-l border-slate-700/30 flex flex-col'>");
                         for (CollectionNode col : collections) {
-                                sb.append(col.render(dbId, safeName));
+                                sb.append(col.render(dbName, dbId, name, safeName));
                         }
                         sb.append("</div></div>");
                         return sb.toString();
@@ -268,7 +268,7 @@ public class DataExplorer extends Component {
                         this.name = name;
                 }
 
-                public String render(String dbId, String engineId) {
+                public String render(String dbName, String dbId, String engineName, String engineId) {
                         String safeName = name.replaceAll("[^a-zA-Z0-9]", "-");
                         String childrenId = "col-children-" + dbId + "-" + engineId + "-" + safeName;
 
@@ -287,7 +287,7 @@ public class DataExplorer extends Component {
                         // Info Button
                         sb.append("<div class='cursor-pointer text-slate-500 hover:text-blue-400' title='Info' ")
                                         .append("onclick=\"event.stopPropagation(); htmx.ajax('GET', '/dashboard/collection/info?db=")
-                                        .append(dbId).append("&col=").append(name)
+                                        .append(dbName).append("&col=").append(name)
                                         .append("', {target:'#main-content-view'})\">")
                                         .append("<svg class='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'></path></svg>")
                                         .append("</div>");
@@ -295,7 +295,8 @@ public class DataExplorer extends Component {
                         // Rename Button
                         sb.append("<div class='cursor-pointer text-slate-500 hover:text-amber-400' title='Rename' ")
                                         .append("onclick=\"event.stopPropagation(); htmx.ajax('GET', '/dashboard/collection/edit?db=")
-                                        .append(dbId).append("&col=").append(name).append("&engine=").append(engineId)
+                                        .append(dbName).append("&col=").append(name).append("&engine=")
+                                        .append(engineName)
                                         .append("', {target:'#main-content-view'})\">")
                                         .append("<svg class='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z'></path></svg>")
                                         .append("</div>");
@@ -303,7 +304,7 @@ public class DataExplorer extends Component {
                         // Delete Button
                         sb.append("<div class='cursor-pointer text-slate-500 hover:text-red-400' title='Delete' ")
                                         .append("onclick=\"event.stopPropagation(); openCollectionDeleteModal('")
-                                        .append(dbId).append("', '").append(name)
+                                        .append(dbName).append("', '").append(name)
                                         .append("')\">")
                                         .append("<svg class='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path></svg>")
                                         .append("</div>");
@@ -317,12 +318,12 @@ public class DataExplorer extends Component {
                         sb.append(renderOption("Record(Document)",
                                         "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
                                         "indigo-400",
-                                        "/dashboard/document/explorer?db=" + dbId + "&col=" + name,
+                                        "/dashboard/document/explorer?db=" + dbName + "&col=" + name,
                                         "#main-content-view"));
                         sb.append(renderOption("Index", "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z", "slate-500",
                                         "/dashboard/index", "#main-content-view"));
-                        sb.append(renderOption("Sequences", "M12 4v16m8-8H4", "indigo-400", 
-                                        "/dashboard/sequence?db=" + dbId, "#main-content-view"));
+                        sb.append(renderOption("Sequences", "M12 4v16m8-8H4", "indigo-400",
+                                        "/dashboard/sequence?db=" + dbName, "#main-content-view"));
                         sb.append(renderOption("Rules",
                                         "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
                                         "slate-500", "/dashboard/rule", "#main-content-view"));
