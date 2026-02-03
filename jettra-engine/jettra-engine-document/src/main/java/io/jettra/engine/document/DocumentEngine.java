@@ -103,14 +103,20 @@ public class DocumentEngine extends AbstractEngine {
         String metaKey = "meta:" + collection + ":" + jettraId + ":vcount";
         return readData(metaKey)
                 .onItem().transformToUni(meta -> {
-                    int currentVersion = meta.isEmpty() ? 1 : Integer.parseInt(meta);
-                    String versionKey = "ver:" + collection + ":" + jettraId + ":" + currentVersion;
-                    long groupId = Math.abs(versionKey.hashCode()) % 1024;
+                    try {
+                        int currentVersion = (meta == null || meta.isEmpty()) ? 1 : Integer.parseInt(meta);
+                        String versionKey = "ver:" + collection + ":" + jettraId + ":" + currentVersion;
+                        long groupId = Math.abs(versionKey.hashCode()) % 1024;
 
-                    return writeData(groupId, versionKey, json)
-                            .onItem()
-                            .transformToUni(v -> writeData(groupId, metaKey, String.valueOf(currentVersion + 1)))
-                            .onItem().transform(v -> currentVersion);
+                        LOG.infof("Archiving version %d for %s/%s", currentVersion, collection, jettraId);
+                        return writeData(groupId, versionKey, json)
+                                .onItem()
+                                .transformToUni(v -> writeData(groupId, metaKey, String.valueOf(currentVersion + 1)))
+                                .onItem().transform(v -> currentVersion);
+                    } catch (Exception e) {
+                        LOG.error("Error in archiveVersion", e);
+                        return Uni.createFrom().failure(e);
+                    }
                 });
     }
 
@@ -120,19 +126,33 @@ public class DocumentEngine extends AbstractEngine {
      * Here we accept just the version number as string or int.
      */
     public Uni<String> restoreVersion(String collection, String jettraId, String versionStr) {
-        // Construct key for the requested version
-        // The version keys are stored as: ver:{collection}:{jettraId}:{version}
+        LOG.infof("Restore version request for %s/%s, version: %s", collection, jettraId, versionStr);
         String versionKey = "ver:" + collection + ":" + jettraId + ":" + versionStr;
 
         return readData(versionKey)
                 .onItem().transformToUni(oldJson -> {
                     if (oldJson == null || oldJson.isEmpty()) {
-                        return Uni.createFrom().failure(new RuntimeException("Version not found: " + versionStr));
+                        LOG.warnf("Version key %s not found for restore", versionKey);
+                        return Uni.createFrom()
+                                .failure(new RuntimeException("Version " + versionStr + " not found in archives"));
                     }
-                    // Save it as a new version (this creates a NEW version that is a copy of the
-                    // old one)
-                    return save(collection, jettraId, oldJson);
-                });
+
+                    // Ensure the document JSON being restored has the current jettraID
+                    String restoredJson = oldJson;
+                    try {
+                        JsonNode node = objectMapper.readTree(oldJson);
+                        if (node.isObject()) {
+                            ObjectNode obj = (ObjectNode) node;
+                            obj.put("jettraID", jettraId);
+                            restoredJson = objectMapper.writeValueAsString(obj);
+                        }
+                    } catch (Exception e) {
+                        LOG.warn("Could not re-verify jettraID in restored JSON", e);
+                    }
+
+                    return save(collection, jettraId, restoredJson);
+                })
+                .onFailure().invoke(e -> LOG.error("Failed to restore document version", e));
     }
 
     /**
@@ -236,14 +256,19 @@ public class DocumentEngine extends AbstractEngine {
     public Multi<String> getDocumentVersions(String collection, String jettraId) {
         String metaKey = "meta:" + collection + ":" + jettraId + ":vcount";
         return readData(metaKey).onItem().transformToMulti(meta -> {
-            int count = meta.isEmpty() ? 0 : Integer.parseInt(meta);
+            int count = (meta == null || meta.isEmpty()) ? 1 : Integer.parseInt(meta);
             List<String> keys = new ArrayList<>();
+            // count is the NEXT version to be archived, so archive versions are 1 to
+            // count-1
             for (int i = 1; i < count; i++) {
                 keys.add("ver:" + collection + ":" + jettraId + ":" + i);
             }
-            // Add current
+            if (keys.isEmpty()) {
+                return Multi.createFrom().empty();
+            }
             return Multi.createFrom().iterable(keys)
-                    .onItem().transformToUniAndMerge(this::readData);
+                    .onItem().transformToUniAndMerge(this::readData)
+                    .filter(json -> json != null && !json.isEmpty());
         });
     }
 

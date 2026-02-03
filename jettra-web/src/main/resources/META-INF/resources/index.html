@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" href="logo/jettra-logo.png">
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
     <script>
-        const token = localStorage.getItem('jettra_token');
+        const token = localStorage.getItem('jettra_token'); 
         if (!token && !window.location.pathname.endsWith('login.html')) {
             window.location.href = '/login.html';
         }

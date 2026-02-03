@@ -271,7 +271,8 @@ public class DocumentResource {
     @Produces(MediaType.TEXT_HTML)
     public Response getDeleteForm(@QueryParam("db") String db, @QueryParam("col") String col,
             @QueryParam("jettraID") String jettraID) {
-        // Use a Form to ensure parameters are passed correctly without JSON escaping issues
+        // Use a Form to ensure parameters are passed correctly without JSON escaping
+        // issues
         Form container = new Form("delete-confirm-form");
         container.setStyleClass("text-center space-y-6 p-4");
 
@@ -326,7 +327,7 @@ public class DocumentResource {
         // Include the form values (closest form)
         confirmBtn.addAttribute("hx-include", "closest form");
         // Ensure modal closes on click (optimistic) or update handling
-        confirmBtn.addAttribute("onclick", "closeDocumentDeleteModal()"); 
+        confirmBtn.addAttribute("onclick", "closeDocumentDeleteModal()");
         confirmBtn.addAttribute("type", "button");
         btnContainer.addComponent(confirmBtn);
 
@@ -839,19 +840,20 @@ public class DocumentResource {
     @Path("/restore-version")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
-    public Response restoreVersion(@FormParam("db") String db, @FormParam("col") String col,
-            @FormParam("jettraID") String jettraID, @FormParam("json") String json) {
+    public Response restoreVersion(@QueryParam("db") String db, @QueryParam("col") String col,
+            @QueryParam("jettraID") String jettraID, @FormParam("json") String json) {
         String token = getAuthToken();
         if (token == null)
             return Response.status(Response.Status.UNAUTHORIZED).build();
 
         Node storeNode = findStorageNode(token);
         if (storeNode == null)
-             return Response.ok("<script>alert('Error: No storage node available');</script>").build();
+            return Response.ok("<script>alert('Error: No storage node available');</script>").build();
 
         String version = "0";
         try {
-            Map<String, Object> map = mapper.readValue(json, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> map = mapper.readValue(json, new TypeReference<Map<String, Object>>() {
+            });
             version = String.valueOf(map.getOrDefault("_version", "0"));
         } catch (Exception e) {
             LOG.error("Error parsing version json", e);
@@ -859,9 +861,12 @@ public class DocumentResource {
         }
 
         try {
-             String url = String.format("http://%s/api/v1/document/%s/%s/restore/%s",
+            String encodedID = jettraID != null
+                    ? java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8)
+                    : "";
+            String url = String.format("http://%s/api/v1/document/%s/%s/restore/%s",
                     storeNode.getAddress(), col,
-                    java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8),
+                    encodedID,
                     version);
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -873,11 +878,13 @@ public class DocumentResource {
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                 return Response.ok()
-                        .header("HX-Trigger", "{\"refreshDocuments\": \"Version " + version + " restored successfully!\"}")
+                return Response.ok()
+                        .header("HX-Trigger",
+                                "{\"refreshDocuments\": \"Version " + version + " restored successfully!\"}")
                         .build();
             } else {
-                return Response.ok("<script>alert('Error restoring version: " + response.statusCode() + "');</script>").build();
+                return Response.ok("<script>alert('Error restoring version: " + response.statusCode() + "');</script>")
+                        .build();
             }
         } catch (Exception e) {
             return Response.ok("<script>alert('Error: " + e.getMessage() + "');</script>").build();
@@ -902,7 +909,7 @@ public class DocumentResource {
             // FIXED: Use path parameter for jettraID
             String url = String.format("http://%s/api/v1/document/%s/%s", storeNode.getAddress(), col,
                     java.net.URLEncoder.encode(jettraID, java.nio.charset.StandardCharsets.UTF_8));
-            
+
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Authorization", "Bearer " + token)
@@ -916,7 +923,9 @@ public class DocumentResource {
                         .header("HX-Trigger", "{\"refreshDocuments\": \"Document deleted successfully!\"}")
                         .build();
             } else {
-                return Response.ok("<script>alert('Error deleting document: " + response.statusCode() + " " + response.body().replace("'", "\\'") + "');</script>")
+                return Response
+                        .ok("<script>alert('Error deleting document: " + response.statusCode() + " "
+                                + response.body().replace("'", "\\'") + "');</script>")
                         .build();
             }
         } catch (Exception e) {
