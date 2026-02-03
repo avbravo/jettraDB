@@ -152,7 +152,8 @@ public class DashboardResource {
         template.addOverlay(createCollectionDeleteModal()); // Added this
         template.addOverlay(createDocumentModal());
         template.addOverlay(createDocumentDeleteModal());
-        template.addOverlay(createVersionsModal()); // Added Versions Modal
+        template.addOverlay(createVersionsModal());
+        template.addOverlay(createSequenceModal()); // Added Versions Modal
 
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
@@ -450,7 +451,15 @@ public class DashboardResource {
 
                     // Global listener for document actions
                     document.addEventListener('refreshDocuments', function(evt) {
-                        ['document-modal', 'doc-delete-modal', 'versions-modal'].forEach(id => {
+                        handleRefreshEvent(evt, ['document-modal', 'doc-delete-modal', 'versions-modal']);
+                    });
+
+                    document.addEventListener('refreshSequences', function(evt) {
+                        handleRefreshEvent(evt, ['sequence-modal']);
+                    });
+
+                    function handleRefreshEvent(evt, modalIds) {
+                        modalIds.forEach(id => {
                             const m = document.getElementById(id);
                             if(m) {
                                 m.classList.add('hidden');
@@ -464,7 +473,8 @@ public class DashboardResource {
                         const message = (evt.detail && evt.detail.value) ? evt.detail.value : 
                                         (typeof evt.detail === 'string' ? evt.detail : "Action completed successfully");
                         showNotification(message, 'success');
-                    });
+                    }
+
 
                     function showNotification(message, type) {
                         const container = document.getElementById('main-content-view');
@@ -1056,6 +1066,59 @@ public class DashboardResource {
         cancelBtn.addAttribute("type", "button");
         modal.addFooterComponent(cancelBtn);
 
+        return modal;
+    }
+    private Modal createSequenceModal() {
+        Modal modal = new Modal("sequence-modal", "Create Sequence");
+        modal.setStyleClass("modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("seq-modal-body");
+        content.setStyleClass("space-y-4 min-w-[320px]");
+
+        content.addComponent(createFormField("Name", new InputText("seq-name")));
+        content.addComponent(createFormField("Database", new InputText("seq-db"))); // Can be readonly if passed
+        content.addComponent(createFormField("Start Value", new InputText("seq-start").addAttribute("type", "number").addAttribute("value", "1")));
+        content.addComponent(createFormField("Increment", new InputText("seq-inc").addAttribute("type", "number").addAttribute("value", "1")));
+
+        modal.addComponent(content);
+
+        Button saveBtn = new Button("btn-seq-save", "Create");
+        saveBtn.setStyleClass("flex-1 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all");
+        saveBtn.addAttribute("onclick", "saveSequence()");
+        modal.addFooterComponent(saveBtn);
+
+        Button cancelBtn = new Button("btn-seq-cancel", "Cancel");
+        cancelBtn.setStyleClass("flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("onclick", "closeSequenceModal()");
+        modal.addFooterComponent(cancelBtn);
+
+        content.addComponent(new Label("script-seq",
+                "<script> " +
+                        "function openSequenceModal(dummy, dbName) { " +
+                        "  document.getElementById('seq-name').value = ''; " +
+                        "  document.getElementById('seq-db').value = dbName || ''; " +
+                        "  document.getElementById('seq-start').value = '1'; " +
+                        "  document.getElementById('seq-inc').value = '1'; " +
+                        "  document.getElementById('sequence-modal').classList.remove('hidden'); " +
+                        "  document.getElementById('sequence-modal').classList.add('flex'); " +
+                        "} " +
+                        "function closeSequenceModal() { " +
+                        "  document.getElementById('sequence-modal').classList.add('hidden'); " +
+                        "  document.getElementById('sequence-modal').classList.remove('flex'); " +
+                        "} " +
+                        "function saveSequence() { " +
+                        "  const name = document.getElementById('seq-name').value; " +
+                        "  const db = document.getElementById('seq-db').value; " +
+                        "  const start = document.getElementById('seq-start').value; " +
+                        "  const inc = document.getElementById('seq-inc').value; " +
+                        "  if(!name) { alert('Name is required'); return; } " +
+                        "  htmx.ajax('POST', '/dashboard/sequence', { " +
+                        "    values: { name: name, db: db, start: start, inc: inc }, " +
+                        "    target: '#main-content-view' " +
+                        "  }); " +
+                        "  closeSequenceModal(); " +
+                        "} " +
+                        "</script>"));
         return modal;
     }
 }

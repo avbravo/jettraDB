@@ -9,7 +9,7 @@ public class Badge extends Component {
         this.label = label;
     }
 
-    public void setColor(String color) { this.color = color; }
+    public Badge setColor(String color) { this.color = color; return this; }
 
     @Override
     public String render() {

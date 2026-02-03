@@ -1,11 +1,12 @@
 package io.jettra.ui.component;
 
-import io.jettra.ui.event.EventListener;
-import io.jettra.ui.event.JettraEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.jettra.ui.event.EventListener;
+import io.jettra.ui.event.JettraEvent;
 
 public abstract class Component {
     protected String id;
@@ -46,8 +47,9 @@ public abstract class Component {
         this.listeners = listeners;
     }
 
-    public void addAttribute(String key, String value) {
+    public Component addAttribute(String key, String value) {
         attributes.put(key, value);
+        return this;
     }
 
     // HTMX Helpers
