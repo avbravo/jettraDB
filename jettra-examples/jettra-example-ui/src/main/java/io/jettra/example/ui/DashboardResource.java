@@ -1110,39 +1110,58 @@ public class DashboardResource {
             @jakarta.ws.rs.QueryParam("engine") String engine) {
         Div container = new Div("col-edit-container");
         container.setStyleClass(
-                "p-8 max-w-xl mx-auto bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800 shadow-2xl space-y-6");
+                "p-8 max-w-xl mx-auto bg-slate-900/50 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-2xl space-y-6 animate-in fade-in zoom-in duration-300");
 
         Label title = new Label("edit-title", "Rename Collection");
-        title.setStyleClass("text-2xl font-bold text-white mb-6");
+        title.setStyleClass("text-2xl font-bold text-white mb-6 flex items-center gap-3");
+        title.setText(
+                "<svg class='w-7 h-7 text-indigo-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'></path></svg> Rename Collection");
         container.addComponent(title);
 
         Div formDiv = new Div("edit-form-wrapper");
-        formDiv.setStyleClass("space-y-4");
+        formDiv.setStyleClass("space-y-5");
 
-        formDiv.addComponent(createFormField("Database", new InputText("edit-db").addAttribute("value", db)
-                .addAttribute("readonly", "true").setStyleClass("bg-slate-800/50 text-slate-400")));
-        formDiv.addComponent(createFormField("Current Name", new InputText("old-col-name").addAttribute("value", col)
-                .addAttribute("readonly", "true").setStyleClass("bg-slate-800/50 text-slate-400")));
-        formDiv.addComponent(createFormField("New Name", new InputText("new-col-name")
-                .addAttribute("placeholder", "Enter new name...").addAttribute("value", col)));
+        // Database (Readonly)
+        InputText dbInput = new InputText("edit-db");
+        dbInput.addAttribute("value", db);
+        dbInput.addAttribute("readonly", "true");
+        dbInput.setStyleClass("bg-slate-800/30 border-slate-700/50 text-slate-400 cursor-not-allowed");
+        formDiv.addComponent(createFormField("Database Name", dbInput));
 
-        // Hidden engine field
-        formDiv.addComponent(new Label("hidden-eng", "<input type='hidden' id='edit-engine' value='" + engine + "'>"));
+        // Current Collection Name (Readonly)
+        InputText oldColInput = new InputText("old-col-name");
+        oldColInput.addAttribute("value", col);
+        oldColInput.addAttribute("readonly", "true");
+        oldColInput.setStyleClass("bg-slate-800/30 border-slate-700/50 text-slate-400 cursor-not-allowed");
+        formDiv.addComponent(createFormField("Current Name", oldColInput));
+
+        // New Collection Name
+        InputText newColInput = new InputText("new-col-name");
+        newColInput.addAttribute("placeholder", "Type the new collection name...");
+        newColInput.addAttribute("value", col);
+        newColInput.setStyleClass(
+                "bg-slate-800/50 border-slate-700 focus:border-indigo-500 focus:ring-indigo-500/20 transition-all");
+        formDiv.addComponent(createFormField("New Name", newColInput));
+
+        // Hidden fields and error message container
+        formDiv.addComponent(new Label("hidden-fields",
+                "<input type='hidden' id='edit-engine' value='" + engine + "'>" +
+                        "<div id='rename-error-msg' class='mt-4'></div>"));
 
         container.addComponent(formDiv);
 
         Div actions = new Div("edit-actions");
-        actions.setStyleClass("flex gap-3 pt-6");
+        actions.setStyleClass("flex gap-4 pt-6");
 
         Button cancelBtn = new Button("btn-edit-cancel", "Cancel");
         cancelBtn.setStyleClass(
-                "flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all");
+                "flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all border border-slate-700/50");
         cancelBtn.addAttribute("onclick", "htmx.trigger('#sidebar-explorer-container', 'refreshExplorer')");
         actions.addComponent(cancelBtn);
 
-        Button saveBtn = new Button("btn-edit-save", "Rename Collection");
+        Button saveBtn = new Button("btn-edit-save", "Confirm Rename");
         saveBtn.setStyleClass(
-                "flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20");
+                "flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/30 transform active:scale-95");
         saveBtn.addAttribute("onclick", "submitRename()");
         actions.addComponent(saveBtn);
 
@@ -1155,10 +1174,12 @@ public class DashboardResource {
                         "  const oldName = document.getElementById('old-col-name').value; " +
                         "  const newName = document.getElementById('new-col-name').value; " +
                         "  const eng = document.getElementById('edit-engine').value; " +
-                        "  if(!newName || newName === oldName) { alert('A new name is required'); return; } " +
+                        "  if(!newName || newName.trim() === '') { alert('A new name is required'); return; } " +
+                        "  if(newName === oldName) { alert('New name must be different'); return; } " +
                         "  htmx.ajax('POST', '/dashboard/collection/rename', { " +
                         "    values: { db: db, oldName: oldName, newName: newName, engine: eng }, " +
-                        "    target: '#main-content-view' " +
+                        "    target: '#rename-error-msg', " +
+                        "    swap: 'innerHTML' " +
                         "  }); " +
                         "} " +
                         "</script>"));
@@ -1187,22 +1208,41 @@ public class DashboardResource {
         }
 
         try {
+            // Validation: Check if newName already exists (case-insensitive check)
+            List<io.jettra.example.ui.model.Collection> collections = pdClient.getCollections(db, "Bearer " + token);
+            boolean exists = collections.stream().anyMatch(c -> c.getName().equalsIgnoreCase(newName));
+
+            if (exists) {
+                Alert errorAlert = new Alert("rename-duplicate-error",
+                        "The collection name '" + newName + "' already exists in database '" + db + "'.");
+                errorAlert.setType("danger");
+                errorAlert.setStyleClass("mt-4 border border-red-900/50 shadow-lg animate-bounce");
+                return Response.ok(errorAlert.render()).build();
+            }
+
             io.jettra.example.ui.model.Collection col = new io.jettra.example.ui.model.Collection(newName, engine);
             pdClient.renameCollection(db, oldName, newName, col, "Bearer " + token);
-            return Response.ok("<div class='p-8 text-center space-y-4'>" +
+
+            String successHtml = "<div class='p-8 text-center space-y-4 animate-in fade-in zoom-in duration-500'>" +
                     "<div class='inline-flex p-4 bg-green-500/20 text-green-400 rounded-full mb-4'><svg class='w-12 h-12' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7'></path></svg></div>"
                     +
                     "<h2 class='text-2xl font-bold text-white'>Collection Renamed!</h2>" +
                     "<p class='text-slate-400 uppercase tracking-tighter'>The collection was successfully renamed to "
                     + newName + "</p>" +
-                    "<button class='mt-6 px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold' onclick='htmx.trigger(\"#sidebar-explorer-container\", \"refreshExplorer\")'>Back to Dashboard</button>"
+                    "<button class='mt-6 px-10 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold transition-all transform hover:scale-105' onclick='htmx.trigger(\"#sidebar-explorer-container\", \"refreshExplorer\")'>Back to Dashboard</button>"
                     +
-                    "</div>")
+                    "</div>" +
+                    "<script>setTimeout(() => htmx.trigger('#sidebar-explorer-container', 'refreshExplorer'), 1500);</script>";
+
+            return Response.ok(successHtml)
                     .header("HX-Trigger", "refreshExplorer")
+                    .header("HX-Retarget", "#main-content-view")
                     .build();
         } catch (Exception e) {
             LOG.error("Failed to rename collection", e);
-            return Response.ok("<div class='p-4 text-red-500'>Error: " + e.getMessage() + "</div>").build();
+            Alert errorAlert = new Alert("rename-exception", "Error: " + e.getMessage());
+            errorAlert.setType("danger");
+            return Response.ok(errorAlert.render()).build();
         }
     }
 
