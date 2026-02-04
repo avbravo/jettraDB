@@ -3,19 +3,16 @@ Base de datos realizar operaciones creacion, actualizar nombre o tipo o engine-s
 eliminar base de datos.
 
 # Terminados
-[329](https://github.com/avbravo/jettraDB/issues/329)
 
-estudiar el archivo index.html del proyecto jettra-web y verificar 
-el subtree de Document dentro del subtree de la base de datos creada. 
-Luego implementa esa funcionalidad en el proyecto jettra-example-ui de agregar una coleccion, renombrar coleccion
-eliminar coleccion, una opcion info que indica cuantos documentos tiene, cuantos indices
-y cuanto ocupa en disco. 
-Recuerda que jettra-example-ui no usa html ni java script usa jettra-ui. Estas opciones 
-deben verse similar a la barra de opciones que se coloco a nivel de cada
-base de datos en el subtree correspondiente.    
+[323](https://github.com/avbravo/jettraDB/issues/323)
+[327](https://github.com/avbravo/jettraDB/issues/327)
+[333](https://github.com/avbravo/jettraDB/issues/333)
+[334](https://github.com/avbravo/jettraDB/issues/334)
+[336](https://github.com/avbravo/jettraDB/issues/336)
+[337](https://github.com/avbravo/jettraDB/issues/337)
+[338](https://github.com/avbravo/jettraDB/issues/338)
 
-
-# Pendientes
+ Pendientes
 
 [111](https://github.com/avbravo/jettraDB/issues/111)
 [66](https://github.com/avbravo/jettraDB/issues/66)
