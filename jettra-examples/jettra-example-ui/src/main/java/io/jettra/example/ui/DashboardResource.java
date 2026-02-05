@@ -250,58 +250,52 @@ public class DashboardResource {
                             if (themeToggleDarkIcon) themeToggleDarkIcon.classList.remove('hidden');
                         }
 
-                        restoreSidebarState();
+                        restoreDataExplorerState();
                     });
 
-                    // Sidebar Persistence Logic
-                    function restoreSidebarState() {
-                        const expandedNodes = JSON.parse(localStorage.getItem('jettra_expanded_nodes') || '[]');
-                        expandedNodes.forEach(id => {
-                            const node = document.getElementById(id);
-                            if (node) {
-                                // Find the children container, usually next sibling or inside
-                                // This depends on Jettra-UI DataExplorer rendering.
-                                // Assuming typical details/summary or custom dive toggle
-                                // We'll assume a 'hidden' class toggle on the next sibling element
-                                const nextInfo = node.nextElementSibling;
-                                if(nextInfo && nextInfo.classList.contains('hidden')) {
-                                     nextInfo.classList.remove('hidden');
+                    // DataExplorer Persistence Logic
+                    function toggleDataExplorerNode(id, iconId) {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.classList.toggle('hidden');
+                            const isHidden = el.classList.contains('hidden');
+                            localStorage.setItem('data_explorer_expanded_' + id, !isHidden);
+                            if (iconId) {
+                                const icon = document.getElementById(iconId);
+                                if (icon) {
+                                    icon.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(90deg)';
+                                }
+                            }
+                        }
+                    }
+
+                    function restoreDataExplorerState() {
+                        const selector = '[id^="db-children-"], [id^="users-"], [id^="engine-children-"], [id^="col-children-"]';
+                        document.querySelectorAll(selector).forEach(el => {
+                            const expanded = localStorage.getItem('data_explorer_expanded_' + el.id) === 'true';
+                            if (expanded) {
+                                el.classList.remove('hidden');
+                                
+                                // Restore icon rotation
+                                let iconId = null;
+                                // Heuristic to guess icon ID if not explicitly known (though DataExplorer usage handles explicit ID for toggle)
+                                // But here we are iterating elements directly.
+                                if(el.id.startsWith('db-children-')) iconId = el.id.replace('db-children-', 'db-icon-');
+                                else if(el.id.startsWith('users-')) iconId = el.id.replace('users-', 'users-icon-');
+                                else if(el.id.startsWith('engine-children-')) iconId = el.id.replace('engine-children-', 'engine-icon-');
+                                
+                                if (iconId) {
+                                    const icon = document.getElementById(iconId);
+                                    if (icon) {
+                                        icon.style.transform = 'rotate(90deg)';
+                                        // Disable transition temporarily to prevent animation on load
+                                        icon.style.transition = 'none';
+                                        setTimeout(() => icon.style.transition = '', 50);
+                                    }
                                 }
                             }
                         });
                     }
-
-                    function toggleExplorerNode(elementId) {
-                         const node = document.getElementById(elementId);
-                         if(!node) return;
-                         const nextInfo = node.nextElementSibling;
-                         if(nextInfo) {
-                             nextInfo.classList.toggle('hidden');
-
-                             // Save state
-                             let expanded = JSON.parse(localStorage.getItem('jettra_expanded_nodes') || '[]');
-                             if (!nextInfo.classList.contains('hidden')) {
-                                 if(!expanded.includes(elementId)) expanded.push(elementId);
-                             } else {
-                                 expanded = expanded.filter(id => id !== elementId);
-                             }
-                             localStorage.setItem('jettra_expanded_nodes', JSON.stringify(expanded));
-                         }
-                    }
-
-                    // Delegate clicks for sidebar toggles if they use a specific class
-                    document.addEventListener('click', function(e) {
-                        // Adjust selector relevant to Jettra-UI DataExplorer output
-                        // Assuming class 'db-node-toggle' or similar if we can control it.
-                        // Since we can't easily change DataExplorer java, we rely on what it renders.
-                        // If it uses onclick attributes, we might need to intercept or wrap.
-                        // For now, let's assume the user clicks the header.
-
-                        if (e.target.closest('.db-node-header')) { // Hypothetical class
-                             const header = e.target.closest('.db-node-header');
-                             toggleExplorerNode(header.id);
-                        }
-                    });
 
                     // Re-init Flowbite after HTMX content is loaded
                     document.addEventListener('htmx:afterOnLoad', function(evt) {
@@ -311,7 +305,7 @@ public class DashboardResource {
                         // Ensure all data-modal-hide elements in the new content work
                         // Restore sidebar state if explorer was refreshed
                         if(evt.detail.target.id === 'sidebar-explorer-container') {
-                             restoreSidebarState();
+                             restoreDataExplorerState();
                         }
                     });
 
@@ -1121,26 +1115,41 @@ public class DashboardResource {
         Div formDiv = new Div("edit-form-wrapper");
         formDiv.setStyleClass("space-y-5");
 
-        // Database (Readonly)
-        InputText dbInput = new InputText("edit-db");
-        dbInput.addAttribute("value", db);
-        dbInput.addAttribute("readonly", "true");
-        dbInput.setStyleClass("bg-slate-800/30 border-slate-700/50 text-slate-400 cursor-not-allowed");
-        formDiv.addComponent(createFormField("Database Name", dbInput));
+        // Context Info (Visual Only)
+        Div contextInfo = new Div("context-info");
+        contextInfo.setStyleClass("grid grid-cols-2 gap-4 p-4 bg-slate-950/30 rounded-xl border border-slate-800/50");
 
-        // Current Collection Name (Readonly)
-        InputText oldColInput = new InputText("old-col-name");
-        oldColInput.addAttribute("value", col);
-        oldColInput.addAttribute("readonly", "true");
-        oldColInput.setStyleClass("bg-slate-800/30 border-slate-700/50 text-slate-400 cursor-not-allowed");
-        formDiv.addComponent(createFormField("Current Name", oldColInput));
+        Div dbInfo = new Div("db-info");
+        Label dbLabel = new Label("lbl-db", "Database");
+        dbLabel.setStyleClass("text-xs text-slate-500 uppercase font-bold mb-1 block");
+        dbInfo.addComponent(dbLabel);
+        Label dbVal = new Label("val-db", db);
+        dbVal.setStyleClass("text-sm text-indigo-400 font-mono truncate block");
+        dbInfo.addComponent(dbVal);
+        contextInfo.addComponent(dbInfo);
+
+        Div colInfo = new Div("col-info");
+        Label colLabel = new Label("lbl-col", "Collection");
+        colLabel.setStyleClass("text-xs text-slate-500 uppercase font-bold mb-1 block");
+        colInfo.addComponent(colLabel);
+        Label colVal = new Label("val-col", col);
+        colVal.setStyleClass("text-sm text-white font-bold truncate block");
+        colInfo.addComponent(colVal);
+        contextInfo.addComponent(colInfo);
+
+        formDiv.addComponent(contextInfo);
+
+        // Hidden fields for JS compatibility (so submitRename can find them)
+        formDiv.addComponent(new Label("hidden-data",
+                "<input type='hidden' id='edit-db' value='" + db + "'>" +
+                        "<input type='hidden' id='old-col-name' value='" + col + "'>"));
 
         // New Collection Name
         InputText newColInput = new InputText("new-col-name");
         newColInput.addAttribute("placeholder", "Type the new collection name...");
         newColInput.addAttribute("value", col);
         newColInput.setStyleClass(
-                "bg-slate-800/50 border-slate-700 focus:border-indigo-500 focus:ring-indigo-500/20 transition-all");
+                "bg-slate-800/50 border-slate-700 focus:border-indigo-500 focus:ring-indigo-500/20 transition-all text-white font-medium");
         formDiv.addComponent(createFormField("New Name", newColInput));
 
         // Hidden fields and error message container

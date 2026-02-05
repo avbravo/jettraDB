@@ -4,13 +4,8 @@ eliminar base de datos.
 
 # Terminados
 
-[323](https://github.com/avbravo/jettraDB/issues/323)
-[327](https://github.com/avbravo/jettraDB/issues/327)
-[333](https://github.com/avbravo/jettraDB/issues/333)
-[334](https://github.com/avbravo/jettraDB/issues/334)
-[336](https://github.com/avbravo/jettraDB/issues/336)
-[337](https://github.com/avbravo/jettraDB/issues/337)
-[338](https://github.com/avbravo/jettraDB/issues/338)
+[300](https://github.com/avbravo/jettraDB/issues/300)
+
 
  Pendientes
 

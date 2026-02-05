@@ -29,46 +29,8 @@ public class DataExplorer extends Component {
                 }
                 sb.append("</div></div>");
 
-                // Add minimal JS for toggling. The user said "no uses html ni javascript"
-                // meaning
-                // they don't want to WRITE it, but the component must GENERATE it to work.
-                sb.append("<script>");
-                sb.append("if (typeof toggleDataExplorerNode !== 'function') {");
-                sb.append("  function toggleDataExplorerNode(id, iconId) {");
-                sb.append("    const el = document.getElementById(id);");
-                sb.append("    if (el) {");
-                sb.append("      el.classList.toggle('hidden');");
-                sb.append("      const isHidden = el.classList.contains('hidden');");
-                sb.append("      localStorage.setItem('data_explorer_expanded_' + id, !isHidden);");
-                sb.append("      const icon = document.getElementById(iconId);");
-                sb.append("      if (icon) {");
-                sb.append("        if (isHidden) {");
-                sb.append("          icon.style.transform = 'rotate(0deg)';");
-                sb.append("        } else {");
-                sb.append("          icon.style.transform = 'rotate(90deg)';");
-                sb.append("        }");
-                sb.append("      }");
-                sb.append("    }");
-                sb.append("  }");
-                sb.append("}");
-
-                sb.append("if (typeof restoreDataExplorerState !== 'function') {");
-                sb.append("  function restoreDataExplorerState() {");
-                sb.append("    document.querySelectorAll('[id^=\"db-children-\"], [id^=\"users-\"], [id^=\"engine-children-\"], [id^=\"col-children-\"]').forEach(el => {");
-                sb.append("      const expanded = localStorage.getItem('data_explorer_expanded_' + el.id) === 'true';");
-                sb.append("      if (expanded) {");
-                sb.append("        el.classList.remove('hidden');");
-                sb.append("        const iconId = el.id.replace('children', 'icon').replace('db-children', 'db-icon');");
-                sb.append("        const icon = document.getElementById(iconId);");
-                sb.append("        if (icon) { icon.style.transform = 'rotate(90deg)'; icon.style.transition = 'none'; setTimeout(() => icon.style.transition = '', 50); }");
-                sb.append("      }");
-                sb.append("    });");
-                sb.append("  }");
-                sb.append("  document.addEventListener('DOMContentLoaded', restoreDataExplorerState);");
-                sb.append("  document.body.addEventListener('htmx:afterOnLoad', restoreDataExplorerState);");
-                sb.append("}");
-                sb.append("restoreDataExplorerState();"); // Run it once in case it just loaded via HTMX
-                sb.append("</script>");
+                // JavaScript for toggling is now handled centrally in DashboardResource to prevent redundant listeners
+                // and ensure correct state persistence across HTMX reloads.
                 return sb.toString();
         }
 
