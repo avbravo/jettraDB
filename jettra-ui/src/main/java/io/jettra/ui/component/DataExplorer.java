@@ -29,7 +29,8 @@ public class DataExplorer extends Component {
                 }
                 sb.append("</div></div>");
 
-                // JavaScript for toggling is now handled centrally in DashboardResource to prevent redundant listeners
+                // JavaScript for toggling is now handled centrally in DashboardResource to
+                // prevent redundant listeners
                 // and ensure correct state persistence across HTMX reloads.
                 return sb.toString();
         }
@@ -198,7 +199,7 @@ public class DataExplorer extends Component {
                         // Using HTMX to open modal
                         sb.append(
                                         "<button class='p-0.5 hover:text-indigo-400 text-slate-500 transition-colors' title='Add Collection' ")
-                                        .append("onclick=\"openCollectionModal('").append(dbId).append("', '")
+                                        .append("onclick=\"openCollectionModal('").append(dbName).append("', '")
                                         .append(name)
                                         .append("'); event.stopPropagation()\">")
                                         .append("<svg class='w-3.5 h-3.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 4v16m8-8H4'></path></svg>")

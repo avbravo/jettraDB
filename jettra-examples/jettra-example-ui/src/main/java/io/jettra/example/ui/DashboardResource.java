@@ -275,7 +275,7 @@ public class DashboardResource {
                             const expanded = localStorage.getItem('data_explorer_expanded_' + el.id) === 'true';
                             if (expanded) {
                                 el.classList.remove('hidden');
-                                
+
                                 // Restore icon rotation
                                 let iconId = null;
                                 // Heuristic to guess icon ID if not explicitly known (though DataExplorer usage handles explicit ID for toggle)
@@ -283,7 +283,7 @@ public class DashboardResource {
                                 if(el.id.startsWith('db-children-')) iconId = el.id.replace('db-children-', 'db-icon-');
                                 else if(el.id.startsWith('users-')) iconId = el.id.replace('users-', 'users-icon-');
                                 else if(el.id.startsWith('engine-children-')) iconId = el.id.replace('engine-children-', 'engine-icon-');
-                                
+
                                 if (iconId) {
                                     const icon = document.getElementById(iconId);
                                     if (icon) {
@@ -915,12 +915,23 @@ public class DashboardResource {
 
         try {
             pdClient.createCollection(dbName, name, col, "Bearer " + token);
-            // Return empty response with trigger to refresh explorer
-            return Response.ok().header("HX-Trigger", "refreshExplorer").build();
+            // Return success content with triggers
+            String successMsg = "<div class='p-4 text-emerald-400 font-bold bg-emerald-400/10 rounded-xl border border-emerald-400/20 animate-in fade-in duration-300'>"
+                    +
+                    "Collection '" + name + "' created successfully in " + dbName + "." +
+                    "</div>" +
+                    "<script>showNotification('Collection created successfully', 'success');</script>";
+
+            return Response.ok(successMsg)
+                    .header("HX-Trigger", "refreshExplorer")
+                    .build();
         } catch (Exception e) {
             LOG.error("Failed to create collection", e);
             // Return validation error or alert script
-            return Response.ok("<script>alert('Failed to create collection: " + e.getMessage() + "');</script>")
+            return Response.ok(
+                    "<div class='p-4 text-rose-400 font-bold bg-rose-400/10 rounded-xl border border-rose-400/20'>" +
+                            "Error: " + e.getMessage() +
+                            "</div>")
                     .build();
         }
     }
