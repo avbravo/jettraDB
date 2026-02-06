@@ -87,11 +87,11 @@ public class Main {
             // 5. Configuración de Seguridad
             String testUser = "bob";
             LOG.info("Creando usuario '{}'...", testUser);
-            client.createUser(testUser, "password123", Set.of()).await().indefinitely();
+            client.createUser(testUser, "password123", "bob@example.com", Set.of()).await().indefinitely();
 
             LOG.info("Configurando roles para el usuario '{}'...", testUser);
             client.createRole("reader-role", dbName, Set.of("READ")).await().indefinitely();
-            client.updateUser(testUser, "password123", Set.of("reader-role")).await().indefinitely();
+            client.updateUser(testUser, "password123", "bob@example.com", Set.of("reader-role")).await().indefinitely();
 
             // 6. Listar Información
             List<String> dbs = client.listDatabases().await().indefinitely();
@@ -129,7 +129,7 @@ public class Main {
             String sqlDelete = String.format("DELETE FROM %s.%s WHERE id='sql_id_1'", dbName, colName);
             client.executeSql(sqlDelete).await().indefinitely();
             LOG.info("SQL DELETE completed.");
-            
+
             // 8. Resolve References Example
             LOG.info("Probando Resolve References (Direct Memory Access)...");
             // Assuming we have a linked document scenario
@@ -137,15 +137,17 @@ public class Main {
             String parentId = "parent_doc";
             String childId = client.generateJettraId("main-bucket").await().indefinitely();
             client.save(colName, childId, "{\"name\": \"Child\", \"type\": \"sub\"}").await().indefinitely();
-            client.save(colName, parentId, String.format("{\"name\": \"Parent\", \"child\": \"%s\"}", childId)).await().indefinitely();
-            
+            client.save(colName, parentId, String.format("{\"name\": \"Parent\", \"child\": \"%s\"}", childId)).await()
+                    .indefinitely();
+
             // Fetch with resolution via Driver
             Object resolvedDoc = client.findById(colName, parentId, true).await().indefinitely();
             LOG.info("Resolved Document via Driver: {}", resolvedDoc);
-            
+
             // Fetch with resolution via SQL
-            String sqlResolved = client.executeSql(String.format("SELECT * FROM %s.%s WHERE id='%s'", dbName, colName, parentId), true)
-                                       .await().indefinitely();
+            String sqlResolved = client
+                    .executeSql(String.format("SELECT * FROM %s.%s WHERE id='%s'", dbName, colName, parentId), true)
+                    .await().indefinitely();
             LOG.info("Resolved Document via SQL: {}", sqlResolved);
 
             // 8. Sequential Keys (Sequences) Support ⭐

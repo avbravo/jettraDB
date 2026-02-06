@@ -58,7 +58,8 @@ public class ClusterResource {
                 boolean isSuperUser = "admin".equalsIgnoreCase(username) || "super-user".equalsIgnoreCase(username);
                 if (!isSuperUser && username != null && token != null) {
                         var user = securityService.getUser(username, token);
-                        if (user != null && "super-user".equalsIgnoreCase(user.getProfile())) {
+                        if (user != null && ("super-user".equalsIgnoreCase(user.getProfile())
+                                        || "admin".equalsIgnoreCase(user.getProfile()))) {
                                 isSuperUser = true;
                         }
                 }

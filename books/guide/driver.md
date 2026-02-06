@@ -129,16 +129,17 @@ Manage cluster access control.
 client.createRole("read_db1", "db1", Set.of("READ"))
       .await().indefinitely();
 
-// Create a new user with specific roles
-client.createUser("bob", "password123", Set.of("read_db1", "admin_all"))
-      .await().indefinitely();
+// Create a user
+client.createUser("bob", "password123", "bob@example.com", Set.of("reader")).await().indefinitely();
 
-// Update an existing user (Edit roles/password)
-client.updateUser("bob", "newpassword456", Set.of("read-write_all"))
-      .await().indefinitely();
+// Update a user
+client.updateUser("bob", "newpass", "bob_new@example.com", Set.of("writer")).await().indefinitely();
 
-// List all users
-List<String> usernames = client.listUsers().await().indefinitely();
+// Change password
+client.changePassword("bob", "oldpass", "newpass").await().indefinitely();
+
+// List users
+List<User> users = client.listUsers().await().indefinitely();
 
 // Delete a user
 client.deleteUser("bob").await().indefinitely();
@@ -232,6 +233,49 @@ String jsonResult = (String) client.findById("usuarios", "node1/def#uuid1", true
 
 // 2. Usando SQL con resolución activa 
 String sqlResult = client.executeSql("SELECT * FROM users", true).await().indefinitely();
+```
+
+### MongoDB-like Operations (Experimental)
+
+```java
+// Insert One
+client.insertOne("myCollection", "{\"name\": \"Jettra\"}").await().indefinitely();
+
+// Insert Many
+client.insertMany("myCollection", List.of("{\"id\": 1}", "{\"id\": 2}")).await().indefinitely();
+
+// Delete One
+client.deleteOne("myCollection", "{\"id\": 1}").await().indefinitely();
+
+// Delete Many
+client.deleteMany("myCollection", "{\"status\": \"old\"}").await().indefinitely();
+
+// Replace One
+client.replaceOne("myCollection", "{\"id\": 1}", "{\"id\": 1, \"new\": true}").await().indefinitely();
+```
+
+### Index Management
+
+```java
+// Create Index
+client.createIndex("myDB", "myCollection", "fieldName", "text").await().indefinitely();
+
+// List Indexes
+List<IndexMetadata> indexes = client.listIndexes("myDB", "myCollection").await().indefinitely();
+
+// Delete Index
+client.deleteIndex("myDB", "myCollection", "indexName").await().indefinitely();
+```
+
+### QueryBuilder
+
+The `QueryBuilder` provides a fluent API for constructing complex queries.
+
+```java
+String query = QueryBuilder.start()
+    .eq("status", "active")
+    .gt("age", 25)
+    .build();
 ```
 
 ---

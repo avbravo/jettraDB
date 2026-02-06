@@ -119,6 +119,51 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
+    public Uni<Void> insertOne(String collection, Object document) {
+        return save(collection, null, document).onItem().ignore().andContinueWithNull();
+    }
+
+    @Override
+    public Uni<Void> insertMany(String collection, java.util.List<Object> documents) {
+        if (documents == null || documents.isEmpty()) {
+            return Uni.createFrom().voidItem();
+        }
+        java.util.List<Uni<Void>> unis = documents.stream()
+                .map(doc -> save(collection, doc))
+                .toList();
+        return Uni.combine().all().unis(unis).discardItems();
+    }
+
+    @Override
+    public Uni<Void> deleteOne(String collection, String query) {
+        // Simple implementation: for now, we assume query is the ID if it doesn't look
+        // like JSON
+        // In a real implementation, this would call a storage endpoint for query-based
+        // deletion
+        if (query != null && !query.startsWith("{")) {
+            return delete(collection, query);
+        }
+        LOG.log(Level.WARNING, "Query-based deleteOne not fully implemented, ignoring JSON query: {0}", query);
+        return Uni.createFrom().voidItem();
+    }
+
+    @Override
+    public Uni<Void> deleteMany(String collection, String query) {
+        LOG.log(Level.WARNING, "deleteMany not fully implemented, ignoring query: {0}", query);
+        return Uni.createFrom().voidItem();
+    }
+
+    @Override
+    public Uni<Void> replaceOne(String collection, String query, Object document) {
+        // If query is an ID, we can use save(collection, id, document)
+        if (query != null && !query.startsWith("{")) {
+            return save(collection, query, document);
+        }
+        LOG.log(Level.WARNING, "Query-based replaceOne not fully implemented, ignoring JSON query: {0}", query);
+        return Uni.createFrom().voidItem();
+    }
+
+    @Override
     public Uni<Long> count(String collection) {
         // Simple mock count for now, implementation could be added in Store
         return Uni.createFrom().item(0L);
@@ -278,29 +323,6 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
-    public Uni<List<String>> listCollections(String dbName) {
-        return Uni.createFrom().completionStage(() -> {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://" + pdAddress + "/api/db/" + dbName + "/collections"))
-                    .header("Authorization", "Bearer " + authToken)
-                    .GET()
-                    .build();
-            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-        }).onItem().transform(response -> {
-            if (response.statusCode() == 200) {
-                String body = response.body();
-                List<String> names = new java.util.ArrayList<>();
-                java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"name\":\"([^\"]+)\"").matcher(body);
-                while (m.find()) {
-                    names.add(m.group(1));
-                }
-                return names;
-            }
-            return List.of();
-        });
-    }
-
-    @Override
     public Uni<Void> addCollection(String dbName, String colName) {
         return addCollection(dbName, colName, "Document");
     }
@@ -360,6 +382,89 @@ public class JettraReactiveClient implements JettraClient {
                 return Uni.createFrom().voidItem();
             return Uni.createFrom()
                     .failure(new RuntimeException("Failed to rename collection. Status: " + response.statusCode()));
+        });
+    }
+
+    @Override
+    public Uni<java.util.List<String>> listCollections(String dbName) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/databases/" + dbName + "/collections"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            try {
+                if (response.statusCode() == 200) {
+                    return mapper.readValue(response.body(),
+                            new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {
+                            });
+                }
+                throw new RuntimeException("List collections failed: " + response.body());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public Uni<Void> createIndex(String dbName, String colName, String field, String type) {
+        return Uni.createFrom().completionStage(() -> {
+            String json = String.format("{\"field\":\"%s\", \"type\":\"%s\"}", field, type);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/databases/" + dbName + "/collections/"
+                            + colName + "/indexes"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + authToken)
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200)
+                return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new RuntimeException("Create index failed: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<Void> deleteIndex(String dbName, String colName, String indexName) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/databases/" + dbName + "/collections/"
+                            + colName + "/indexes/" + indexName))
+                    .header("Authorization", "Bearer " + authToken)
+                    .DELETE()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200)
+                return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new RuntimeException("Delete index failed: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<java.util.List<String>> listIndexes(String dbName, String colName) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/databases/" + dbName + "/collections/"
+                            + colName + "/indexes"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            try {
+                if (response.statusCode() == 200) {
+                    return mapper.readValue(response.body(),
+                            new com.fasterxml.jackson.core.type.TypeReference<java.util.List<String>>() {
+                            });
+                }
+                throw new RuntimeException("List indexes failed: " + response.body());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         });
     }
 
@@ -477,11 +582,30 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
-    public Uni<Void> createUser(String username, String password, java.util.Set<String> roles) {
+    public Uni<Void> changePassword(String username, String oldPassword, String newPassword) {
+        return Uni.createFrom().completionStage(() -> {
+            String json = String.format("{\"username\":\"%s\", \"oldPassword\":\"%s\", \"newPassword\":\"%s\"}",
+                    username, oldPassword, newPassword);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/auth/change-password"))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + authToken)
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200)
+                return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new RuntimeException("Change password failed: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<Void> createUser(String username, String password, String email, java.util.Set<String> roles) {
         return Uni.createFrom().completionStage(() -> {
             String json = String.format(
-                    "{\"username\":\"%s\", \"password\":\"%s\", \"roles\":%s, \"forcePasswordChange\":false}",
-                    username, password, formatSet(roles));
+                    "{\"username\":\"%s\", \"password\":\"%s\", \"email\":\"%s\", \"roles\":%s, \"forcePasswordChange\":false}",
+                    username, password, email != null ? email : "", formatSet(roles));
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://" + pdAddress + "/api/auth/users"))
                     .header("Content-Type", "application/json")
@@ -497,11 +621,11 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
-    public Uni<Void> updateUser(String username, String password, java.util.Set<String> roles) {
+    public Uni<Void> updateUser(String username, String password, String email, java.util.Set<String> roles) {
         return Uni.createFrom().completionStage(() -> {
             String json = String.format(
-                    "{\"username\":\"%s\", \"password\":\"%s\", \"roles\":%s, \"forcePasswordChange\":false}",
-                    username, password, formatSet(roles));
+                    "{\"username\":\"%s\", \"password\":\"%s\", \"email\":\"%s\", \"roles\":%s, \"forcePasswordChange\":false}",
+                    username, password, email != null ? email : "", formatSet(roles));
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://" + pdAddress + "/api/auth/users/" + username))
                     .header("Content-Type", "application/json")

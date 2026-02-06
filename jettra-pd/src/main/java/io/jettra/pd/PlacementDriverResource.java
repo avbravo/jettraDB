@@ -18,6 +18,12 @@ public class PlacementDriverResource {
     PlacementDriverService pdService;
 
     @GET
+    @Path("/health")
+    public Response health() {
+        return Response.ok("{\"status\":\"UP\"}").build();
+    }
+
+    @GET
     @Path("/nodes")
     public java.util.Collection<NodeMetadata> getNodes() {
         return pdService.getNodes().values();
@@ -148,8 +154,53 @@ public class PlacementDriverResource {
     }
 
     @GET
-    @Path("/health")
-    public Response health() {
-        return Response.ok("{\"status\":\"UP\"}").build();
+    @Path("/databases/{dbName}/collections/{colName}/rules")
+    public Response listRules(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            @jakarta.ws.rs.PathParam("colName") String colName) {
+        return Response.ok(pdService.listRules(dbName, colName)).build();
+    }
+
+    @POST
+    @Path("/databases/{dbName}/collections/{colName}/rules")
+    public Response createRule(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            @jakarta.ws.rs.PathParam("colName") String colName,
+            java.util.Map<String, String> body) {
+        String name = body.get("name");
+        String condition = body.get("condition");
+        String action = body.get("action");
+        if (pdService.createRule(dbName, colName, name, condition, action)) {
+            return Response.ok().build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+    @jakarta.ws.rs.DELETE
+    @Path("/databases/{dbName}/collections/{colName}/rules/{ruleName}")
+    public Response deleteRule(@jakarta.ws.rs.PathParam("dbName") String dbName,
+            @jakarta.ws.rs.PathParam("colName") String colName,
+            @jakarta.ws.rs.PathParam("ruleName") String ruleName) {
+        if (pdService.deleteRule(dbName, colName, ruleName)) {
+            return Response.ok().build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+    @POST
+    @Path("/databases/{dbName}/backup")
+    public Response backup(@jakarta.ws.rs.PathParam("dbName") String dbName) {
+        if (pdService.backupDatabase(dbName)) {
+            return Response.ok("{\"status\":\"backup_initiated\"}").build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+    @POST
+    @Path("/databases/{dbName}/restore")
+    public Response restore(@jakarta.ws.rs.PathParam("dbName") String dbName, java.util.Map<String, String> body) {
+        String backupId = body.get("backupId");
+        if (pdService.restoreDatabase(dbName, backupId)) {
+            return Response.ok("{\"status\":\"restore_initiated\"}").build();
+        }
+        return Response.status(Response.Status.NOT_FOUND).build();
     }
 }

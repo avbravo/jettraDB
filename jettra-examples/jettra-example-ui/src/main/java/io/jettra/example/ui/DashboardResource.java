@@ -66,6 +66,18 @@ public class DashboardResource {
         userInfo.addComponent(new Label("user-name", username));
         rightSide.addComponent(userInfo);
 
+        boolean isGlobalAdmin = "admin".equalsIgnoreCase(username) || "super-user".equalsIgnoreCase(username);
+        if (!isGlobalAdmin) {
+            String token = getAuthToken();
+            if (token != null) {
+                User user = securityService.getUser(username, token);
+                if (user != null && ("super-user".equalsIgnoreCase(user.getProfile())
+                        || "admin".equalsIgnoreCase(user.getProfile()))) {
+                    isGlobalAdmin = true;
+                }
+            }
+        }
+
         Button logoutBtn = new Button("logout", "Logout");
         logoutBtn.setStyleClass("text-sm text-white bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg");
         logoutBtn.setHxPost("/auth/logout");
@@ -89,11 +101,13 @@ public class DashboardResource {
         clusterItem.setHxTarget("#main-content-view");
         sidebar.addItem(clusterItem);
 
-        Sidebar.SidebarItem securityItem = new Sidebar.SidebarItem("nav-security", "Security",
-                "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'></path></svg>");
-        securityItem.setHxGet("/dashboard/security");
-        securityItem.setHxTarget("#main-content-view");
-        sidebar.addItem(securityItem);
+        if (isGlobalAdmin) {
+            Sidebar.SidebarItem securityItem = new Sidebar.SidebarItem("nav-security", "Security",
+                    "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'></path></svg>");
+            securityItem.setHxGet("/dashboard/security");
+            securityItem.setHxTarget("#main-content-view");
+            sidebar.addItem(securityItem);
+        }
 
         Sidebar.SidebarItem queryItem = new Sidebar.SidebarItem("nav-query", "Query",
                 "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'></path></svg>");
@@ -106,6 +120,18 @@ public class DashboardResource {
         passwordItem.setHxGet("/dashboard/security/password");
         passwordItem.setHxTarget("#main-content-view");
         sidebar.addItem(passwordItem);
+
+        Sidebar.SidebarItem sequenceItem = new Sidebar.SidebarItem("nav-sequences", "Sequences",
+                "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 20l4-16m2 16l4-16M6 9h14M4 15h14'></path></svg>");
+        sequenceItem.setHxGet("/dashboard/sequence");
+        sequenceItem.setHxTarget("#main-content-view");
+        sidebar.addItem(sequenceItem);
+
+        Sidebar.SidebarItem maintenanceItem = new Sidebar.SidebarItem("nav-maintenance", "Maintenance",
+                "<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'></path><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'></path></svg>");
+        maintenanceItem.setHxGet("/dashboard/maintenance");
+        maintenanceItem.setHxTarget("#main-content-view");
+        sidebar.addItem(maintenanceItem);
 
         // Data Explorer Tree
         Div explorerTitle = new Div("explorer-title");
@@ -153,7 +179,9 @@ public class DashboardResource {
         template.addOverlay(createDocumentModal());
         template.addOverlay(createDocumentDeleteModal());
         template.addOverlay(createVersionsModal());
-        template.addOverlay(createSequenceModal()); // Added Versions Modal
+        template.addOverlay(createSequenceModal());
+        template.addOverlay(createIndexModal());
+        template.addOverlay(createRuleModal());
 
         Page page = new Page();
         page.setTitle("Jettra Dashboard");
@@ -1388,5 +1416,122 @@ public class DashboardResource {
                         "} " +
                         "</script>"));
         return modal;
+    }
+
+    private Modal createIndexModal() {
+        Modal modal = new Modal("index-modal", "Create Index");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("idx-modal-body");
+        content.setStyleClass("space-y-4 min-w-[320px]");
+
+        content.addComponent(
+                createFormField("Database", new InputText("idx-form-db").addAttribute("readonly", "true")));
+        content.addComponent(
+                createFormField("Collection", new InputText("idx-form-col").addAttribute("readonly", "true")));
+        content.addComponent(createFormField("Field Name",
+                new InputText("idx-form-field").addAttribute("placeholder", "e.g. username")));
+
+        SelectOne typeSelect = new SelectOne("idx-form-type");
+        typeSelect.addOption("string", "String");
+        typeSelect.addOption("number", "Number");
+        typeSelect.addOption("boolean", "Boolean");
+        typeSelect.addOption("date", "Date");
+        content.addComponent(createFormField("Data Type", typeSelect));
+
+        modal.addComponent(content);
+
+        Button saveBtn = new Button("btn-idx-save", "Create Index");
+        saveBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all");
+        saveBtn.addAttribute("onclick", "saveIndex()");
+        modal.addFooterComponent(saveBtn);
+
+        Button cancelBtn = new Button("btn-idx-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("data-modal-hide", "index-modal");
+        modal.addFooterComponent(cancelBtn);
+
+        content.addComponent(new Label("script-idx-save",
+                "<script>" +
+                        "function saveIndex() {" +
+                        "  const db = document.getElementById('idx-form-db').value;" +
+                        "  const col = document.getElementById('idx-form-col').value;" +
+                        "  const field = document.getElementById('idx-form-field').value;" +
+                        "  const type = document.getElementById('idx-form-type').value;" +
+                        "  if(!field) { alert('Field is required'); return; }" +
+                        "  htmx.ajax('POST', '/dashboard/index', {" +
+                        "    values: { db: db, col: col, field: field, type: type }," +
+                        "    target: '#main-content-view'" +
+                        "  });" +
+                        "}" +
+                        "</script>"));
+
+        return modal;
+    }
+
+    private Modal createRuleModal() {
+        Modal modal = new Modal("rule-modal", "Add New Rule");
+        modal.setStyleClass(
+                "modal-overlay-centered fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300");
+
+        Div content = new Div("rule-modal-body");
+        content.setStyleClass("space-y-4 min-w-[400px]");
+
+        content.addComponent(
+                createFormField("Database", new InputText("rule-form-db").addAttribute("readonly", "true")));
+        content.addComponent(
+                createFormField("Collection", new InputText("rule-form-col").addAttribute("readonly", "true")));
+        content.addComponent(createFormField("Rule Name",
+                new InputText("rule-form-name").addAttribute("placeholder", "e.g. validate-age")));
+        content.addComponent(createFormField("Condition",
+                new TextArea("rule-form-cond").addAttribute("placeholder", "e.g. doc.age > 18")));
+        content.addComponent(createFormField("Action",
+                new TextArea("rule-form-action").addAttribute("placeholder", "e.g. doc.status = 'adult'")));
+
+        modal.addComponent(content);
+
+        Button saveBtn = new Button("btn-rule-save", "Save Rule");
+        saveBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-all");
+        saveBtn.addAttribute("onclick", "saveRule()");
+        modal.addFooterComponent(saveBtn);
+
+        Button cancelBtn = new Button("btn-rule-cancel", "Cancel");
+        cancelBtn.setStyleClass(
+                "flex-1 px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-medium transition-all");
+        cancelBtn.addAttribute("data-modal-hide", "rule-modal");
+        modal.addFooterComponent(cancelBtn);
+
+        content.addComponent(new Label("script-rule-save",
+                "<script>" +
+                        "function saveRule() {" +
+                        "  const db = document.getElementById('rule-form-db').value;" +
+                        "  const col = document.getElementById('rule-form-col').value;" +
+                        "  const name = document.getElementById('rule-form-name').value;" +
+                        "  const condition = document.getElementById('rule-form-cond').value;" +
+                        "  const action = document.getElementById('rule-form-action').value;" +
+                        "  if(!name || !condition || !action) { alert('All fields are required'); return; }" +
+                        "  htmx.ajax('POST', '/dashboard/rule', {" +
+                        "    values: { db: db, col: col, name: name, condition: condition, action: action }," +
+                        "    target: '#main-content-view'" +
+                        "  });" +
+                        "}" +
+                        "</script>"));
+
+        return modal;
+    }
+
+    private String getAuthToken() {
+        if (headers.getCookies().containsKey("auth_token")) {
+            String token = headers.getCookies().get("auth_token").getValue();
+            if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                token = token.substring(1, token.length() - 1);
+            }
+            return token;
+        }
+        return null;
     }
 }

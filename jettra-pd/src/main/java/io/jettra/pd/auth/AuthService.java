@@ -155,18 +155,34 @@ public class AuthService {
      * 2. Assigns 'admin_<dbName>' role to the creator.
      */
     public void setupDefaultDatabaseRoles(String dbName, String creator) {
-        // 1. Create and Assign super-user role for this DB
+        // 1. Create standard roles for this database
         String suRoleName = "super-user_" + dbName;
         createRole(new Role(suRoleName, dbName, Set.of("SUPER", "ADMIN", "READ", "WRITE")));
 
-        // Ensure the primary 'super-user' account always gets it
-        assignRoleToUser("super-user", suRoleName);
+        String adminRoleName = "admin_" + dbName;
+        createRole(new Role(adminRoleName, dbName, Set.of("ADMIN", "READ", "WRITE")));
 
-        // 2. Assign roles to creator if they are not the super-user
-        if (creator != null && !"super-user".equals(creator)) {
-            String adminRoleName = "admin_" + dbName;
-            createRole(new Role(adminRoleName, dbName, Set.of("ADMIN", "READ", "WRITE")));
+        String ownerRoleName = "owner_" + dbName;
+        createRole(new Role(ownerRoleName, dbName, Set.of("ADMIN", "OWNER", "READ", "WRITE")));
+
+        // 2. Assign super-user role to all global super-users
+        users.values().stream()
+                .filter(u -> "super-user".equals(u.profile()) || "super-user".equals(u.username()))
+                .forEach(u -> assignRoleToUser(u.username(), suRoleName));
+
+        // 3. Assign admin role to all global admins
+        users.values().stream()
+                .filter(u -> "admin".equals(u.profile()) || "admin".equals(u.username()))
+                .forEach(u -> assignRoleToUser(u.username(), adminRoleName));
+
+        // 4. Creator also gets admin and owner roles for this database specifically
+        if (creator != null && !"super-user".equals(creator) && !"system".equals(creator)) {
             assignRoleToUser(creator, adminRoleName);
+            assignRoleToUser(creator, ownerRoleName);
+            // Also give read-write for good measure
+            String rwRoleName = "read-write_" + dbName;
+            createRole(new Role(rwRoleName, dbName, Set.of("READ", "WRITE")));
+            assignRoleToUser(creator, rwRoleName);
         }
     }
 

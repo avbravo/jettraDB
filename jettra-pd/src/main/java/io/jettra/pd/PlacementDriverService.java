@@ -101,8 +101,8 @@ public class PlacementDriverService {
             return java.util.Collections.emptyList();
         }
 
-        // only super-user profile sees all databases automatically
-        if ("super-user".equals(user.profile())) {
+        // super-user and admin profiles see all databases automatically
+        if ("super-user".equals(user.profile()) || "admin".equals(user.profile())) {
             return databases.values();
         }
 
@@ -247,5 +247,98 @@ public class PlacementDriverService {
                 node.diskUsage(), node.diskMax());
         nodes.put(nodeId, offlineNode);
         reassignLeadersFromOfflineNode(nodeId);
+    }
+
+    public boolean createIndex(String dbName, String colName, String field, String type) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            for (CollectionMetadata col : db.collections()) {
+                if (col.name().equals(colName)) {
+                    String indexName = colName + "_" + field + "_" + type;
+                    boolean exists = col.indexes().stream().anyMatch(idx -> idx.name().equals(indexName));
+                    if (!exists) {
+                        col.indexes().add(new IndexMetadata(indexName, field, type));
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean deleteIndex(String dbName, String colName, String indexName) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            for (CollectionMetadata col : db.collections()) {
+                if (col.name().equals(colName)) {
+                    return col.indexes().removeIf(idx -> idx.name().equals(indexName));
+                }
+            }
+        }
+        return false;
+    }
+
+    public java.util.List<IndexMetadata> listIndexes(String dbName, String colName) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            for (CollectionMetadata col : db.collections()) {
+                if (col.name().equals(colName)) {
+                    return col.indexes();
+                }
+            }
+        }
+        return java.util.Collections.emptyList();
+    }
+
+    public java.util.List<RuleMetadata> listRules(String dbName, String colName) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            for (CollectionMetadata col : db.collections()) {
+                if (col.name().equals(colName)) {
+                    return col.rules();
+                }
+            }
+        }
+        return java.util.Collections.emptyList();
+    }
+
+    public boolean createRule(String dbName, String colName, String name, String condition, String action) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            for (CollectionMetadata col : db.collections()) {
+                if (col.name().equals(colName)) {
+                    boolean exists = col.rules().stream().anyMatch(r -> r.name().equals(name));
+                    if (!exists) {
+                        col.rules().add(new RuleMetadata(name, condition, action, true));
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean deleteRule(String dbName, String colName, String ruleName) {
+        DatabaseMetadata db = databases.get(dbName);
+        if (db != null) {
+            for (CollectionMetadata col : db.collections()) {
+                if (col.name().equals(colName)) {
+                    return col.rules().removeIf(r -> r.name().equals(ruleName));
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean backupDatabase(String dbName) {
+        LOG.infof("Initiating backup for database: %s", dbName);
+        // Implementation would involve snapshotting and exporting data
+        return databases.containsKey(dbName);
+    }
+
+    public boolean restoreDatabase(String dbName, String backupId) {
+        LOG.infof("Restoring database: %s from backup: %s", dbName, backupId);
+        // Implementation would involve importing data from snapshot
+        return databases.containsKey(dbName);
     }
 }

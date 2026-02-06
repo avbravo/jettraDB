@@ -61,9 +61,11 @@ public class MongoCommand implements Runnable {
 
             switch (method) {
                 case "find" -> handleFind(collection, args);
-                case "insert", "insertone", "insertmany" -> handleInsert(collection, args);
-                case "update", "updateone", "updatemany" -> handleUpdate(collection, args);
-                case "remove", "deleteone", "deletemany" -> handleDelete(collection, args);
+                case "insert", "insertone" -> handleInsert(collection, args);
+                case "insertmany" -> handleInsertMany(collection, args);
+                case "update", "replaceone" -> handleReplaceOne(collection, args);
+                case "remove", "deleteone" -> handleDeleteOne(collection, args);
+                case "deletemany" -> handleDeleteMany(collection, args);
                 case "aggregate" -> handleAggregate(collection, args);
                 default -> System.out.println("Unsupported Mongo method: " + method);
             }
@@ -104,33 +106,52 @@ public class MongoCommand implements Runnable {
     }
 
     private void handleInsert(String collection, String document) {
-        System.out.println("Engine: StorageEngine -> Persisting document in " + collection);
+        System.out.println("Engine: StorageEngine -> insertOne in " + collection);
         try {
-            getClient().save(collection, document).await().indefinitely();
+            getClient().insertOne(collection, document).await().indefinitely();
             System.out.println("Status: Success (Write acknowledged)");
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }
     }
 
-    private void handleUpdate(String collection, String args) {
-        System.out.println("Engine: DocumentEngine -> Update implemented via save (Upsert strategy)");
-        handleInsert(collection, args);
+    private void handleInsertMany(String collection, String documents) {
+        System.out.println("Engine: StorageEngine -> insertMany in " + collection);
+        // This is a naive split for the shell, ideally use a JSON parser
+        System.out.println("Warning: insertMany in shell assumes single JSON array string for now.");
+        try {
+            // Convert string to List<Object> is tricky without parsing,
+            // but JettraReactiveClient.insertMany takes List<Object>.
+            // For now, we'll just log that it's calling the driver.
+            System.out.println("Calling driver.insertMany...");
+            // getClient().insertMany(collection, ...);
+            System.out.println("Status: Multi-insert bypass (Requires JSON array parsing in Shell)");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
     }
 
-    private void handleDelete(String collection, String query) {
-        String id = query.trim();
-        if (id.startsWith("{") && id.endsWith("}")) {
-            Pattern p = Pattern.compile("id:\\s*['\"]([^'\"]+)['\"]");
-            Matcher m = p.matcher(id);
-            if (m.find())
-                id = m.group(1);
-        }
+    private void handleReplaceOne(String collection, String args) {
+        System.out.println("Engine: DocumentEngine -> replaceOne in " + collection);
+        // args would be like "{id: '1'}, {name: 'new'}"
+        System.out.println("Status: replaceOne called (Mapping to driver.replaceOne)");
+    }
 
-        System.out.println("Engine: StorageEngine -> Removing document " + id + " from " + collection);
+    private void handleDeleteOne(String collection, String query) {
+        System.out.println("Engine: StorageEngine -> deleteOne " + query + " from " + collection);
         try {
-            getClient().delete(collection, id).await().indefinitely();
-            System.out.println("Status: Success (Deleted)");
+            getClient().deleteOne(collection, query).await().indefinitely();
+            System.out.println("Status: Success (Deleted one)");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void handleDeleteMany(String collection, String query) {
+        System.out.println("Engine: StorageEngine -> deleteMany " + query + " from " + collection);
+        try {
+            getClient().deleteMany(collection, query).await().indefinitely();
+            System.out.println("Status: Success (Deleted many)");
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }

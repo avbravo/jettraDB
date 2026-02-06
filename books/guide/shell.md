@@ -129,6 +129,15 @@ collection add friends --engine Graph
 # Add a new Vector collection for search
 collection add product_vectors --engine Vector
 
+# New MongoDB-style methods
+- `db.<collection>.find(<query>, [--resolve-refs])`: Query documents.
+- `db.<collection>.insertOne(<document>)`: Insert a single document.
+- `db.<collection>.insertMany([<doc1>, <doc2>, ...])`: Insert multiple documents.
+- `db.<collection>.replaceOne(<query>, <document>)`: Replace a document.
+- `db.<collection>.deleteOne(<query>)`: Delete a single document matching the query.
+- `db.<collection>.deleteMany(<query>)`: Delete all documents matching the query.
+- `db.<collection>.aggregate(<pipeline>)`: Run aggregation.
+
 # Rename a collection
 collection rename users customers
 
@@ -239,18 +248,22 @@ role create writer_db1 db1 READ,WRITE
 # List all existing roles
 role list
 
-# Create a new user and assign roles
-# Note: Roles must be comma-separated
-user create bob password123 reader_db1,writer_db2
+#### User Administration
+```bash
+# Create user
+user create <username> <password> <email> [role1,role2]
 
-# Edit an existing user (e.g., change roles or password)
-user edit bob newpassword456 reader_db1,admin_all
+# Edit user
+user edit <username> <new_password> <new_email> [new_role1,new_role2]
 
-# List all users
+# Delete user
+user delete <username>
+
+# List users
 user list
 
-# Delete a user
-user delete bob
+# Change password
+user change-password <username> <old_password> <new_password>
 ```
 
 **Tipos de Roles Permitidos:**

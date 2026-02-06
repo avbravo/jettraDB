@@ -110,8 +110,10 @@ public class AuthFilter implements ContainerRequestFilter {
                 // Extra restriction: Only super-user profile can stop nodes
                 // system-pd is allowed for internal operations
                 if (isStopNode) {
-                    boolean isAuthorized = "super-user".equals(username) || "system-pd".equals(username)
-                            || (user != null && "super-user".equals(user.profile()));
+                    boolean isAuthorized = "super-user".equals(username) || "admin".equals(username)
+                            || "system-pd".equals(username)
+                            || (user != null
+                                    && ("super-user".equals(user.profile()) || "admin".equals(user.profile())));
                     if (!isAuthorized) {
                         requestContext.abortWith(Response.status(Response.Status.FORBIDDEN)
                                 .entity("{\"error\":\"Only super-user can stop nodes.\"}")
@@ -220,9 +222,9 @@ public class AuthFilter implements ContainerRequestFilter {
             return false;
         }
 
-        // super-user profiles have full access to everything (except
-        // node stopping, handled in filter)
-        if ("super-user".equals(user.profile())) {
+        // super-user and admin profiles have full access to everything (except
+        // node stopping, handled specifically above)
+        if ("super-user".equals(user.profile()) || "admin".equals(user.profile())) {
             LOG.infof("Access granted (Profile: %s) for %s to %s", user.profile(), username, dbName);
             return true;
         }
@@ -255,9 +257,12 @@ public class AuthFilter implements ContainerRequestFilter {
                 // Predefined role types mapping - check both name and database-prefixed name
                 if (roleName.equalsIgnoreCase("admin") ||
                         roleName.equalsIgnoreCase("admin_" + dbName) ||
+                        roleName.equalsIgnoreCase("owner") ||
+                        roleName.equalsIgnoreCase("owner_" + dbName) ||
                         roleName.equalsIgnoreCase("super-user_" + dbName) ||
-                        roleName.startsWith("admin_") && roleName.substring(6).equalsIgnoreCase(dbName)) {
-                    LOG.debugf("Access granted (Admin Role: %s) for %s to %s", roleName, username, dbName);
+                        roleName.startsWith("admin_") && roleName.substring(6).equalsIgnoreCase(dbName) ||
+                        roleName.startsWith("owner_") && roleName.substring(6).equalsIgnoreCase(dbName)) {
+                    LOG.debugf("Access granted (Admin/Owner Role: %s) for %s to %s", roleName, username, dbName);
                     return true;
                 }
 

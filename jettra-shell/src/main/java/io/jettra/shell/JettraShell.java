@@ -135,11 +135,21 @@ public class JettraShell implements Runnable {
                     System.out.println();
 
                     System.out.println("@|bold,underline Native Language Support|@");
-                    System.out.printf("  %-35s %s%n", "sql <query>",
-                            "Execute SQL queries (e.g., SELECT * FROM users)");
-                    System.out.printf("  %-35s %s%n", "mongo <query>",
-                            "Execute MongoDB queries (e.g., db.users.find({}))");
+                    System.out.printf("  %-35s %s%n", "sql <query> [--resolve-refs]",
+                            "Execute SQL (e.g., SELECT * FROM users)");
+                    System.out.printf("  %-35s %s%n", "mongo <query> [--resolve-refs]",
+                            "Execute MongoDB (e.g., db.users.find({}))");
                     System.out.printf("  %-35s %s%n", "query <command>", "Execute low-level engine commands");
+                    System.out.println();
+
+                    System.out.println("@|bold,underline Security & Users|@");
+                    System.out.printf("  %-35s %s%n", "user create <u> <p> <e> [r1,r2]",
+                            "Create user (User, Pass, Email, Roles)");
+                    System.out.printf("  %-35s %s%n", "user edit <u> <p> <e> [r1,r2]",
+                            "Edit user (User, Pass, Email, Roles)");
+                    System.out.printf("  %-35s %s%n", "user delete <username>", "Delete a user from the system");
+                    System.out.printf("  %-35s %s%n", "user list", "List all registered users");
+                    System.out.printf("  %-35s %s%n", "user change-password <u> <o> <n>", "Change user password");
                     System.out.println();
 
                     System.out

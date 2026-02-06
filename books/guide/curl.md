@@ -57,6 +57,17 @@ curl -s http://localhost:8081/api/monitor/nodes \
 ## Administración de Bases de Datos
 
 Gestión de bases de datos indicando el nombre y el tipo de almacenamiento (`storage`). Por defecto, todas las bases de datos son **Multi-modelo**.
+### Change Password
+```bash
+curl -X POST http://localhost:8080/api/auth/change-password \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "bob",
+    "oldPassword": "password123",
+    "newPassword": "newPassword456"
+  }'
+```
 
 ### Listar Bases de Datos
 ```bash
@@ -157,6 +168,31 @@ curl -X POST http://localhost:8080/api/internal/pd/register \
     "memoryUsage": 0,
     "memoryMax": 0
   }'
+```
+
+### Index Management
+
+#### Create Index
+```bash
+curl -X POST http://localhost:8080/api/internal/pd/databases/myDB/collections/myCollection/indexes \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "field": "name",
+    "type": "text"
+  }'
+```
+
+#### List Indexes
+```bash
+curl -G http://localhost:8080/api/internal/pd/databases/myDB/collections/myCollection/indexes \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+#### Delete Index
+```bash
+curl -X DELETE http://localhost:8080/api/internal/pd/databases/myDB/collections/myCollection/indexes/myCollection_name_text \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Monitoring Node Resources

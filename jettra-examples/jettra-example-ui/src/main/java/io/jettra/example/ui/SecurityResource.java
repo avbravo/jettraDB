@@ -41,6 +41,27 @@ public class SecurityResource {
                                 ? headers.getCookies().get("user_session").getValue()
                                 : "";
 
+                // Allow if global admin or if they have admin role for AT LEAST ONE database
+                boolean isGlobalAdmin = "admin".equalsIgnoreCase(currentLoggedInUser)
+                                || "super-user".equalsIgnoreCase(currentLoggedInUser);
+                if (!isGlobalAdmin) {
+                        User user = securityService.getUser(currentLoggedInUser, token);
+                        if (user != null) {
+                                if ("admin".equalsIgnoreCase(user.getProfile())
+                                                || "super-user".equalsIgnoreCase(user.getProfile())) {
+                                        isGlobalAdmin = true;
+                                } else if (user.getRoles() != null) {
+                                        isGlobalAdmin = user.getRoles().stream().anyMatch(r -> r.startsWith("admin_")
+                                                        || r.startsWith("owner_") || r.startsWith("super-user_"));
+                                }
+                        }
+                }
+
+                if (!isGlobalAdmin) {
+                        return Response.status(Response.Status.FORBIDDEN).entity("Access restricted to administrators.")
+                                        .build();
+                }
+
                 Div content = new Div("security-view");
 
                 Label pageTitle = new Label("page-title", "Security Management");
@@ -166,6 +187,12 @@ public class SecurityResource {
                 user.setEmail(email);
                 user.setPassword(password);
                 user.setProfile(profile);
+
+                // Email Validation
+                if (email != null && !email.isEmpty()
+                                && !email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$")) {
+                        return Response.status(400).entity("Invalid email format.").build();
+                }
 
                 // Enforce constraints
                 if (!isEdit) {

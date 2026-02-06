@@ -11,7 +11,18 @@ public interface JettraClient {
 
     Uni<Object> findById(String collection, String id, boolean resolveRefs);
 
-    Uni<Void> delete(String collection, String id);
+    Uni<Void> delete(String collection, String jettraId);
+
+    // MongoDB-like Operations
+    Uni<Void> insertOne(String collection, Object document);
+
+    Uni<Void> insertMany(String collection, java.util.List<Object> documents);
+
+    Uni<Void> deleteOne(String collection, String query);
+
+    Uni<Void> deleteMany(String collection, String query);
+
+    Uni<Void> replaceOne(String collection, String query, Object document);
 
     Uni<Long> count(String collection);
 
@@ -37,6 +48,14 @@ public interface JettraClient {
 
     Uni<java.util.List<String>> listCollections(String dbName);
 
+    // Index Management
+    Uni<Void> createIndex(String dbName, String colName, String field, String type);
+
+    Uni<Void> deleteIndex(String dbName, String colName, String indexName);
+
+    Uni<java.util.List<String>> listIndexes(String dbName, String colName);
+
+    // Cluster Monitor
     Uni<Void> addCollection(String dbName, String colName);
 
     Uni<Void> removeCollection(String dbName, String colName);
@@ -49,10 +68,12 @@ public interface JettraClient {
 
     Uni<String> login(String username, String password);
 
-    // Security Management
-    Uni<Void> createUser(String username, String password, java.util.Set<String> roles);
+    Uni<Void> changePassword(String username, String oldPassword, String newPassword);
 
-    Uni<Void> updateUser(String username, String password, java.util.Set<String> roles);
+    // Security Management
+    Uni<Void> createUser(String username, String password, String email, java.util.Set<String> roles);
+
+    Uni<Void> updateUser(String username, String password, String email, java.util.Set<String> roles);
 
     Uni<java.util.List<String>> listUsers();
 
