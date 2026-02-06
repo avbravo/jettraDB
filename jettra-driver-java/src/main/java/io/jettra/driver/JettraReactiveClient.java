@@ -647,8 +647,9 @@ public class JettraReactiveClient implements JettraClient {
         LOG.log(Level.INFO, "Executing SQL via PD (resolveRefs={0}): {1}", new Object[] { resolveRefs, sql });
         return Uni.createFrom().completionStage(() -> {
             try {
-                String json = String.format("{\"sql\": \"%s\", \"resolveRefs\": %b}",
-                        sql.replace("\"", "\\\""), resolveRefs);
+                java.util.Map<String, Object> body = java.util.Map.of("sql", sql, "resolveRefs", resolveRefs);
+                String json = mapper.writeValueAsString(body);
+
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("http://" + pdAddress + "/api/v1/sql"))
                         .header("Authorization", "Bearer " + authToken)

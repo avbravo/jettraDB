@@ -399,7 +399,7 @@ curl -X DELETE http://localhost:8081/api/v1/sequence/test_seq -H "Authorization:
 ```
 ## Resolución de Referencias (Resolve References) ⭐
 
-Esta característica permite que JettraDB resuelva automáticamente las referencias entre documentos basadas en `jettraID` en una sola operación de lectura, devolviendo el objeto completo en lugar de solo el ID.
+Esta característica permite que JettraDB resuelva automáticamente las referencias entre documentos basadas en `jettraID` en una sola operación de lectura. Utiliza **acceso directo a la memoria** donde se encuentra el registro referenciado, evitando el uso de JOINS costosos y haciendo la búsqueda mucho más eficiente. Devolviendo el objeto completo en lugar de solo el ID.
 
 ### 1. Vía API de Documentos
 Agrega el parámetro `resolveRefs=true` a la URL de consulta.
@@ -412,6 +412,18 @@ curl -s "http://localhost:8082/api/v1/document/usuarios/{jettraID}?resolveRefs=t
 # Listar documentos con resolución
 curl -s "http://localhost:8082/api/v1/document/usuarios?resolveRefs=true" \
   -H "Authorization: Bearer $TOKEN"
+
+# Respuesta esperada (Ejemplo):
+# {
+#   "id": "node1/def#uuid1",
+#   "name": "Aris",
+#   "pais": {
+#     "jettraID": "node1/def#uuid2",
+#     "name": "Panama",
+#     "codigo": "PA"
+#   }
+# }
+
 ```
 
 ### 2. Vía API SQL

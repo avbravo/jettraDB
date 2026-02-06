@@ -9,7 +9,7 @@
     <link rel="icon" type="image/png" href="logo/jettra-logo.png">
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
     <script>
-        const token = localStorage.getItem('jettra_token'); 
+        const token = localStorage.getItem('jettra_token');
         if (!token && !window.location.pathname.endsWith('login.html')) {
             window.location.href = '/login.html';
         }
@@ -1913,7 +1913,7 @@
 
             try {
                 const resolveRefs = document.getElementById('sql-resolve-refs').checked;
-                const response = await fetchWithAuth('/api/v1/sql', {
+                const response = await fetchWithAuth('/api/web/sql', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sql, resolveRefs })
@@ -2044,6 +2044,85 @@
             } catch (error) {
                 showAlert('Error', error.message);
             }
+        }
+
+        let currentSequenceDb = null;
+
+        function openSequenceManager(dbName) {
+            currentSequenceDb = dbName;
+            showView('sequences');
+            // Update header or context if needed
+            fetchSequences();
+        }
+
+        async function fetchSequences() {
+            try {
+                const response = await fetchWithAuth('/api/v1/sequence');
+                if (response.ok) {
+                    const allSequences = await safeJson(response) || [];
+                    // Filter by DB if we are in a DB context
+                    const filtered = currentSequenceDb ? allSequences.filter(s => s.database === currentSequenceDb) : allSequences;
+                    renderSequences(filtered);
+                }
+            } catch (error) {
+                console.error("Error fetching sequences", error);
+            }
+        }
+
+        function renderSequences(sequences) {
+            const list = document.getElementById('sequences-list');
+            if (!list) return;
+            list.innerHTML = sequences.length ? sequences.map(seq => `
+                <tr>
+                    <td>${seq.name}</td>
+                    <td>${seq.database}</td>
+                    <td>${seq.currentValue || 0}</td>
+                    <td>${seq.increment}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                             <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: rgba(99, 102, 241, 0.1); color: #a5b4fc;" onclick="getNextSequence('${seq.name}')">Next</button>
+                             <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: rgba(239, 68, 68, 0.1); color: #ef4444;" onclick="deleteSequence('${seq.name}')">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('') : '<tr><td colspan="5" style="text-align: center; color: #64748b;">No sequences found</td></tr>';
+        }
+
+        function showCreateSequenceModal() {
+            if (currentSequenceDb) {
+                document.getElementById('seq-db').value = currentSequenceDb;
+            }
+            showModal('sequence-modal');
+        }
+
+        function closeSequenceModal() {
+            hideModal('sequence-modal');
+        }
+
+        // Alias for compatibility if createSequence calls loadSequences
+        function loadSequences() { fetchSequences(); }
+
+        async function getNextSequence(name) {
+            try {
+                const response = await fetchWithAuth(`/api/v1/sequence/${name}/next`);
+                if (response.ok) {
+                    const val = await response.text();
+                    showAlert('Sequence', `Next Value: ${val}`, 'success');
+                    fetchSequences();
+                }
+            } catch (e) { showAlert('Error', e.message); }
+        }
+
+        async function deleteSequence(name) {
+            if (!confirm('Delete sequence ' + name + '?')) return;
+            try {
+                const response = await fetchWithAuth(`/api/v1/sequence/${name}`, { method: 'DELETE' });
+                if (response.ok) {
+                    fetchSequences();
+                } else {
+                    showAlert('Error', 'Failed to delete');
+                }
+            } catch (e) { showAlert('Error', e.message); }
         }
 
         function openSequenceModalFromTree(dbName, colName) {
@@ -2656,6 +2735,14 @@
                             </div>
                             <div class="tree-children ${expandedNodes.has(`users-list-${db.name}`) ? 'show' : ''}" id="users-list-${db.name}">
                                 ${renderUserItems(db.name)}
+                            </div>
+                        </div>
+
+                        <!-- Sequences Subtree -->
+                        <div class="tree-engine-node">
+                            <div class="tree-type-item" onclick="openSequenceManager('${db.name}'); event.stopPropagation();">
+                                <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                                Sequences
                             </div>
                         </div>
 

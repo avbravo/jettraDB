@@ -31,8 +31,10 @@ public class SqlCommand implements Runnable {
 
         try {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            String json = String.format("{\"sql\": \"%s\", \"resolveRefs\": %b}", sql.replace("\"", "\\\""),
-                    resolveRefs);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, Object> body = java.util.Map.of("sql", sql, "resolveRefs", resolveRefs);
+            String json = mapper.writeValueAsString(body);
+
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://" + JettraShell.pdAddress + "/api/v1/sql"))
                     .header("Authorization", "Bearer " + JettraShell.authToken)

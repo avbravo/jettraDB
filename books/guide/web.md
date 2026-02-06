@@ -59,6 +59,8 @@ Gestión completa del ciclo de vida de las bases de datos:
     - **Añadir Colección**: Al dar clic en `+`, se abrirá un modal para ingresar el nombre y confirmar el **Motor (Engine)** especializado. Por defecto se sugiere el motor de la sección desde la que se invoca.
     - **Refrescar**: Sincronizar la lista de colecciones de ese motor específico.
     - **Renombrar/Eliminar**: Opciones rápidas para el ciclo de vida de la colección.
+- **Gestión de Secuencias (Sequences Subtree)** ⭐: Un nuevo nodo "🔑 Sequences" aparece bajo cada base de datos.
+    - **Gestión Visual**: Permite crear, listar, incrementar y borrar secuencias asociadas a esa base de datos específica sin necesidad de comandos.
 
 ### 4. Seguridad y Gestión de Usuarios ⭐
 Control centralizado de acceso y roles para todo el cluster:

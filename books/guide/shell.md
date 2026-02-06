@@ -298,6 +298,8 @@ While sequences are database-level objects, they are primarily used to provide u
    mongo db.users.insert({id: 1001, name: 'John Doe'})
    ```
 
+   **Note on Association**: JettraDB sequences are standalone objects. "Associating" them with a collection is a logical convention maintained by your application logic (e.g., always using `orders_seq` for the `orders` collection). The database does not enforce this relationship.
+
 ### 12. Resolve References (Direct Memory Access) 🚀
 
 JettraDB allows you to automatically resolve references between documents without using JOINs. When a field contains a `jettraID`, JettraDB can fetch the full object in a single operation.
@@ -305,6 +307,17 @@ JettraDB allows you to automatically resolve references between documents withou
 ```bash
 # Using SQL with resolution
 sql SELECT * FROM users --resolve-refs
+
+# Output Example:
+# {
+#   "id": "node1/def#uuid1",
+#   "name": "Jane",
+#   "profile": {
+#      "jettraID": "node1/def#profile1",
+#      "bio": "Software Engineer"
+#   }
+# }
+
 
 # Using MongoDB syntax with resolution
 mongo db.users.find('node1/default#u123') --resolve-refs

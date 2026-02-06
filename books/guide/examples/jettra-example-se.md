@@ -201,3 +201,45 @@ mvn clean compile exec:java -Dexec.mainClass="io.jettra.example.Main"
 
 - **Mutiny**: El driver utiliza `SmallRye Mutiny`. Usamos `.await().indefinitely()` para convertir el flujo reactivo en síncrono para este ejemplo sencillo. En aplicaciones reales, se recomienda el uso de `subscribe()` o encadenamiento de tareas asíncronas.
 - **Seguridad**: El método `client.login()` actualiza internamente la instancia del cliente con el token JWT obtenido, por lo que las llamadas subsiguientes estarán autorizadas automáticamente.
+
+## Ejemplo de SQL Dedicado (`SqlExample.java`)
+
+Para probar las funcionalidades de SQL específicamente, puede usar la clase `SqlExample`. Este ejemplo también demuestra la funcionalidad **Resolve References**, que permite acceder directamente a los objetos en memoria mediante su JettraID, evitando Joins costosos.
+
+```java
+package io.jettra.example;
+
+import io.jettra.driver.JettraReactiveClient;
+
+public class SqlExample {
+
+    public static void main(String[] args) {
+        String pdAddress = "localhost:8081";
+        String token = System.getenv("JETTRA_TOKEN"); 
+        
+        if (token == null) {
+            System.err.println("Please set JETTRA_TOKEN env variable.");
+            System.exit(1);
+        }
+
+        JettraReactiveClient client = new JettraReactiveClient(pdAddress, token);
+
+        System.out.println("=== SQL Example ===");
+
+        // INSERT
+        client.executeSql("INSERT INTO sales_db.products VALUES ('p1', 'Laptop', 1500)").await().indefinitely();
+
+        // SELECT
+        String inventory = client.executeSql("SELECT * FROM sales_db.products").await().indefinitely();
+        System.out.println(inventory);
+    }
+}
+```
+
+Ejecución:
+
+```bash
+export JETTRA_TOKEN="<tu-token>"
+mvn clean compile exec:java -Dexec.mainClass="io.jettra.example.SqlExample"
+```
+
