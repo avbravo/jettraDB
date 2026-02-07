@@ -13,6 +13,12 @@ public class SqlCommand implements Runnable {
     @picocli.CommandLine.Option(names = { "--resolve-refs" }, description = "Resolve JettraID references automatically")
     boolean resolveRefs;
 
+    @picocli.CommandLine.Option(names = { "--offset" }, description = "Paging offset", defaultValue = "0")
+    int offset;
+
+    @picocli.CommandLine.Option(names = { "--limit" }, description = "Paging limit", defaultValue = "100")
+    int limit;
+
     @Parameters(index = "0..*", description = "SQL statement parts")
     String[] sqlParts;
 
@@ -32,8 +38,14 @@ public class SqlCommand implements Runnable {
         try {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            java.util.Map<String, Object> body = java.util.Map.of("sql", sql, "resolveRefs", resolveRefs);
-            String json = mapper.writeValueAsString(body);
+            
+            java.util.Map<String, Object> bodyPayLoad = new java.util.HashMap<>();
+            bodyPayLoad.put("sql", sql);
+            bodyPayLoad.put("resolveRefs", resolveRefs);
+            bodyPayLoad.put("offset", offset);
+            bodyPayLoad.put("limit", limit);
+            
+            String json = mapper.writeValueAsString(bodyPayLoad);
 
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://" + JettraShell.pdAddress + "/api/v1/sql"))

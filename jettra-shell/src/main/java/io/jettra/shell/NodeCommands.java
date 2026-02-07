@@ -10,7 +10,8 @@ import picocli.CommandLine.Parameters;
 
 @Command(name = "node", description = "Node management and monitoring commands", subcommands = {
                 ListNodeResourcesCommand.class,
-                StopNodeCommand.class
+                StopNodeCommand.class,
+                RaftInfoCommand.class
 })
 public class NodeCommands implements Runnable {
         @Parameters(index = "0..*", arity = "0..*", hidden = true)
@@ -139,4 +140,34 @@ class StopNodeCommand implements Runnable {
                         System.err.println("Unexpected failure: " + e.getMessage());
                 }
         }
+}
+
+@Command(name = "raft", description = "Show Multi-Raft groups information")
+class RaftInfoCommand implements Runnable {
+    @Override
+    public void run() {
+        if (JettraShell.authToken == null) {
+            System.out.println("Error: Not logged in.");
+            return;
+        }
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + JettraShell.pdAddress + "/api/internal/pd/groups"))
+                    .header("Authorization", "Bearer " + JettraShell.authToken)
+                    .GET()
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 200) {
+                System.out.println("Multi-Raft Groups Found:");
+                System.out.println(response.body());
+            } else {
+                System.out.println("Error retrieving raft groups: " + response.statusCode());
+            }
+        } catch (java.io.IOException | java.lang.InterruptedException e) {
+            System.err.println("Execution failed: " + e.getMessage());
+            if (e instanceof InterruptedException)
+                Thread.currentThread().interrupt();
+        }
+    }
 }

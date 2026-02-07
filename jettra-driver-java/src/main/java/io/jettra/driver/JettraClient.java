@@ -11,6 +11,10 @@ public interface JettraClient {
 
     Uni<Object> findById(String collection, String id, boolean resolveRefs);
 
+    Uni<java.util.List<Object>> find(String collection, String query, int offset, int limit);
+
+    Uni<java.util.List<Object>> find(String collection, String query, int offset, int limit, boolean resolveRefs);
+
     Uni<Void> delete(String collection, String jettraId);
 
     // MongoDB-like Operations
@@ -25,6 +29,12 @@ public interface JettraClient {
     Uni<Void> replaceOne(String collection, String query, Object document);
 
     Uni<Long> count(String collection);
+    Uni<Long> count(String collection, String query);
+    Uni<java.util.List<Object>> aggregate(String collection, String pipeline);
+    Uni<Double> sum(String collection, String field, String query);
+    Uni<Double> avg(String collection, String field, String query);
+    Uni<Double> min(String collection, String field, String query);
+    Uni<Double> max(String collection, String field, String query);
 
     Uni<String> generateJettraId(String bucketId);
 
@@ -65,6 +75,8 @@ public interface JettraClient {
     Uni<java.util.List<NodeInfo>> listNodes();
 
     Uni<Void> stopNode(String nodeId);
+    
+    Uni<String> getMultiRaftGroups();
 
     Uni<String> login(String username, String password);
 
@@ -91,6 +103,8 @@ public interface JettraClient {
 
     Uni<String> executeSql(String sql, boolean resolveRefs);
 
+    Uni<String> executeSql(String sql, int offset, int limit, boolean resolveRefs);
+
     // Sequence Management
     Uni<Void> createSequence(String name, String database, long start, long increment);
 
@@ -103,6 +117,11 @@ public interface JettraClient {
     Uni<Void> deleteSequence(String name);
 
     Uni<java.util.List<String>> listSequences(String database);
+
+    // Backup & Restore
+    Uni<String> backupDatabase(String dbName, String format); // format: "json" or "native"
+
+    Uni<Void> restoreDatabase(String dbName, String backupId, String format);
 
     String connectionInfo();
 }

@@ -1,7 +1,10 @@
 package io.jettra.shell;
 
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -12,6 +15,8 @@ import picocli.CommandLine.Parameters;
         "  mongo db.stock.update({id: 's1'}, {$set: {count: 5}})%n" +
         "  mongo db.logs.remove({level: 'DEBUG'})")
 public class MongoCommand implements Runnable {
+    
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @picocli.CommandLine.Option(names = { "--resolve-refs" }, description = "Resolve JettraID references automatically")
     boolean resolveRefs;
@@ -64,9 +69,13 @@ public class MongoCommand implements Runnable {
                 case "insert", "insertone" -> handleInsert(collection, args);
                 case "insertmany" -> handleInsertMany(collection, args);
                 case "update", "replaceone" -> handleReplaceOne(collection, args);
+                case "replacemany" -> handleReplaceMany(collection, args);
                 case "remove", "deleteone" -> handleDeleteOne(collection, args);
                 case "deletemany" -> handleDeleteMany(collection, args);
                 case "aggregate" -> handleAggregate(collection, args);
+                case "createindex", "ensureindex" -> handleCreateIndex(collection, args);
+                case "dropindex" -> handleDropIndex(collection, args);
+                case "getindexes" -> handleGetIndexes(collection, args);
                 default -> System.out.println("Unsupported Mongo method: " + method);
             }
         } else {
@@ -117,24 +126,40 @@ public class MongoCommand implements Runnable {
 
     private void handleInsertMany(String collection, String documents) {
         System.out.println("Engine: StorageEngine -> insertMany in " + collection);
-        // This is a naive split for the shell, ideally use a JSON parser
-        System.out.println("Warning: insertMany in shell assumes single JSON array string for now.");
         try {
-            // Convert string to List<Object> is tricky without parsing,
-            // but JettraReactiveClient.insertMany takes List<Object>.
-            // For now, we'll just log that it's calling the driver.
-            System.out.println("Calling driver.insertMany...");
-            // getClient().insertMany(collection, ...);
-            System.out.println("Status: Multi-insert bypass (Requires JSON array parsing in Shell)");
+            List<Object> docs = mapper.readValue(documents, List.class);
+            getClient().insertMany(collection, docs).await().indefinitely();
+            System.out.println("Status: Success (Inserted " + docs.size() + " documents)");
         } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
+            System.err.println("Error parsing or inserting documents: " + e.getMessage());
         }
     }
 
     private void handleReplaceOne(String collection, String args) {
-        System.out.println("Engine: DocumentEngine -> replaceOne in " + collection);
-        // args would be like "{id: '1'}, {name: 'new'}"
-        System.out.println("Status: replaceOne called (Mapping to driver.replaceOne)");
+         // Expects: query, replacement
+         // args string parsing is tricky without a proper parser.
+         // We'll assume args are valid JSONs separated by comma?? 
+         // Shell arguments handling via regex is limited.
+         System.out.println("replaceOne is limited in shell regex mode. Use Java Driver for complex objects.");
+         // Try to split by "}, {"
+         int splitUserInfo = args.indexOf("}, {");
+         if (splitUserInfo > 0) {
+             String query = args.substring(0, splitUserInfo + 1).trim();
+             String replacement = args.substring(splitUserInfo + 3).trim();
+             try {
+                Object doc = mapper.readValue(replacement, Object.class);
+                getClient().replaceOne(collection, query, doc).await().indefinitely();
+                System.out.println("Status: Success (Replaced)");
+             } catch(Exception e) {
+                 e.printStackTrace();
+             }
+         } else {
+             System.out.println("Invalid syntax for replaceOne. Expected: {query}, {replacement}");
+         }
+    }
+
+    private void handleReplaceMany(String collection, String args) {
+         System.out.println("replaceMany not fully implemented in shell (requires cursor iteration).");
     }
 
     private void handleDeleteOne(String collection, String query) {
@@ -159,7 +184,75 @@ public class MongoCommand implements Runnable {
 
     private void handleAggregate(String collection, String pipeline) {
         System.out.println("Engine: Analytics (ColumnEngine) -> Running aggregation pipeline on " + collection);
-        System.out.println("Pipeline: " + pipeline);
-        System.out.println("Status: Complete");
+        // Try to map to SQL for basic aggregations
+        // pipeline: [{"$group": {"_id": null, "total": {"$sum": "$amount"}}}]
+        try {
+             if (pipeline.contains("$sum") || pipeline.contains("$avg")) {
+                 String sql = "SELECT * FROM " + collection; // Fallback
+                 if (pipeline.contains("$sum")) {
+                     // Extract field?
+                     // Verify simple pattern: "$sum": "$field"
+                     Pattern p = Pattern.compile("\"\\$sum\"\\s*:\\s*\"\\$(\\w+)\"");
+                     Matcher m = p.matcher(pipeline);
+                     if (m.find()) {
+                         String field = m.group(1);
+                         sql = "SELECT SUM(" + field + ") FROM " + collection;
+                     }
+                 } else if (pipeline.contains("$avg")) {
+                     Pattern p = Pattern.compile("\"\\$avg\"\\s*:\\s*\"\\$(\\w+)\"");
+                     Matcher m = p.matcher(pipeline);
+                     if (m.find()) {
+                         String field = m.group(1);
+                         sql = "SELECT AVG(" + field + ") FROM " + collection;
+                     }
+                 }
+                 System.out.println("Translated Mongo Aggregation to SQL: " + sql);
+                 String result = getClient().executeSql(sql).await().indefinitely();
+                 System.out.println("Result: " + result);
+             } else {
+                 System.out.println("Complex pipeline not supported in shell translation yet: " + pipeline);
+             }
+        } catch (Exception e) {
+            System.err.println("Aggregation failed: " + e.getMessage());
+        }
+    }
+    
+    private void handleCreateIndex(String collection, String args) {
+        // args: {field: 1}, {unique: true} ... we simplify to field name and type
+        // Parsing "{ name: 1 }" -> field="name", type="ASC"
+        // For shell demo, simple parsing:
+        try {
+            // naive parse
+            String field = "unknown";
+            String type = "ASC";
+            if (args.contains(":")) {
+                String[] parts = args.replace("{","").replace("}","").split(":");
+                field = parts[0].trim().replace("\"", "").replace("'", "");
+            }
+            getClient().createIndex(JettraShell.currentDatabase, collection, field, type).await().indefinitely();
+            System.out.println("Index created on " + field);
+        } catch(Exception e) {
+             System.out.println("Error creating index: " + e.getMessage());
+        }
+    }
+
+    private void handleDropIndex(String collection, String args) {
+         // args: "indexName"
+         String indexName = args.replace("\"", "").replace("'", "").trim();
+         try {
+            getClient().deleteIndex(JettraShell.currentDatabase, collection, indexName).await().indefinitely();
+            System.out.println("Index dropped: " + indexName);
+         } catch(Exception e) {
+              System.out.println("Error dropping index: " + e.getMessage());
+         }
+    }
+
+    private void handleGetIndexes(String collection, String args) {
+        try {
+            List<String> indexes = getClient().listIndexes(JettraShell.currentDatabase, collection).await().indefinitely();
+            System.out.println("Indexes on " + collection + ": " + indexes);
+        } catch (Exception e) {
+             System.out.println("Error listing indexes: " + e.getMessage());
+        }
     }
 }

@@ -63,6 +63,23 @@ public interface ProductRepository extends Repository<Product, Long> {
 }
 ```
 
+### Aggregations in Repositories ⭐
+
+The repository pattern now supports high-level analytic functions:
+
+```java
+var productRepo = new JettraRepositoryImpl<>(client, Product.class);
+
+// Count documents
+Uni<Long> total = productRepo.count();
+
+// Sum of a field
+Uni<Double> totalSales = productRepo.sum("price");
+
+// Average value
+Uni<Double> avgPrice = productRepo.avg("price");
+```
+
 ## Base Implementation: `JettraRepository`
 
 The `JettraRepository<T, K>` class provides a base implementation that uses reflection to handle common CRUD operations automatically, even for Java Records.

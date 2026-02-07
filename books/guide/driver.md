@@ -252,6 +252,21 @@ client.deleteMany("myCollection", "{\"status\": \"old\"}").await().indefinitely(
 
 // Replace One
 client.replaceOne("myCollection", "{\"id\": 1}", "{\"id\": 1, \"new\": true}").await().indefinitely();
+
+### Aggregations & Analytics ⭐
+
+Support for MongoDB-style aggregation pipelines and high-level analytical functions. See the [Aggregations Guide](aggregations.md) for more details.
+
+```java
+// 1. High-level methods
+Long total = client.count("sales").await().indefinitely();
+Double totalAmount = client.sum("sales", "amount", "{status: 'paid'}").await().indefinitely();
+Double avgAge = client.avg("users", "age", "{}").await().indefinitely();
+
+// 2. Generic Pipelines
+String pipeline = "[{\"$match\": {status: 'active'}}, {\"$group\": {_id: '$city', count: {\"$count\": {}}}}]";
+List<Object> results = client.aggregate("users", pipeline).await().indefinitely();
+```
 ```
 
 ### Index Management

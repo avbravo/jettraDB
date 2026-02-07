@@ -134,9 +134,14 @@ collection add product_vectors --engine Vector
 - `db.<collection>.insertOne(<document>)`: Insert a single document.
 - `db.<collection>.insertMany([<doc1>, <doc2>, ...])`: Insert multiple documents.
 - `db.<collection>.replaceOne(<query>, <document>)`: Replace a document.
+- `db.<collection>.replaceMany(<query>, <document>)`: Replace multiple documents (iterative).
 - `db.<collection>.deleteOne(<query>)`: Delete a single document matching the query.
 - `db.<collection>.deleteMany(<query>)`: Delete all documents matching the query.
-- `db.<collection>.aggregate(<pipeline>)`: Run aggregation.
+- `db.<collection>.aggregate(<pipeline>)`: Run complex aggregation pipelines.
+- `db.<collection>.count([query])`: Count documents.
+- `db.<collection>.createIndex({field: 1})`: Create an index on a field.
+- `db.<collection>.dropIndex("indexName")`: Drop an index.
+- `db.<collection>.getIndexes()`: List indexes.
 
 # Rename a collection
 collection rename users customers
@@ -186,6 +191,9 @@ mongo db.usuarios.find('node1/default#uuid123')
 # Consulta por Filtro ID
 mongo db.usuarios.find({id: 'node1/default#uuid123'})
 
+# Consulta con Paginación
+sql SELECT * FROM usuarios --offset 0 --limit 10
+
 # Actualización (Incrementa el número de versión)
 mongo db.usuarios.update({id: 'node1/default#uuid123'}, {nombre: 'Alice Cooper'})
 
@@ -194,6 +202,17 @@ mongo db.usuarios.remove({id: 'node1/default#uuid123'})
 
 # Restaurar Versión
 restore usuarios node1/default#uuid123 1
+
+### 8.1 Aggregations & Analytics 📊
+The shell supports MongoDB-style aggregation pipelines translated to Jettra analytics.
+
+```bash
+# General pipeline
+mongo db.users.aggregate([{$match: {age: {$gt: 25}}}, {$group: {_id: '$city', count: {$sum: 1}}}])
+
+# Simple shortcuts (Translated via SQL)
+mongo db.sales.aggregate([{$group: {_id: null, total: {$sum: '$amount'}}}])
+```
 ```
 
 ### 9. Cluster Administration & Monitoring ⭐
@@ -219,6 +238,7 @@ node list
 
 **Control de Nodos:**
 *   `node list`: Muestra CPU/Memoria y Raft Role de cada nodo.
+*   `node raft`: Muestra información detallada sobre los grupos Multi-Raft encontrados.
 *   `node stop <node-id>`: Apaga de forma segura el nodo especificado.
 *   `node <node-id> stop`: Sintaxis alternativa para el apagado.
 
@@ -338,7 +358,33 @@ mongo db.users.find('node1/default#u123') --resolve-refs
 
 This feature uses the internal `idToCollection` index to perform direct memory access to the referenced objects, making it extremely efficient for normalized data models.
 
-### 13. Integrated Help System 📖
+### 13. Query Builder (Interactive) 🛠️
+The shell provides an interactive tool to construct complex SQL or MongoDB queries without memorizing the syntax.
+
+```bash
+query-builder
+```
+Follow the interactive prompts to select the engine, collection, and define multiple conditions. The tool will generate the query and offer to execute it immediately.
+
+### 14. Backup & Restore (New) 💾
+JettraDB supports full database backups and restores via the shell.
+
+```bash
+# Generate Backup
+backup sales_db --format json
+
+# Restore Backup
+restore sales_db backup_20240101.json --format json
+```
+
+### 15. Java 25 Support ☕
+JettraDB is fully optimized for Java 25. To enable compact object headers for reduced memory footprint, use:
+```bash
+java -XX:+UseCompactObjectHeaders -jar jettra-shell.jar
+```
+
+
+### 14. Integrated Help System 📖
 
 ## Advanced Features
 

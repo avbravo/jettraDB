@@ -102,6 +102,39 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
+    public Uni<java.util.List<Object>> find(String collection, String query, int offset, int limit) {
+        return find(collection, query, offset, limit, false);
+    }
+
+    @Override
+    public Uni<java.util.List<Object>> find(String collection, String query, int offset, int limit, boolean resolveRefs) {
+        return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
+            String url = "http://" + address + "/api/v1/document/" + collection + "/query";
+            String jsonQuery = query != null ? query : "{}";
+            // In a real implementation, we'd pass offset and limit to the storage engine
+            String fullUrl = url + "?offset=" + offset + "&limit=" + limit;
+            if (resolveRefs) fullUrl += "&resolveRefs=true";
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(fullUrl))
+                    .header("Authorization", "Bearer " + authToken)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonQuery))
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        })).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                try {
+                    return mapper.readValue(response.body(), new com.fasterxml.jackson.core.type.TypeReference<List<Object>>() {});
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            throw new RuntimeException("Find failed: " + response.body());
+        });
+    }
+
+    @Override
     public Uni<Void> delete(String collection, String id) {
         return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()
@@ -165,8 +198,78 @@ public class JettraReactiveClient implements JettraClient {
 
     @Override
     public Uni<Long> count(String collection) {
-        // Simple mock count for now, implementation could be added in Store
-        return Uni.createFrom().item(0L);
+        return count(collection, "{}");
+    }
+
+    @Override
+    public Uni<Long> count(String collection, String query) {
+        return aggregate(collection, String.format("[{\"$match\": %s}, {\"$count\": \"total\"}]", query))
+                .onItem().transform(list -> {
+                    if (list == null || list.isEmpty()) return 0L;
+                    try {
+                        com.fasterxml.jackson.databind.JsonNode node = mapper.valueToTree(list.get(0));
+                        return node.has("total") ? node.get("total").asLong() : 0L;
+                    } catch (Exception e) {
+                        return 0L;
+                    }
+                });
+    }
+
+    @Override
+    public Uni<List<Object>> aggregate(String collection, String pipeline) {
+        return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
+            String url = "http://" + address + "/api/v1/document/" + collection + "/aggregate";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("Authorization", "Bearer " + authToken)
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(pipeline))
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        })).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                try {
+                    return mapper.readValue(response.body(), new com.fasterxml.jackson.core.type.TypeReference<List<Object>>() {});
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            throw new RuntimeException("Aggregation failed: " + response.body());
+        });
+    }
+
+    @Override
+    public Uni<Double> sum(String collection, String field, String query) {
+        return runSimpleAggregation(collection, field, query, "$sum");
+    }
+
+    @Override
+    public Uni<Double> avg(String collection, String field, String query) {
+        return runSimpleAggregation(collection, field, query, "$avg");
+    }
+
+    @Override
+    public Uni<Double> min(String collection, String field, String query) {
+        return runSimpleAggregation(collection, field, query, "$min");
+    }
+
+    @Override
+    public Uni<Double> max(String collection, String field, String query) {
+        return runSimpleAggregation(collection, field, query, "$max");
+    }
+
+    private Uni<Double> runSimpleAggregation(String collection, String field, String query, String operator) {
+        String pipeline = String.format("[{\"$match\": %s}, {\"$group\": {\"_id\": null, \"result\": {\"%s\": \"$%s\"}}}]",
+                query != null ? query : "{}", operator, field);
+        return aggregate(collection, pipeline).onItem().transform(list -> {
+            if (list == null || list.isEmpty()) return 0.0;
+            try {
+                com.fasterxml.jackson.databind.JsonNode node = mapper.valueToTree(list.get(0));
+                return node.has("result") ? node.get("result").asDouble() : 0.0;
+            } catch (Exception e) {
+                return 0.0;
+            }
+        });
     }
 
     @Override
@@ -498,6 +601,24 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
+    public Uni<String> getMultiRaftGroups() {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/groups"))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                return response.body();
+            } else {
+                throw new RuntimeException("Failed to get raft groups. Status: " + response.statusCode());
+            }
+        });
+    }
+
+    @Override
     public Uni<Void> stopNode(String nodeId) {
         return Uni.createFrom().completionStage(() -> {
             HttpRequest request = HttpRequest.newBuilder()
@@ -794,6 +915,37 @@ public class JettraReactiveClient implements JettraClient {
     }
 
     @Override
+    public Uni<String> executeSql(String sql, int offset, int limit, boolean resolveRefs) {
+        return Uni.createFrom().completionStage(() -> {
+            try {
+                java.util.Map<String, Object> body = java.util.Map.of(
+                    "sql", sql, 
+                    "resolveRefs", resolveRefs,
+                    "offset", offset,
+                    "limit", limit
+                );
+                String json = mapper.writeValueAsString(body);
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://" + pdAddress + "/api/v1/sql"))
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                return response.body();
+            }
+            throw new RuntimeException(
+                    "SQL execution failed. Status: " + response.statusCode() + " Body: " + response.body());
+        });
+    }
+
+    @Override
     public Uni<Void> createSequence(String name, String database, long start, long increment) {
         LOG.log(Level.INFO, "Creating sequence: {0} in {1}", new Object[] { name, database });
         return Uni.createFrom().completionStage(() -> {
@@ -930,5 +1082,35 @@ public class JettraReactiveClient implements JettraClient {
     public String connectionInfo() {
         return String.format("Connected to %s [Token: %s]", pdAddress,
                 (authToken != null && !authToken.isEmpty()) ? "Present" : "None");
+    }
+
+    @Override
+    public Uni<String> backupDatabase(String dbName, String format) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/databases/" + dbName + "/backup?format=" + format))
+                    .header("Authorization", "Bearer " + authToken)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transform(response -> {
+            if (response.statusCode() == 200) return response.body();
+            throw new RuntimeException("Backup failed: " + response.body());
+        });
+    }
+
+    @Override
+    public Uni<Void> restoreDatabase(String dbName, String backupId, String format) {
+        return Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + pdAddress + "/api/internal/pd/databases/" + dbName + "/restore?backupId=" + backupId + "&format=" + format))
+                    .header("Authorization", "Bearer " + authToken)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }).onItem().transformToUni(response -> {
+            if (response.statusCode() == 200) return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new RuntimeException("Restore failed: " + response.body()));
+        });
     }
 }

@@ -8,8 +8,53 @@ import org.slf4j.LoggerFactory;
 
 import io.jettra.driver.JettraReactiveClient;
 import io.jettra.driver.NodeInfo;
+import io.jettra.driver.Query;
+import io.jettra.driver.annotation.Column;
+import io.jettra.driver.annotation.Embedded;
+import io.jettra.driver.annotation.Entity;
+import io.jettra.driver.annotation.Id;
+import io.jettra.driver.annotation.Referenced;
+import io.jettra.driver.repository.JettraRepository;
+import io.jettra.driver.repository.JettraRepositoryImpl;
 
 public class Main {
+    @Entity(collection = "users")
+    public record UserProfile(
+        @Id String id,
+        @Column String name,
+        @Column int age,
+        @Column List<String> tags
+    ) {}
+
+    // 1. Embedded Example
+    public record Address(
+        String street,
+        String city,
+        String zipCode
+    ) {}
+
+    @Entity(collection = "customers")
+    public record Customer(
+        @Id String id,
+        String name,
+        @Embedded Address address
+    ) {}
+
+    // 2. Referenced Example
+    @Entity(collection = "projects")
+    public record Project(
+        @Id String id,
+        String projectName,
+        double budget
+    ) {}
+
+    @Entity(collection = "employees")
+    public record Employee(
+        @Id String id,
+        String name,
+        @Referenced(collection = "projects") String projectId
+    ) {}
+
     static {
         System.setProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager");
     }
@@ -176,6 +221,67 @@ public class Main {
 
             client.deleteSequence(seqName).await().indefinitely();
             LOG.info("Secuencia eliminada.");
+
+            // 9. NEW: Repository Pattern & Query Builder
+            LOG.info("Probando JettraRepository y Query Builder...");
+            JettraRepository<UserProfile, String> userRepo = new JettraRepositoryImpl<>(client, UserProfile.class);
+            
+            UserProfile profile = new UserProfile("repo_user_1", "Repository User", 29, List.of("dev", "java"));
+            userRepo.save(profile).await().indefinitely();
+            LOG.info("Profile saved via Repository!");
+
+            // Query Builder
+            Query query = Query.find()
+                .from("users")
+                .field("age").gt(25)
+                .field("name").ne("Bob");
+            
+            LOG.info("Built Query JSON: {}", query.build());
+            List<UserProfile> foundUsers = userRepo.findAll().await().indefinitely();
+            LOG.info("Found {} users in repository.", foundUsers.size());
+
+            // 10. NEW: Aggregations
+            LOG.info("Probando Agregaciones...");
+            long count = userRepo.count().await().indefinitely();
+            LOG.info("Total usuarios: {}", count);
+
+            double avgAge = userRepo.avg("age").await().indefinitely();
+            LOG.info("Edad promedio: {}", avgAge);
+
+            String aggPipeline = "[{\"$match\": {\"age\": {\"$gt\": 20}}}, {\"$group\": {\"_id\": null, \"total\": {\"$sum\": \"$age\"}}}]";
+            List<Object> aggResults = client.aggregate(colName, aggPipeline).await().indefinitely();
+            LOG.info("Resultado Agregación Genérica: {}", aggResults);
+
+            // 11. Embedded & Referenced Examples ⭐
+            LOG.info("Probando Clases Embebidas y Referenciadas...");
+            
+            // Setup Collections
+            client.addCollection(dbName, "customers", "Document").await().indefinitely();
+            client.addCollection(dbName, "projects", "Document").await().indefinitely();
+            client.addCollection(dbName, "employees", "Document").await().indefinitely();
+
+            JettraRepository<Customer, String> customerRepo = new JettraRepositoryImpl<>(client, Customer.class);
+            JettraRepository<Project, String> projectRepo = new JettraRepositoryImpl<>(client, Project.class);
+            JettraRepository<Employee, String> employeeRepo = new JettraRepositoryImpl<>(client, Employee.class);
+
+            // a. Embedded
+            Address addr = new Address("Main St 123", "New York", "10001");
+            Customer cust = new Customer("cust1", "Alice Smith", addr);
+            customerRepo.save(cust).await().indefinitely();
+            LOG.info("Customer with Embedded Address saved!");
+
+            // b. Referenced
+            Project proj = new Project("proj_alpha", "Project Alpha", 50000);
+            projectRepo.save(proj).await().indefinitely();
+            
+            Employee emp = new Employee("emp1", "John Doe", "proj_alpha");
+            employeeRepo.save(emp).await().indefinitely();
+            LOG.info("Employee with reference to Project Alpha saved!");
+
+            // Fetch with Resolution
+            LOG.info("Recuperando con resolución de referencias...");
+            Object empWithProj = client.findById("employees", "emp1", true).await().indefinitely();
+            LOG.info("Employee with resolved Project: {}", empWithProj);
 
             LOG.info("Ejemplo completado con éxito!");
 

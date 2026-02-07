@@ -1,20 +1,16 @@
 package io.jettra.example.ui;
 
-import io.jettra.example.ui.client.PlacementDriverClient;
 import io.jettra.ui.component.*;
-import jakarta.inject.Inject;
-import jakarta.ws.rs.CookieParam;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.FormParam;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.Map;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import io.jettra.example.ui.client.PlacementDriverClient;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
+import java.util.List;
+import java.util.Map;
 
 @Path("/dashboard/maintenance")
 public class MaintenanceResource {
@@ -23,90 +19,129 @@ public class MaintenanceResource {
     @RestClient
     PlacementDriverClient pdClient;
 
+    @Context
+    HttpHeaders headers;
+
     @GET
     @Produces(MediaType.TEXT_HTML)
-    public Response getMaintenanceView(@CookieParam("auth_token") String token, @QueryParam("db") String db) {
-        if (token == null)
-            return Response.status(Response.Status.UNAUTHORIZED).build();
-        token = "Bearer " + token.replace("\"", "");
-
+    public String maintenancePage() {
         Div container = new Div("maintenance-view");
-        container.setStyleClass("animate-in fade-in duration-500 max-w-4xl mx-auto");
+        container.setStyleClass("p-6 space-y-6 animate-in fade-in duration-500");
 
         Div header = new Div("maint-header");
         header.setStyleClass("mb-8");
-        header.addComponent(
-                new Label("maint-h2", "<h2 class='text-3xl font-bold text-white mb-2'>Maintenance & Operations</h2>"));
-        header.addComponent(new Label("maint-sub",
-                "<p class='text-slate-400'>Perform administrative tasks like backups, restores, and data exports.</p>"));
+        header.addComponent(new Label("maint-title", "<h1 class='text-2xl font-bold text-slate-800 dark:text-white'>Maintenance & Backups</h1>"));
+        header.addComponent(new Label("maint-desc", "<p class='text-slate-500 dark:text-slate-400'>Manage database backups, restores, and data portability.</p>"));
         container.addComponent(header);
 
+        // Grid for Backup/Restore
         Div grid = new Div("maint-grid");
         grid.setStyleClass("grid grid-cols-1 md:grid-cols-2 gap-6");
 
         // Backup Card
-        Card backupCard = new Card("card-backup");
-        backupCard.setStyleClass("p-6 bg-slate-900/40 border-slate-800 hover:border-indigo-500/50 transition-all");
-        backupCard.addComponent(new Label("bk-icon", "<div class='text-3xl mb-4'>💾</div>"));
-        backupCard.addComponent(
-                new Label("bk-title", "<h3 class='text-xl font-bold text-white mb-2'>Database Backup</h3>"));
-
-        if (db != null && !db.isEmpty()) {
-            backupCard.addComponent(new Label("bk-desc",
-                    "<p class='text-sm text-slate-400 mb-6'>Create a full snapshot of database <strong>" + db
-                            + "</strong>. Backups are stored in the cluster's storage layer.</p>"));
-            Button backupBtn = new Button("btn-backup", "Initiate Backup");
-            backupBtn.setStyleClass(
-                    "w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all");
-            backupBtn.setHxPost("/dashboard/maintenance/backup?db=" + db);
-            backupBtn.setHxSwap("none");
-            backupCard.addComponent(backupBtn);
-        } else {
-            backupCard.addComponent(new Label("bk-desc",
-                    "<p class='text-sm text-amber-500/80 mb-6 italic opacity-80'>Please select a database from the Data Explorer to perform a backup.</p>"));
-            Button selectBtn = new Button("btn-maint-sel", "Select Database");
-            selectBtn.setStyleClass(
-                    "w-full py-2.5 bg-slate-800 text-slate-500 rounded-xl font-bold cursor-not-allowed opacity-50");
-            backupCard.addComponent(selectBtn);
+        Div backupCard = createCard("Database Backup", "Export your database to JSON or Jettra Native format.");
+        
+        SelectOne dbSelect = new SelectOne("backup-db");
+        dbSelect.setStyleClass("w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-indigo-500 transition-all");
+        
+        String token = getAuthToken();
+        if (token != null) {
+            try {
+                List<io.jettra.example.ui.model.Database> dbs = pdClient.getDatabases("Bearer " + token);
+                for (var db : dbs) dbSelect.addOption(db.getName(), db.getName());
+            } catch (Exception e) {}
         }
+        
+        backupCard.addComponent(new Label("lbl-db", "<label class='block text-xs font-bold text-slate-500 mb-2 uppercase'>Select Database</label>"));
+        backupCard.addComponent(dbSelect);
+
+        Button backupBtn = new Button("btn-run-backup", "🚀 Run Backup");
+        backupBtn.setStyleClass("mt-6 w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20");
+        backupBtn.addAttribute("hx-post", "/dashboard/maintenance/backup");
+        backupBtn.addAttribute("hx-include", "#backup-db");
+        backupBtn.addAttribute("hx-target", "#maint-results");
+        backupCard.addComponent(backupBtn);
+        
         grid.addComponent(backupCard);
 
         // Restore Card
-        Card restoreCard = new Card("card-restore");
-        restoreCard.setStyleClass("p-6 bg-slate-900/40 border-slate-800 hover:border-rose-500/50 transition-all");
-        restoreCard.addComponent(new Label("rs-icon", "<div class='text-3xl mb-4'>🔄</div>"));
-        restoreCard
-                .addComponent(new Label("rs-title", "<h3 class='text-xl font-bold text-white mb-2'>Restore Data</h3>"));
-        restoreCard.addComponent(new Label("rs-desc",
-                "<p class='text-sm text-slate-400 mb-6'>Restore a database from a previous snapshot. <span class='text-rose-400 font-bold'>Warning:</span> This will overwrite current data.</p>"));
+        Div restoreCard = createCard("Database Restore", "Restore a database from a previous backup.");
+        restoreCard.addComponent(new Label("lbl-res-db", "<label class='block text-xs font-bold text-slate-500 mb-2 uppercase'>Database Target</label>"));
+        
+        InputText resDb = new InputText("res-db");
+        resDb.setPlaceholder("database_name");
+        restoreCard.addComponent(resDb);
 
-        Button restoreBtn = new Button("btn-restore", "Initiate Restore");
-        restoreBtn.setStyleClass(
-                "w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-all border border-slate-700");
-        restoreBtn.addAttribute("onclick",
-                "alert('Please use the Jettra CLI for restore operations in this version.')");
+        restoreCard.addComponent(new Label("lbl-res-id", "<label class='block text-xs font-bold text-slate-500 mt-4 mb-2 uppercase'>Backup ID / Path</label>"));
+        InputText resId = new InputText("res-id");
+        resId.setPlaceholder("backup_2024.json");
+        restoreCard.addComponent(resId);
+
+        Button restoreBtn = new Button("btn-run-restore", "📥 Restore Data");
+        restoreBtn.setStyleClass("mt-6 w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20");
+        restoreBtn.addAttribute("hx-post", "/dashboard/maintenance/restore");
+        restoreBtn.addAttribute("hx-include", "#res-db, #res-id");
+        restoreBtn.addAttribute("hx-target", "#maint-results");
         restoreCard.addComponent(restoreBtn);
-        grid.addComponent(restoreCard);
 
+        grid.addComponent(restoreCard);
         container.addComponent(grid);
 
-        return Response.ok(container.render()).build();
+        // Results Area
+        Div results = new Div("maint-results");
+        results.setStyleClass("mt-8 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 min-h-[100px] flex items-center justify-center text-slate-400 text-sm italic font-medium");
+        results.addComponent(new Label("empty-res", "Operation results will appear here..."));
+        container.addComponent(results);
+
+        return container.render();
     }
 
     @POST
     @Path("/backup")
-    public Response runBackup(@QueryParam("db") String db, @CookieParam("auth_token") String token) {
-        if (token == null)
-            return Response.status(Response.Status.UNAUTHORIZED).build();
-        token = "Bearer " + token.replace("\"", "");
-
+    @Produces(MediaType.TEXT_HTML)
+    public String runBackup(@FormParam("backup-db") String db) {
+        String token = getAuthToken();
         try {
-            pdClient.backup(db, token);
-            return Response
-                    .ok("<script>alert('Backup initiated for " + db + ". Check system logs for progress.');</script>")
-                    .build();
+            Response res = pdClient.backup(db, "Bearer " + token);
+            return "<div class='p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 w-full'>" +
+                   "<strong>Success!</strong> Backup created for " + db + ". ID: " + res.readEntity(String.class) + "</div>";
         } catch (Exception e) {
-            return Response.ok("<script>alert('Error initiating backup: " + e.getMessage() + "');</script>").build();
+            return "<div class='p-4 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 w-full'>" +
+                   "<strong>Error:</strong> " + e.getMessage() + "</div>";
         }
+    }
+
+    @POST
+    @Path("/restore")
+    @Produces(MediaType.TEXT_HTML)
+    public String runRestore(@FormParam("res-db") String db, @FormParam("res-id") String id) {
+        String token = getAuthToken();
+        try {
+            pdClient.restore(db, Map.of("backupId", id), "Bearer " + token);
+            return "<div class='p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400 w-full'>" +
+                   "<strong>Success!</strong> Database " + db + " restored successfully.</div>";
+        } catch (Exception e) {
+            return "<div class='p-4 bg-rose-500/10 border border-rose-500/20 rounded-lg text-rose-400 w-full'>" +
+                   "<strong>Error:</strong> " + e.getMessage() + "</div>";
+        }
+    }
+
+    private Div createCard(String title, String desc) {
+        Div card = new Div("card-" + title.toLowerCase().replace(" ", ""));
+        card.setStyleClass("p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all");
+        card.addComponent(new Label("t", "<h3 class='text-lg font-bold text-slate-800 dark:text-white mb-1'>" + title + "</h3>"));
+        card.addComponent(new Label("d", "<p class='text-sm text-slate-500 dark:text-slate-400 mb-6'>" + desc + "</p>"));
+        return card;
+    }
+
+    private String getAuthToken() {
+        if (headers.getCookies().containsKey("auth_token")) {
+            String token = headers.getCookies().get("auth_token").getValue();
+            if (token != null && token.startsWith("\"") && token.endsWith("\"")) {
+                token = token.substring(1, token.length() - 1);
+            }
+            return token;
+        }
+        return null;
     }
 }

@@ -1,14 +1,12 @@
 package io.jettra.shell;
 
-import io.quarkus.picocli.runtime.annotations.TopCommand;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.io.IOException;
+
+import io.quarkus.picocli.runtime.annotations.TopCommand;
+import jakarta.enterprise.context.ApplicationScoped;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
-
-import jakarta.enterprise.context.ApplicationScoped;
 
 @TopCommand
 @ApplicationScoped
@@ -29,7 +27,9 @@ import jakarta.enterprise.context.ApplicationScoped;
                 SequenceCommands.class,
                 UserCommands.class,
                 RoleCommands.class,
-                RestoreCommand.class
+                RoleCommands.class,
+                RestoreCommand.class,
+                QueryBuilderCommand.class
         })
 public class JettraShell implements Runnable {
     public static String authToken;
@@ -140,6 +140,10 @@ public class JettraShell implements Runnable {
                     System.out.printf("  %-35s %s%n", "mongo <query> [--resolve-refs]",
                             "Execute MongoDB (e.g., db.users.find({}))");
                     System.out.printf("  %-35s %s%n", "query <command>", "Execute low-level engine commands");
+                    System.out.printf("  %-35s %s%n", "mongo <query> [--resolve-refs]",
+                            "Execute MongoDB (e.g., db.users.find({}))");
+                    System.out.printf("  %-35s %s%n", "query <command>", "Execute low-level engine commands");
+                    System.out.printf("  %-35s %s%n", "query-builder", "Interactive query builder for SQL/Mongo");
                     System.out.println();
 
                     System.out.println("@|bold,underline Security & Users|@");

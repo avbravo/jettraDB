@@ -99,6 +99,14 @@ curl -X POST http://localhost:8081/api/db \
   -d '{"name": "user_graph", "storage": "MEMORY"}'
 ```
 
+### Multi-Raft Groups Information (Nuevo) ⭐
+To view information about the Multi-Raft groups in the cluster:
+
+```bash
+curl -s http://localhost:8081/api/internal/pd/groups \
+  -H "Authorization: Bearer $TOKEN"
+```
+
 ### Renombrar Base de Datos
 ```bash
 curl -X PUT http://localhost:8081/api/db/sales_db \
@@ -170,7 +178,7 @@ curl -X POST http://localhost:8080/api/internal/pd/register \
   }'
 ```
 
-### Index Management
+### Index Management 🔍
 
 #### Create Index
 ```bash
@@ -194,6 +202,22 @@ curl -G http://localhost:8080/api/internal/pd/databases/myDB/collections/myColle
 curl -X DELETE http://localhost:8080/api/internal/pd/databases/myDB/collections/myCollection/indexes/myCollection_name_text \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+### Aggregations (Analytics) 📊
+
+You can perform aggregations using SQL or the internal analytics engine endpoints.
+
+```bash
+# Example: Sum of amount
+curl -X POST http://localhost:8081/api/v1/sql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT SUM(amount) FROM sales_db.orders"}'
+```
+Wait, the user asked for Mongo-like aggregation support. The shell translates it. Here we can document how to use the SQL endpoint or similar.
+Actually, let's add a "Mongo-like Operations via cURL" section below.
+
+## Monitoring Node Resources
 
 ## Monitoring Node Resources
 
@@ -373,6 +397,81 @@ curl -s http://localhost:8082/api/v1/document/usuarios/{jettraID}/versions \
 curl -s "http://localhost:8082/api/v1/document/usuarios/search/tag?tag=premium" \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## Mongo-like Operations (New) 🍃
+
+Perform operations using MongoDB-like syntax. Note that currently `curl` interacts with the underlying HTTP APIs, so we map these operations to the Document API.
+
+### insertOne / insertMany
+To insert documents, perform a POST to the document endpoint.
+```bash
+# insertOne
+curl -X POST http://localhost:8082/api/v1/document/usuarios \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice"}'
+
+# insertMany (Batch insert is supported by sending a JSON Array)
+curl -X POST http://localhost:8082/api/v1/document/usuarios/batch \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[{"name": "Bob"}, {"name": "Charlie"}]'
+```
+
+### replaceOne / replaceMany
+To replace (update) documents.
+```bash
+# replaceOne (Update by ID)
+curl -X POST http://localhost:8082/api/v1/document/usuarios/{id} \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Alice Updated"}'
+```
+
+### deleteOne / deleteMany
+```bash
+# deleteOne (Delete by ID)
+curl -X DELETE http://localhost:8082/api/v1/document/usuarios/{id} \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Aggregations (Mongo-Style) 📊
+JettraDB supports complex aggregation pipelines via the Document API.
+
+```bash
+# General Aggregation Pipeline
+curl -X POST http://localhost:8082/api/v1/document/usuarios/aggregate \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[
+     {"$match": {"age": {"$gt": 20}}},
+     {"$group": {"_id": "$city", "total": {"$sum": "$age"}}}
+  ]'
+```
+
+#### Analytical Shortcuts (via SQL)
+For high-level analytic functions, use the SQL endpoint:
+```bash
+curl -X POST http://localhost:8081/api/v1/sql \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT AVG(age) FROM usuarios"}'
+```
+
+## Query Builder (Manual Guide) 🛠️
+To construct a complex query via curl without an interactive tool:
+
+1. **Identify Entpoint**: Decide if you are querying Documents (GET /api/v1/document) or using SQL (POST /api/v1/sql).
+2. **Build JSON**:
+   - For SQL: `{"sql": "SELECT * FROM col WHERE field='value'"}`
+   - For Document Search: Use query params `?tag=label` or `?id=...`
+3. **Execute**:
+   ```bash
+   curl -X POST http://localhost:8081/api/v1/sql -d '{"sql": "..."}' ...
+   ```
 
 ## Consultas SQL (Nuevo) ⭐
 
