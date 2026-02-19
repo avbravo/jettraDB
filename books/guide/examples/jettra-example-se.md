@@ -28,7 +28,7 @@ Para este ejemplo, se asumen los siguientes parámetros de conexión por defecto
 | :--- | :--- | :--- |
 | **PD/Proxy Address** | `localhost:8081` | Dirección del Web Dashboard o Placement Driver. |
 | **Usuario** | `admin` | Usuario administrador por defecto. |
-| **Contraseña** | `adminadmin` | Contraseña inicial (se recomienda cambiarla). |
+| **Contraseña** | `superuser-jettra` | Contraseña inicial (se recomienda cambiarla). |
 
 ## Configuración (`pom.xml`)
 
@@ -117,7 +117,7 @@ public class Main {
             // 1. Autenticación y obtención del Token
             LOG.info("Iniciando sesión para obtener el token...");
             JettraReactiveClient client = new JettraReactiveClient(pdAddress);
-            client.login("super-user", "adminadmin").await().indefinitely();
+            client.login("super-user", "superuser-jettra").await().indefinitely();
             LOG.info("Login exitoso. Token autoconfigurado en el cliente.");
 
             // 2. Monitoreo del Cluster

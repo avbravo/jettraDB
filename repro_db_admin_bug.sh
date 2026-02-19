@@ -5,7 +5,7 @@ PD_URL="http://localhost:8080"
 WEB_URL="http://localhost:8081" # Jettra-web runs on 8081
 
 echo "--- 1. Login as super-user ---"
-SU_TOKEN=$(curl -s -X POST $PD_URL/api/auth/login -H "Content-Type: application/json" -d '{"username":"super-user","password":"adminadmin"}' | grep -oP '(?<="token":")[^"]+')
+SU_TOKEN=$(curl -s -X POST $PD_URL/api/auth/login -H "Content-Type: application/json" -d '{"username":"super-user","password":"superuser-jettra"}' | grep -oP '(?<="token":")[^"]+')
 
 if [ -z "$SU_TOKEN" ]; then
     echo "FAILED: Could not login as super-user"

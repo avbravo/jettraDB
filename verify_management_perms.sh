@@ -6,7 +6,7 @@ WEB_URL="http://localhost:8081"
 
 # 1. Login as super-user to create a management user
 echo "--- Logging in as super-user ---"
-SU_TOKEN=$(curl -s -X POST $WEB_URL/api/web-auth/login -H "Content-Type: application/json" -d '{"username":"super-user","password":"adminadmin"}' | jq -r '.token')
+SU_TOKEN=$(curl -s -X POST $WEB_URL/api/web-auth/login -H "Content-Type: application/json" -d '{"username":"super-user","password":"superuser-jettra"}' | jq -r '.token')
 
 if [ "$SU_TOKEN" == "null" ] || [ -z "$SU_TOKEN" ]; then
     echo "Failed to obtain super-user token. Is the server running?"

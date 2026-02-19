@@ -45,9 +45,9 @@ Once connected, you typically need to login:
 login super-user -p
 # Enter password when prompted
 
-Password: adminadmin
+Password: superuser-jettra
 ```
-Password: adminadmin
+Password: superuser-jettra
 
 
 # Show Connection Info (View current PD address and Auth status)

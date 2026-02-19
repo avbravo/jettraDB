@@ -2,7 +2,7 @@
 
 # 1. Login as super-user to initialize
 echo "--- Initializing test user and database as super-user ---"
-SU_TOKEN=$(curl -s -X POST http://localhost:8081/api/web-auth/login -H "Content-Type: application/json" -d '{"username":"super-user","password":"adminadmin"}' | jq -r '.token')
+SU_TOKEN=$(curl -s -X POST http://localhost:8081/api/web-auth/login -H "Content-Type: application/json" -d '{"username":"super-user","password":"superuser-jettra"}' | jq -r '.token')
 echo "Super-user Token obtained."
 
 # Create user avbravo (if not exists)

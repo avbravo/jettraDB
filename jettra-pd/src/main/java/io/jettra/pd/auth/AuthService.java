@@ -25,7 +25,7 @@ public class AuthService {
         roles.put("read-write", new Role("read-write", "_all", Set.of("READ", "WRITE")));
 
         // Initialize default super-user
-        users.put("super-user", new User("super-user", "adminadmin", null,
+        users.put("super-user", new User("super-user", "superuser-jettra", null,
                 new java.util.HashSet<>(Set.of("super-user")), "super-user", false));
     }
 

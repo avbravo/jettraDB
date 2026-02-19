@@ -27,16 +27,16 @@ public class ChangePasswordForm extends Form {
         this.addComponent(errorLabel);
 
         // Current Password
-        this.addComponent(createFieldGroup("current-password", "Current Password", "oldPassword"));
+        this.addComponent(createFieldGroup("current-password", "Contraseña Actual", "oldPassword"));
 
         // New Password
-        this.addComponent(createFieldGroup("new-password", "New Password", "newPassword"));
+        this.addComponent(createFieldGroup("new-password", "Nueva Contraseña", "newPassword"));
 
         // Confirm Password
-        this.addComponent(createFieldGroup("confirm-password", "Confirm New Password", "confirmPassword"));
+        this.addComponent(createFieldGroup("confirm-password", "Confirmar Nueva Contraseña", "confirmPassword"));
 
         // Change Button
-        changeBtn = new Button("btn-change-password", "Update Password");
+        changeBtn = new Button("btn-change-password", "Actualizar Contraseña");
         changeBtn.setStyleClass("w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30 active:scale-[0.98]");
         changeBtn.addAttribute("type", "submit");
         this.addComponent(changeBtn);

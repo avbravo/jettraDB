@@ -2,7 +2,7 @@
 
 # 1. Login as Admin
 echo "Logging in as admin..."
-ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"adminadmin"}' | jq -r '.token')
+ADMIN_TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"superuser-jettra"}' | jq -r '.token')
 echo "Admin Token: $ADMIN_TOKEN"
 
 # 2. Create User avbravo (if not exists)

@@ -10,7 +10,7 @@ Todas las peticiones a la API requieren un token JWT válido. Primero debes aute
 # 1. Login para obtener el token
 TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"super-user","password":"adminadmin"}' | jq -r .token)
+  -d '{"username":"super-user","password":"superuser-jettra"}' | jq -r .token)
 
 echo "Token: $TOKEN"
 ```
@@ -227,7 +227,7 @@ You can monitor the resource usage (CPU, Memory) of all registered nodes:
 # 1. Login to get token
 TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin", "password":"adminadmin"}' | jq -r .token)
+  -d '{"username":"admin", "password":"superuser-jettra"}' | jq -r .token)
 
 # 2. Get Node Metrics (Request to Web Dashboard on port 8081)
 curl -s http://localhost:8081/api/monitor/nodes \

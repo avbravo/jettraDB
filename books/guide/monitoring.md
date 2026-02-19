@@ -56,7 +56,7 @@ Consulta el endpoint de monitorización unificado en el puerto del Dashboard Web
 # 1. Obtener Token
 TOKEN=$(curl -s -X POST http://localhost:8081/api/web-auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"super-user","password":"adminadmin"}' | jq -r .token)
+  -d '{"username":"super-user","password":"superuser-jettra"}' | jq -r .token)
 
 # 2. Consultar Recursos
 curl -s http://localhost:8081/api/monitor/nodes \

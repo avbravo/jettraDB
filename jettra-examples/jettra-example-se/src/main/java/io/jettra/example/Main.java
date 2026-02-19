@@ -70,7 +70,7 @@ public class Main {
             // 1. Autenticación y obtención del Token
             LOG.info("Iniciando sesión para obtener el token...");
             JettraReactiveClient client = new JettraReactiveClient(pdAddress);
-            client.login("super-user", "adminadmin").await().indefinitely();
+            client.login("super-user", "superuser-jettra").await().indefinitely();
             LOG.info("Login exitoso. Token autoconfigurado en el cliente.");
 
             // 2. Monitoreo del Cluster
