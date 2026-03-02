@@ -7,10 +7,10 @@ La interfaz web se despliega automáticamente con el componente `jettra-web`.
 - **URL**: `http://localhost:8081` (Puerto por defecto del componente web)
 - **Credenciales**: **Requerido**. El acceso está protegido por JWT.
   - Usuario por defecto: `super-user`
-  - Contraseña por defecto: `superuser-jettra`
+  - Contraseña por defecto: `superuser`
 
 ## Jettra Web Vaadin ⭐
-JettraDB ahora incluye un panel de administración moderno construido con **Vaadin**, ofreciendo una experiencia de usuario enriquecida y componentes interactivos avanzados.
+JettraDB ahora incluye un panel de administración moderno construido con **Vaadin**, ofreciendo una una experiencia de usuario enriquecida y componentes interactivos avanzados.
 
 - **URL**: `http://localhost:8082`
 - **Tecnología**: Java + Vaadin 24 + Quarkus.
@@ -96,7 +96,7 @@ El Dashboard incluye una opción global para la resolución automática de refer
 ## Procedimiento de Autenticación en la Web
 
 1. Al acceder a la URL, el sistema redirigirá automáticamente a `login.html`.
-2. Introduce tus credenciales (`super-user` / `superuser-jettra`).
+2. Introduce tus credenciales (`super-user` / `superuser`).
 3. El sistema generará un token JWT que se almacenará en el `localStorage` del navegador.
 4. El token se enviará automáticamente en la cabecera `Authorization: Bearer <token>` en cada petición a la API.
 5. Si el token expira o es inválido, serás redirigido nuevamente al Login.
