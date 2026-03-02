@@ -27,9 +27,9 @@ import picocli.CommandLine.Parameters;
                 SequenceCommands.class,
                 UserCommands.class,
                 RoleCommands.class,
-                RoleCommands.class,
                 RestoreCommand.class,
-                QueryBuilderCommand.class
+                QueryBuilderCommand.class,
+                GraphCommands.class
         })
 public class JettraShell implements Runnable {
     public static String authToken;
@@ -135,13 +135,11 @@ public class JettraShell implements Runnable {
                     System.out.println();
 
                     System.out.println("@|bold,underline Native Language Support|@");
-                    System.out.printf("  %-35s %s%n", "sql <query> [--resolve-refs]",
-                            "Execute SQL (e.g., SELECT * FROM users)");
-                    System.out.printf("  %-35s %s%n", "mongo <query> [--resolve-refs]",
-                            "Execute MongoDB (e.g., db.users.find({}))");
-                    System.out.printf("  %-35s %s%n", "query <command>", "Execute low-level engine commands");
-                    System.out.printf("  %-35s %s%n", "mongo <query> [--resolve-refs]",
-                            "Execute MongoDB (e.g., db.users.find({}))");
+                    System.out.printf("  %-35s %s%n", "sql <query> [--resolve-refs]", "Execute SQL (e.g., SELECT * FROM users)");
+                    System.out.printf("  %-35s %s%n", "mongo <query> [--resolve-refs]", "Execute MongoDB (e.g., db.users.find({}))");
+                    System.out.printf("  %-35s %s%n", "graph add-vertex <id> ...", "Add a vertex to the graph");
+                    System.out.printf("  %-35s %s%n", "graph add-edge <from> <to> ...", "Add an edge between vertices");
+                    System.out.printf("  %-35s %s%n", "graph traverse <start> ...", "Traverse graph from start node");
                     System.out.printf("  %-35s %s%n", "query <command>", "Execute low-level engine commands");
                     System.out.printf("  %-35s %s%n", "query-builder", "Interactive query builder for SQL/Mongo");
                     System.out.println();

@@ -123,5 +123,12 @@ public interface JettraClient {
 
     Uni<Void> restoreDatabase(String dbName, String backupId, String format);
 
+    // Graph Operations
+    Uni<Void> addVertex(String id, String label, java.util.Map<String, Object> properties);
+
+    Uni<Void> addEdge(String fromId, String toId, String label);
+
+    Uni<java.util.List<Object>> traverseGraph(String startId, int maxDepth);
+
     String connectionInfo();
 }

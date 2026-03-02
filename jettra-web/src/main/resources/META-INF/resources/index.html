@@ -1814,14 +1814,14 @@
             const privs = getUserPrivileges(dbName);
 
             return collections.map(col => `
-                <div class="tree-type-item" style="justify-content: space-between; padding-right: 0.5rem;" onclick="toggleSubtree('sub-${dbName}-${col}'); ${engine === 'Document' ? `selectCollection('${dbName}', '${col}', '${engine}')` : ''}">
+                <div class="tree-type-item" style="justify-content: space-between; padding-right: 0.5rem;" onclick="toggleSubtree('sub-${dbName}-${col}'); ${(engine === 'Document' || engine === 'Graph') ? `selectCollection('${dbName}', '${col}', '${engine}')` : ''}">
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"></path></svg>
                         <span style="cursor: pointer; font-weight: 600;">${col}</span>
                     </div>
                     <div style="display: flex; gap: 4px;">
                         ${privs.write || privs.admin ? `
-                        <div class="action-icon" style="width:16px; height:16px;" title="Añadir Documento" onclick="event.stopPropagation(); addDocumentFromTree('${dbName}', '${col}', '${engine}')">
+                        <div class="action-icon" style="width:16px; height:16px;" title="Añadir Item" onclick="event.stopPropagation(); ${(engine === 'Document' || engine === 'Graph') ? `addDocumentFromTree('${dbName}', '${col}', '${engine}')` : ''}">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                         </div>
                         <div class="action-icon" style="width:16px; height:16px;" title="Renombrar" onclick="event.stopPropagation(); openCollectionModal('${dbName}', '${col}', '${engine}')">

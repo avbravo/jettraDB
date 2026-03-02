@@ -668,10 +668,79 @@ public class JettraReactiveClient implements JettraClient {
         return Uni.createFrom().item(List.of("result-1", "result-2"));
     }
 
-    // Specific Graph Engine Method
-    public Uni<List<String>> traverseGraph(String startId, int depth) {
-        LOG.log(Level.INFO, "Traversing graph from {0}", startId);
-        return Uni.createFrom().item(List.of("vertex-a", "vertex-b"));
+    @Override
+    public Uni<Void> addVertex(String id, String label, java.util.Map<String, Object> properties) {
+        return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
+            try {
+                java.util.Map<String, Object> vertex = new java.util.HashMap<>();
+                vertex.put("id", id);
+                vertex.put("label", label);
+                vertex.put("properties", properties);
+                String json = mapper.writeValueAsString(vertex);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://" + address + "/api/v1/graph/vertex"))
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        })).onItem().transformToUni(response -> {
+            if (response.statusCode() >= 200 && response.statusCode() < 300)
+                return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new RuntimeException("Add vertex failed: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<Void> addEdge(String fromId, String toId, String label) {
+        return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
+            try {
+                java.util.Map<String, Object> edge = new java.util.HashMap<>();
+                edge.put("fromId", fromId);
+                edge.put("toId", toId);
+                edge.put("label", label);
+                String json = mapper.writeValueAsString(edge);
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("http://" + address + "/api/v1/graph/edge"))
+                        .header("Authorization", "Bearer " + authToken)
+                        .header("Content-Type", "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(json))
+                        .build();
+                return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        })).onItem().transformToUni(response -> {
+            if (response.statusCode() >= 200 && response.statusCode() < 300)
+                return Uni.createFrom().voidItem();
+            return Uni.createFrom().failure(new RuntimeException("Add edge failed: " + response.body()));
+        });
+    }
+
+    @Override
+    public Uni<List<Object>> traverseGraph(String startId, int depth) {
+        return getStoreAddress().onItem().transformToUni(address -> Uni.createFrom().completionStage(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://" + address + "/api/v1/graph/traverse/" 
+                            + java.net.URLEncoder.encode(startId, java.nio.charset.StandardCharsets.UTF_8)
+                            + "?depth=" + depth))
+                    .header("Authorization", "Bearer " + authToken)
+                    .GET()
+                    .build();
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        })).onItem().transform(response -> {
+            if (response.statusCode() == 200) {
+                try {
+                    return mapper.readValue(response.body(), new com.fasterxml.jackson.core.type.TypeReference<List<Object>>() {});
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            throw new RuntimeException("Graph traversal failed: " + response.body());
+        });
     }
 
     @Override
