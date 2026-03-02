@@ -8,19 +8,21 @@ public class Alert extends Container {
         this.addComponent(new Label(id + "-text", message));
     }
 
-    public void setType(String type) { this.type = type; }
+    public void setType(String type) {
+        this.type = type;
+    }
 
     @Override
     public String render() {
-        String baseClass = "p-4 mb-4 text-sm rounded-lg";
+        String baseClass = "j3d-alert p-4 mb-4 text-sm rounded-lg";
         String colorClass = switch (type) {
-            case "danger" -> "text-red-800 bg-red-50 dark:bg-gray-800 dark:text-red-400";
-            case "success" -> "text-green-800 bg-green-50 dark:bg-gray-800 dark:text-green-400";
-            case "warning" -> "text-yellow-800 bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300";
-            default -> "text-blue-800 bg-blue-50 dark:bg-gray-800 dark:text-blue-400";
+            case "danger" -> "j3d-alert-danger";
+            case "success" -> "j3d-alert-success";
+            case "warning" -> "j3d-alert-warning";
+            default -> "j3d-alert-info";
         };
-        
-        return String.format("<div id='%s' class='%s %s %s' role='alert'%s>%s</div>", 
-            id, baseClass, colorClass, styleClass, renderAttributes(), renderChildren());
+
+        return String.format("<div id='%s' class='%s %s %s' role='alert'%s>%s</div>",
+                id, baseClass, colorClass, styleClass, renderAttributes(), renderChildren());
     }
 }

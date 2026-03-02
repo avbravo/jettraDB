@@ -199,7 +199,7 @@ public class DataExplorer extends Component {
                         // Using HTMX to open modal
                         sb.append(
                                         "<button class='p-0.5 hover:text-indigo-400 text-slate-500 transition-colors' title='Add Collection' ")
-                                        .append("onclick=\"openCollectionModal('").append(dbName).append("', '")
+                                        .append("onclick=\"openCollectionModal('").append(dbName).append("', '', '")
                                         .append(name)
                                         .append("'); event.stopPropagation()\">")
                                         .append("<svg class='w-3.5 h-3.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 4v16m8-8H4'></path></svg>")
@@ -278,6 +278,11 @@ public class DataExplorer extends Component {
 
                         sb.append("<div id='").append(childrenId)
                                         .append("' class='hidden ml-3 border-l border-slate-700/30 pl-2 flex flex-col gap-0.5 my-0.5'>");
+                        if ("Graph".equalsIgnoreCase(engineName)) {
+                                sb.append(renderOption("Graph", "M13 10V3L4 14h7v7l9-11h-7z", "neon-purple",
+                                                "showView('graph-explorer'); loadGraphData('" + name + "')",
+                                                null));
+                        }
                         sb.append(renderOption("Record(Document)",
                                         "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10",
                                         "indigo-400",
@@ -296,18 +301,18 @@ public class DataExplorer extends Component {
                         return sb.toString();
                 }
 
-                private String renderOption(String label, String iconPath, String colorClass, String hxGet,
+                private String renderOption(String label, String iconPath, String colorClass, String action,
                                 String hxTarget) {
                         StringBuilder sb = new StringBuilder();
                         sb.append("<div class='flex items-center gap-2 p-0.5 cursor-pointer hover:text-white text-")
                                         .append(colorClass)
                                         .append(" text-[10px] uppercase font-semibold tracking-wider transition-colors'");
 
-                        if (hxGet != null) {
-                                sb.append(" hx-get='").append(hxGet).append("'");
-                        }
-                        if (hxTarget != null) {
+                        if (hxTarget != null && action != null && action.startsWith("/")) {
+                                sb.append(" hx-get='").append(action).append("'");
                                 sb.append(" hx-target='").append(hxTarget).append("'");
+                        } else if (action != null) {
+                                sb.append(" onclick=\"").append(action).append("; event.stopPropagation()\"");
                         }
 
                         sb.append(">");

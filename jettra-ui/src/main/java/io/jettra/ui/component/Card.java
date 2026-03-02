@@ -7,13 +7,13 @@ public class Card extends Container {
 
     public Card(String id) {
         super(id);
-        this.styleClass = "futu-card p-6";
+        this.styleClass = "j3d-card";
     }
 
     public Card(String id, String title) {
         super(id);
         this.title = title;
-        this.styleClass = "futu-card p-6";
+        this.styleClass = "j3d-card";
     }
 
     public void setTitle(String title) {

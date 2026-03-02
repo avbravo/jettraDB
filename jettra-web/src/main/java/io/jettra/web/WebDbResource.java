@@ -169,9 +169,9 @@ public class WebDbResource {
     }
 
     @jakarta.ws.rs.POST
-    @Path("/proxy/document")
+    @Path("/proxy/graph")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response proxyDocument(java.util.Map<String, String> body) {
+    public Response proxyGraph(java.util.Map<String, String> body) {
         String targetUrl = body.get("url");
         String method = body.get("method");
         String jsonPayload = body.get("payload");
@@ -188,8 +188,6 @@ public class WebDbResource {
             Response response;
             if ("POST".equalsIgnoreCase(method)) {
                 response = builder.post(Entity.json(jsonPayload != null ? jsonPayload : "{}"));
-            } else if ("DELETE".equalsIgnoreCase(method)) {
-                response = builder.delete();
             } else {
                 response = builder.get();
             }

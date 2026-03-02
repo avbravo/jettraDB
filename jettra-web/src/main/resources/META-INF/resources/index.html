@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo/jettra-logo.png">
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <script>
         const token = localStorage.getItem('jettra_token');
         if (!token && !window.location.pathname.endsWith('login.html')) {
@@ -24,13 +25,18 @@
     </script>
     <style>
         :root {
-            --primary: #6366f1;
-            --secondary: #a855f7;
-            --bg: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --header-bg: rgba(15, 23, 42, 0.9);
+            --primary: #8b5cf6;
+            --secondary: #ec4899;
+            --accent: #06b6d4;
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.4);
+            --header-bg: rgba(2, 6, 23, 0.8);
             --text: #f8fafc;
-            --sidebar-width: 260px;
+            --sidebar-width: 280px;
+            --neon-blue: #22d3ee;
+            --neon-purple: #c084fc;
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shine: rgba(255, 255, 255, 0.05);
         }
 
         body {
@@ -53,19 +59,21 @@
 
         /* Top Bar */
         .top-bar {
-            height: 60px;
+            height: 70px;
             background: var(--header-bg);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 1.5rem;
+            padding: 0 2rem;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            z-index: 50;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
         .brand {
@@ -80,19 +88,20 @@
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            border-right: 1px solid var(--glass-border);
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
             position: fixed;
-            top: 60px;
-            /* Below top bar */
+            top: 70px;
             bottom: 0;
             left: 0;
-            transition: transform 0.3s ease;
-            z-index: 40;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 90;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
         }
 
         .sidebar.collapsed {
@@ -202,33 +211,43 @@
         }
 
         h2 {
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(to right, #818cf8, #c084fc);
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, var(--neon-blue), var(--neon-purple));
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
             width: fit-content;
+            text-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+            letter-spacing: -0.02em;
         }
 
         .nav-item {
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.5rem;
+            padding: 0.85rem 1.25rem;
+            margin-bottom: 0.75rem;
+            border-radius: 0.75rem;
             cursor: pointer;
-            transition: all 0.2s;
-            color: #cbd5e1;
+            transition: all 0.3s;
+            color: #94a3b8;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
         .nav-item:hover {
-            background: rgba(99, 102, 241, 0.1);
+            background: rgba(139, 92, 246, 0.15);
             color: white;
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateX(5px);
         }
 
         .nav-item.active {
-            background: rgba(99, 102, 241, 0.2);
-            color: var(--primary);
-            border-left: 3px solid var(--primary);
+            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), transparent);
+            color: var(--neon-purple);
+            border-left: 4px solid var(--primary);
+            box-shadow: inset 10px 0 20px rgba(139, 92, 246, 0.1);
         }
 
         .grid {
@@ -251,31 +270,99 @@
 
         .card {
             background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1rem;
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.25rem;
             padding: 1.5rem;
-            transition: transform 0.2s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow:
+                0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06),
+                inset 0 1px 1px var(--glass-shine);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modal-content {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(40px) saturate(160%);
+            -webkit-backdrop-filter: blur(40px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes modalSlide {
+            from {
+                transform: translateY(30px) scale(0.95);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.05),
+                    transparent);
+            transition: 0.5s;
+        }
+
+        .card:hover::before {
+            left: 100%;
         }
 
         .card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-8px) scale(1.01);
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow:
+                0 20px 25px -5px rgba(0, 0, 0, 0.2),
+                0 10px 10px -5px rgba(0, 0, 0, 0.1),
+                0 0 20px rgba(139, 92, 246, 0.2);
         }
 
         .btn {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            border: none;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 0.5rem;
+            padding: 0.65rem 1.75rem;
+            border-radius: 0.85rem;
             cursor: pointer;
-            font-weight: 500;
-            transition: opacity 0.2s;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
         .btn:hover {
-            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         .hidden {
@@ -333,29 +420,46 @@
 
         .doc-table {
             width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
+            border-collapse: separate;
+            border-spacing: 0 0.5rem;
+            font-size: 0.9rem;
         }
 
         .doc-table th {
             text-align: left;
-            padding: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: #64748b;
+            padding: 1.25rem 1rem;
+            color: #94a3b8;
+            font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.7rem;
-            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
         }
 
         .doc-table td {
-            padding: 1rem;
+            padding: 1.25rem 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            color: #e2e8f0;
-            vertical-align: middle;
+            color: #f1f5f9;
         }
 
-        .doc-table tr:hover {
-            background: rgba(255, 255, 255, 0.02);
+        .doc-table tr td:first-child {
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            border-top-left-radius: 1rem;
+            border-bottom-left-radius: 1rem;
+        }
+
+        .doc-table tr td:last-child {
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            border-top-right-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+        }
+
+        .doc-table tr:hover td {
+            background: rgba(139, 92, 246, 0.08);
+            border-color: rgba(139, 92, 246, 0.2);
+            color: white;
         }
 
         .json-viewer {
@@ -392,6 +496,92 @@
 
         .tree-val-number {
             color: #f59e0b;
+        }
+
+        /* 3D Glassmorphism System (j3d) */
+        .j3d-button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 0.65rem 1.75rem;
+            border-radius: 0.85rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .j3d-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+            filter: brightness(1.1);
+        }
+
+        .j3d-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.25rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), inset 0 1px 1px var(--glass-shine);
+        }
+
+        .j3d-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(139, 92, 246, 0.1);
+        }
+
+        .j3d-modal-overlay {
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .j3d-modal-card {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(40px) saturate(160%);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .j3d-alert {
+            backdrop-filter: blur(10px);
+            border: 1px solid transparent;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .j3d-alert-info {
+            border-color: rgba(6, 182, 212, 0.3);
+            background: rgba(6, 182, 212, 0.1);
+            color: #22d3ee;
+        }
+
+        .j3d-alert-danger {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+        }
+
+        .j3d-alert-success {
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+        }
+
+        .j3d-alert-warning {
+            border-color: rgba(245, 158, 11, 0.3);
+            background: rgba(245, 158, 11, 0.1);
+            color: #fbbf24;
         }
 
         .tree-val-bool {
@@ -678,6 +868,65 @@
 
         .show-mobile-only {
             display: none;
+        }
+
+        /* Graph Explorer Styles */
+        #view-graph-explorer {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            height: 100%;
+        }
+
+        .graph-container {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            position: relative;
+            min-height: 500px;
+            overflow: hidden;
+        }
+
+        #graph-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .graph-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        .graph-sidebar {
+            width: 300px;
+            background: var(--card-bg);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .graph-layout {
+            display: flex;
+            gap: 1.5rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .vertex-form,
+        .edge-form {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
     </style>
 </head>
@@ -1071,6 +1320,64 @@
     </div>
 
 
+    <!-- Graph Explorer View -->
+    <div id="view-graph-explorer" class="hidden"
+        style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; height: calc(100vh - 100px);">
+        <header
+            style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <h2 id="graph-explorer-title" style="margin: 0; font-size: 1.875rem; font-weight: 700; color: white;">
+                    Graph Explorer</h2>
+                <p id="graph-explorer-subtitle" style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.25rem;">
+                    Visualizing graph relationships...</p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" onclick="openAddVertexModal()" style="background: var(--primary);">+ Nodo</button>
+                <button class="btn" onclick="openAddEdgeModal()" style="background: var(--secondary);">+
+                    Relación</button>
+                <button class="btn" onclick="loadGraphData(currentSelectedCollection)"
+                    style="background: rgba(255,255,255,0.1);">Refrescar</button>
+            </div>
+        </header>
+
+        <div class="graph-layout">
+            <div class="graph-container">
+                <div id="graph-canvas"></div>
+                <div class="graph-controls">
+                    <button class="view-mode-btn active" onclick="setGraphPhysics(true)" title="Enable Physics">Physics
+                        On</button>
+                    <button class="view-mode-btn" onclick="setGraphPhysics(false)" title="Disable Physics">Physics
+                        Off</button>
+                    <button class="view-mode-btn" onclick="fitGraph()" title="Fit View">Fit View</button>
+                </div>
+            </div>
+
+            <div class="graph-sidebar">
+                <div class="card" style="padding: 1rem; background: rgba(0,0,0,0.2);">
+                    <h3 style="font-size: 0.9rem; color: #a5b4fc; margin-bottom: 0.75rem;">Explorar desde Nodo</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="traverse-start-id" placeholder="ID del Nodo" style="font-size: 0.8rem;">
+                        <button class="btn" onclick="traverseGraph()"
+                            style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Ir</button>
+                    </div>
+                    <div style="margin-top: 0.5rem;">
+                        <label style="font-size: 0.7rem; color: #94a3b8;">Profundidad:</label>
+                        <input type="number" id="traverse-depth" value="2" min="1" max="5"
+                            style="width: 60px; font-size: 0.8rem;">
+                    </div>
+                </div>
+
+                <div id="node-info-panel" class="card hidden" style="padding: 1rem; border-color: var(--primary);">
+                    <h3 style="font-size: 0.9rem; color: var(--primary); margin-bottom: 0.5rem;"
+                        id="selected-node-label">Nodo: ...</h3>
+                    <div id="selected-node-properties"
+                        style="font-size: 0.8rem; color: #cbd5e1; max-height: 200px; overflow-y: auto;">
+                        Select a node to see properties.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Document Explorer View -->
     <div id="view-document-explorer" class="hidden"
@@ -1152,6 +1459,72 @@
         </div>
     </div>
 
+    <!-- Vertex Modal -->
+    <div id="vertex-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="vertex-modal-title" style="margin: 0;">Añadir Vértice</h2>
+                <button onclick="hideModal('vertex-modal')"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">ID del Nodo (JID)</label>
+                <input type="text" id="vertex-jid" placeholder="ej: persona:1" style="font-family: monospace;">
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Etiqueta (Label)</label>
+                <input type="text" id="vertex-label" placeholder="ej: Persona">
+            </div>
+            <div class="mb-6">
+                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Propiedades (JSON)</label>
+                <textarea id="vertex-properties"
+                    style="width: 100%; height: 120px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); font-family: monospace; font-size: 0.85rem; color: #a5b4fc; padding: 0.75rem; border-radius: 0.5rem; resize: vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" onclick="saveVertex()" style="flex: 1; background: var(--primary);">Guardar
+                    Vértice</button>
+                <button class="btn" onclick="hideModal('vertex-modal')"
+                    style="background: rgba(255,255,255,0.05); color: white; flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edge Modal -->
+    <div id="edge-modal" class="modal-overlay hidden">
+        <div class="card" style="width: 100%; max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 id="edge-modal-title" style="margin: 0;">Añadir Relación</h2>
+                <button onclick="hideModal('edge-modal')"
+                    style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
+            </div>
+            <div class="grid mb-4">
+                <div>
+                    <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Origen (From JID)</label>
+                    <input type="text" id="edge-from" placeholder="ej: persona:1" style="font-family: monospace;">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Destino (To JID)</label>
+                    <input type="text" id="edge-to" placeholder="ej: persona:2" style="font-family: monospace;">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Etiqueta (Label)</label>
+                <input type="text" id="edge-label" placeholder="ej: CONOCE_A">
+            </div>
+            <div class="mb-6">
+                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Propiedades (JSON)</label>
+                <textarea id="edge-properties"
+                    style="width: 100%; height: 120px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); font-family: monospace; font-size: 0.85rem; color: #a5b4fc; padding: 0.75rem; border-radius: 0.5rem; resize: vertical;"></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" onclick="saveEdge()" style="flex: 1; background: var(--secondary);">Guardar
+                    Relación</button>
+                <button class="btn" onclick="hideModal('edge-modal')"
+                    style="background: rgba(255,255,255,0.05); color: white; flex: 1;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
 
     <footer class="footer">
         <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
@@ -1165,7 +1538,7 @@
 
     <!-- Password Change Modal -->
     <div id="password-modal" class="modal-overlay hidden">
-        <div class="card" style="width: 100%; max-width: 400px;">
+        <div class="card" style="width: 100%; max-width: 400px; border-top: 4px solid var(--primary);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2 style="margin: 0;">Change Password</h2>
                 <button onclick="closeChangePasswordModal()"
@@ -1547,6 +1920,8 @@
             </div>
         </div>
     </div>
+
+
     <!-- Permission Change Confirmation Modal -->
     <div id="perm-confirm-modal" class="modal-overlay hidden">
         <div class="card" style="width: 100%; max-width: 450px; border: 1px solid rgba(245, 158, 11, 0.3);">
@@ -1612,6 +1987,259 @@
         let allDatabases = [];
         let allUsers = [];
         let allSequences = [];
+        let network = null;
+        let currentSelectedCollection = null;
+
+        function showView(viewId) {
+            currentView = viewId;
+            document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
+            document.getElementById('view-security').classList.toggle('hidden', viewId !== 'security');
+            document.getElementById('view-query').classList.toggle('hidden', viewId !== 'query');
+            document.getElementById('view-sequences').classList.toggle('hidden', viewId !== 'sequences');
+            document.getElementById('view-password').classList.toggle('hidden', viewId !== 'password');
+            document.getElementById('view-document-explorer').classList.toggle('hidden', viewId !== 'document-explorer');
+            document.getElementById('view-graph-explorer').classList.toggle('hidden', viewId !== 'graph-explorer');
+
+            document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
+            document.getElementById('nav-security').classList.toggle('active', viewId === 'security');
+            document.getElementById('nav-query').classList.toggle('active', viewId === 'query');
+            document.getElementById('nav-password').classList.toggle('active', viewId === 'password');
+
+            if (viewId === 'sequences') {
+                loadSequences();
+            }
+
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('show');
+            }
+
+            refreshData();
+        }
+
+        async function loadGraphData(colName) {
+            currentSelectedCollection = colName;
+            document.getElementById('graph-explorer-title').textContent = `Graph: ${colName}`;
+            showView('graph-explorer');
+
+            try {
+                // Fetch storage node for proxy
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                if (!storeNode) {
+                    showAlert('Error', 'No hay nodos de almacenamiento disponibles para el proxy de grafos.', 'error');
+                    return;
+                }
+
+                const targetUrl = `http://${storeNode.address}/api/v1/graph/${colName}/data`;
+                const resp = await fetchWithAuth('/api/db/proxy/graph', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: targetUrl, method: 'GET' })
+                });
+
+                if (resp.ok) {
+                    const data = await safeJson(resp);
+                    renderGraph(data.nodes || [], data.edges || []);
+                } else {
+                    showAlert('Error', 'Error al cargar datos del grafo: ' + resp.status, 'error');
+                }
+            } catch (e) {
+                console.error('Graph Load Error:', e);
+                showAlert('Error', 'Error de conexión: ' + e.message, 'error');
+            }
+        }
+
+        function renderGraph(nodes, edges) {
+            const container = document.getElementById('graph-canvas');
+            const visNodes = new vis.DataSet(nodes.map(n => ({
+                id: n.jid,
+                label: n.label || n.jid,
+                title: JSON.stringify(n.properties || {}, null, 2),
+                properties: n.properties,
+                color: {
+                    background: '#8b5cf6',
+                    border: '#a78bfa',
+                    highlight: { background: '#c084fc', border: '#e9d5ff' }
+                },
+                font: { color: '#ffffff' }
+            })));
+
+            const visEdges = new vis.DataSet(edges.map(e => ({
+                from: e.from,
+                to: e.to,
+                label: e.label,
+                title: JSON.stringify(e.properties || {}, null, 2),
+                properties: e.properties,
+                arrows: 'to',
+                color: { color: '#6366f1', highlight: '#818cf8' },
+                font: { color: '#94a3b8', size: 10 }
+            })));
+
+            const data = { nodes: visNodes, edges: visEdges };
+            const options = {
+                physics: {
+                    enabled: true,
+                    barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 }
+                },
+                interaction: { hover: true, tooltipDelay: 200 }
+            };
+
+            network = new vis.Network(container, data, options);
+
+            network.on("selectNode", function (params) {
+                const nodeId = params.nodes[0];
+                const node = visNodes.get(nodeId);
+                showNodeInfo(node);
+            });
+
+            network.on("deselectNode", function () {
+                document.getElementById('node-info-panel').classList.add('hidden');
+            });
+        }
+
+        function showNodeInfo(node) {
+            const panel = document.getElementById('node-info-panel');
+            const label = document.getElementById('selected-node-label');
+            const props = document.getElementById('selected-node-properties');
+
+            label.textContent = `Nodo: ${node.id}`;
+            let html = `<div class="mb-2"><span class="text-indigo-400">Etiqueta:</span> ${node.label}</div>`;
+            html += `<pre style="background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 0.25rem;">${JSON.stringify(node.properties, null, 2)}</pre>`;
+
+            props.innerHTML = html;
+            panel.classList.remove('hidden');
+        }
+
+        function openAddVertexModal() {
+            document.getElementById('vertex-jid').value = '';
+            document.getElementById('vertex-label').value = '';
+            document.getElementById('vertex-properties').value = '{}';
+            showModal('vertex-modal');
+        }
+
+        function openAddEdgeModal() {
+            document.getElementById('edge-from').value = '';
+            document.getElementById('edge-to').value = '';
+            document.getElementById('edge-label').value = '';
+            document.getElementById('edge-properties').value = '{}';
+            showModal('edge-modal');
+        }
+
+        async function saveVertex() {
+            const jid = document.getElementById('vertex-jid').value;
+            const label = document.getElementById('vertex-label').value;
+            const propertiesStr = document.getElementById('vertex-properties').value;
+
+            if (!jid) return showAlert('Error', 'El JID es obligatorio', 'error');
+
+            try {
+                const properties = JSON.parse(propertiesStr);
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                const targetUrl = `http://${storeNode.address}/api/v1/graph/${currentSelectedCollection}/vertex`;
+                const resp = await fetchWithAuth('/api/db/proxy/graph', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: targetUrl,
+                        method: 'POST',
+                        payload: JSON.stringify({ jid, label, properties })
+                    })
+                });
+
+                if (resp.ok) {
+                    showAlert('Éxito', 'Vértice creado', 'success');
+                    hideModal('vertex-modal');
+                    loadGraphData(currentSelectedCollection);
+                } else {
+                    showAlert('Error', 'Error al crear vértice: ' + resp.status, 'error');
+                }
+            } catch (e) {
+                showAlert('Error', 'JSON de propiedades inválido o error de red: ' + e.message, 'error');
+            }
+        }
+
+        async function saveEdge() {
+            const from = document.getElementById('edge-from').value;
+            const to = document.getElementById('edge-to').value;
+            const label = document.getElementById('edge-label').value;
+            const propertiesStr = document.getElementById('edge-properties').value;
+
+            if (!from || !to) return showAlert('Error', 'Origen y Destino son obligatorios', 'error');
+
+            try {
+                const properties = JSON.parse(propertiesStr);
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                const targetUrl = `http://${storeNode.address}/api/v1/graph/${currentSelectedCollection}/edge`;
+                const resp = await fetchWithAuth('/api/db/proxy/graph', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: targetUrl,
+                        method: 'POST',
+                        payload: JSON.stringify({ from, to, label, properties })
+                    })
+                });
+
+                if (resp.ok) {
+                    showAlert('Éxito', 'Relación creada', 'success');
+                    hideModal('edge-modal');
+                    loadGraphData(currentSelectedCollection);
+                } else {
+                    showAlert('Error', 'Error al crear relación: ' + resp.status, 'error');
+                }
+            } catch (e) {
+                showAlert('Error', 'JSON de propiedades inválido o error de red: ' + e.message, 'error');
+            }
+        }
+
+        function setGraphPhysics(enabled) {
+            if (network) network.setOptions({ physics: { enabled } });
+            document.querySelectorAll('.graph-controls .view-mode-btn').forEach(btn => {
+                if (btn.textContent.includes('Physics On')) btn.classList.toggle('active', enabled);
+                if (btn.textContent.includes('Physics Off')) btn.classList.toggle('active', !enabled);
+            });
+        }
+
+        function fitGraph() {
+            if (network) network.fit({ animation: true });
+        }
+
+        async function traverseGraph() {
+            const startNode = document.getElementById('traverse-start-id').value;
+            const depth = document.getElementById('traverse-depth').value;
+            if (!startNode) return showAlert('Error', 'Ingrese un ID de nodo inicial', 'error');
+
+            try {
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                const targetUrl = `http://${storeNode.address}/api/v1/graph/${currentSelectedCollection}/traverse?id=${encodeURIComponent(startNode)}&depth=${depth}`;
+                const resp = await fetchWithAuth('/api/db/proxy/graph', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: targetUrl, method: 'GET' })
+                });
+
+                if (resp.ok) {
+                    const data = await safeJson(resp);
+                    renderGraph(data.nodes || [], data.edges || []);
+                } else {
+                    showAlert('Error', 'Traversal falló', 'error');
+                }
+            } catch (e) {
+                showAlert('Error', e.message, 'error');
+            }
+        }
 
         // Users Pagination
         let userPage = 1;
@@ -1696,31 +2324,7 @@
             hideModal('user-info-modal');
         }
 
-        function showView(viewId) {
-            currentView = viewId;
-            document.getElementById('view-cluster').classList.toggle('hidden', viewId !== 'cluster');
-            document.getElementById('view-security').classList.toggle('hidden', viewId !== 'security');
-            document.getElementById('view-query').classList.toggle('hidden', viewId !== 'query');
-            document.getElementById('view-sequences').classList.toggle('hidden', viewId !== 'sequences');
-            document.getElementById('view-password').classList.toggle('hidden', viewId !== 'password');
-            document.getElementById('view-document-explorer').classList.toggle('hidden', viewId !== 'document-explorer');
 
-            document.getElementById('nav-cluster').classList.toggle('active', viewId === 'cluster');
-            document.getElementById('nav-security').classList.toggle('active', viewId === 'security');
-            document.getElementById('nav-query').classList.toggle('active', viewId === 'query');
-            document.getElementById('nav-password').classList.toggle('active', viewId === 'password');
-
-            if (viewId === 'sequences') {
-                loadSequences();
-            }
-
-            // Close sidebar on mobile
-            if (window.innerWidth <= 768) {
-                document.getElementById('sidebar').classList.remove('show');
-            }
-
-            refreshData();
-        }
 
         function refreshData() {
             // Always fetch databases to keep the tree explorer updated
@@ -1743,7 +2347,6 @@
                 const response = await fetchWithAuth('/api/monitor/nodes');
                 if (response.ok) {
                     const data = await safeJson(response);
-                    console.log('Nodes fetched:', data);
                     allNodes = data || [];
                 }
                 if (selectedNodeId) updateModalContent();
@@ -1834,26 +2437,34 @@
                         </div>
                         ` : ''}
                     </div>
-                </div>
+                </div >
                 <div id="sub-${dbName}-${col}" class="${expandedNodes.has(`sub-${dbName}-${col}`) ? 'show' : 'hidden'}" style="padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
+                    ${engine === 'Graph' ? `
+                    <div class="tree-type-item" onclick="selectCollection('${dbName}', '${col}', '${engine}')" style="font-size: 0.75rem; color: #c084fc;">
+                        <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                         Explorador de Grafos
+                    </div>
+                    ` : `
                     <div class="tree-type-item" onclick="selectCollection('${dbName}', '${col}', '${engine}')" style="font-size: 0.75rem; color: var(--primary);">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                          Documentos (CRUD)
                     </div>
-                    <div class="tree-type-item" onclick="showAlert('Info', 'Gestión de índices para ${col}', 'info')" style="font-size: 0.75rem; color: #94a3b8;">
-                        <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                         index
-                    </div>
-                    <div class="tree-type-item" onclick="openSequenceModalFromTree('${dbName}', '${col}')" style="font-size: 0.75rem; color: #94a3b8;">
-                        <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                         secuency
-                    </div>
-                    <div class="tree-type-item" onclick="showAlert('Info', 'Definición de reglas para ${col}', 'info')" style="font-size: 0.75rem; color: #94a3b8;">
-                        <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                         rules
-                    </div>
+                    `}
+
+                <div class="tree-type-item" onclick="showAlert('Info', 'Gestión de índices para ${col}', 'info')" style="font-size: 0.75rem; color: #94a3b8;">
+                    <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    index
                 </div>
-            `).join('');
+                <div class="tree-type-item" onclick="openSequenceModalFromTree('${dbName}', '${col}')" style="font-size: 0.75rem; color: #94a3b8;">
+                    <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    secuency
+                </div>
+                <div class="tree-type-item" onclick="showAlert('Info', 'Definición de reglas para ${col}', 'info')" style="font-size: 0.75rem; color: #94a3b8;">
+                    <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    rules
+                </div>
+            </div>
+        `).join('');
         }
 
         function openCollectionModal(dbName, colName = '', engine = 'Document') {
@@ -1879,7 +2490,6 @@
             showModal('collection-modal');
         }
 
-        let currentSelectedCollection = null;
         let currentSelectedDatabase = null;
         let expandedNodes = new Set();
 
@@ -1957,13 +2567,13 @@
             if (sequences.length === 0) return '<div style="color: #475569; font-size: 0.7rem; padding-left: 0.5rem; padding-bottom: 0.5rem;">No sequences</div>';
 
             return sequences.map(s => `
-                <div class="tree-type-item" onclick="showView('sequences')" style="font-size: 0.75rem; color: #e2e8f0; justify-content: space-between; padding-right: 0.5rem;">
+            < div class="tree-type-item" onclick = "showView('sequences')" style = "font-size: 0.75rem; color: #e2e8f0; justify-content: space-between; padding-right: 0.5rem;" >
                     <div style="display: flex; align-items: center;">
                         <svg style="width: 10px; height: 10px; margin-right: 0.4rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         ${s.name}
                     </div>
                     <span style="color: #10b981; font-family: monospace;">${s.currentValue}</span>
-                </div>
+                </div >
             `).join('');
         }
 
@@ -1972,13 +2582,13 @@
             if (sequences.length === 0) return '<div style="color: #475569; font-size: 0.75rem; padding-left: 1rem; padding-bottom: 0.5rem;">No sequences</div>';
 
             return sequences.map(s => `
-                <div class="tree-type-item" onclick="showView('sequences')" style="font-size: 0.75rem; color: #e2e8f0; justify-content: space-between; padding-right: 0.5rem; padding-left: 1rem;">
+            < div class="tree-type-item" onclick = "showView('sequences')" style = "font-size: 0.75rem; color: #e2e8f0; justify-content: space-between; padding-right: 0.5rem; padding-left: 1rem;" >
                     <div style="display: flex; align-items: center;">
                         <svg style="width: 10px; height: 10px; margin-right: 0.4rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         ${s.name}
                     </div>
                     <span style="color: #10b981; font-family: monospace;">${s.currentValue}</span>
-                </div>
+                </div >
             `).join('');
         }
 
@@ -1995,7 +2605,7 @@
             }
 
             list.innerHTML = sequences.map(s => `
-                <tr>
+            < tr >
                     <td style="font-weight: 600; color: white;">${s.name}</td>
                     <td><span style="font-size: 0.75rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); padding: 0.2rem 0.5rem; border-radius: 4px;">${s.database}</span></td>
                     <td style="font-family: 'Fira Code', monospace; color: #10b981;">${s.currentValue}</td>
@@ -2006,7 +2616,7 @@
                             <button class="view-mode-btn" style="color: #ef4444;" onclick="deleteSequence('${s.name}')">DELETE</button>
                         </div>
                     </td>
-                </tr>
+                </tr >
             `).join('');
         }
 
@@ -2073,7 +2683,7 @@
             const list = document.getElementById('sequences-list');
             if (!list) return;
             list.innerHTML = sequences.length ? sequences.map(seq => `
-                <tr>
+            < tr >
                     <td>${seq.name}</td>
                     <td>${seq.database}</td>
                     <td>${seq.currentValue || 0}</td>
@@ -2084,7 +2694,7 @@
                              <button class="btn" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; background: rgba(239, 68, 68, 0.1); color: #ef4444;" onclick="deleteSequence('${seq.name}')">Delete</button>
                         </div>
                     </td>
-                </tr>
+                </tr >
             `).join('') : '<tr><td colspan="5" style="text-align: center; color: #64748b;">No sequences found</td></tr>';
         }
 
@@ -2104,7 +2714,7 @@
 
         async function getNextSequence(name) {
             try {
-                const response = await fetchWithAuth(`/api/v1/sequence/${name}/next`);
+                const response = await fetchWithAuth(`/ api / v1 / sequence / ${name}/next`);
                 if (response.ok) {
                     const val = await response.text();
                     showAlert('Sequence', `Next Value: ${val}`, 'success');
@@ -2188,17 +2798,233 @@
             currentSelectedCollection = colName;
             currentPage = 1; // Reset to first page on collection change
 
-            showView('document-explorer');
-            document.getElementById('doc-explorer-title').textContent = `${colName} (${engine})`;
-            document.getElementById('doc-explorer-subtitle').textContent = `Exploring collection in database: ${dbName}`;
+            if (engine === 'Graph') {
+                showView('graph-explorer');
+                document.getElementById('graph-explorer-title').textContent = `${colName} (${engine})`;
+                document.getElementById('graph-explorer-subtitle').textContent = `Exploring graph in database: ${dbName}`;
+                loadGraphData(colName);
+            } else {
+                showView('document-explorer');
+                document.getElementById('doc-explorer-title').textContent = `${colName} (${engine})`;
+                document.getElementById('doc-explorer-subtitle').textContent = `Exploring collection in database: ${dbName}`;
+                loadDocuments(colName);
+            }
+        }
 
-            loadDocuments(colName);
+        // --- Graph Logic ---
+        let nodesDataset = new vis.DataSet([]);
+        let edgesDataset = new vis.DataSet([]);
+
+        function initGraph() {
+            const container = document.getElementById('graph-canvas');
+            const data = { nodes: nodesDataset, edges: edgesDataset };
+            const options = {
+                nodes: {
+                    shape: 'dot',
+                    size: 20,
+                    font: { size: 14, color: '#ffffff' },
+                    borderWidth: 2,
+                    shadow: true
+                },
+                edges: {
+                    width: 2,
+                    color: { inherit: 'from' },
+                    smooth: { type: 'continuous' },
+                    arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+                },
+                physics: {
+                    enabled: true,
+                    barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 },
+                    maxVelocity: 50,
+                    minVelocity: 0.1,
+                    solver: 'barnesHut',
+                    stabilization: { iterations: 150 }
+                },
+                interaction: { hover: true, tooltipDelay: 200 }
+            };
+            network = new vis.Network(container, data, options);
+
+            network.on("click", function (params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    const node = nodesDataset.get(nodeId);
+                    showNodeInfo(node);
+                } else {
+                    document.getElementById('node-info-panel').classList.add('hidden');
+                }
+            });
+        }
+
+        function showNodeInfo(node) {
+            const panel = document.getElementById('node-info-panel');
+            const label = document.getElementById('selected-node-label');
+            const props = document.getElementById('selected-node-properties');
+
+            label.textContent = `Nodo: ${node.id} (${node.label || 'No Label'})`;
+            props.innerHTML = `<pre style="margin:0; font-family:monospace; background:rgba(0,0,0,0.4); padding:0.5rem; border-radius:4px;">${JSON.stringify(node.properties || {}, null, 2)}</pre>`;
+            panel.classList.remove('hidden');
+        }
+
+        async function loadGraphData(colName) {
+            if (!network) initGraph();
+
+            nodesDataset.clear();
+            edgesDataset.clear();
+
+            try {
+                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+                const nodes = await safeJson(nodesResp) || [];
+                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+                if (!storeNode) {
+                    showAlert('Error', 'No online STORAGE nodes found.');
+                    return;
+                }
+
+                // Since we don't have a "get all graph items" listing easily in the basic engine yet,
+                // we'll try a generic traverse from a known root or just show instructions.
+                // For a real implementation, we'd have a list of recent vertices.
+                console.log("Graph Explorer ready. Use 'Traverse' to load nodes.");
+            } catch (error) {
+                console.error('Error loading graph:', error);
+            }
+        }
+
+        function openAddVertexModal() {
+            document.getElementById('vertex-id').value = 'v' + Date.now();
+            showModal('vertex-modal');
+        }
+
+        async function submitVertex() {
+            const id = document.getElementById('vertex-id').value;
+            const label = document.getElementById('vertex-label').value;
+            const propsStr = document.getElementById('vertex-properties').value;
+
+            let props = {};
+            try { props = JSON.parse(propsStr); } catch (e) { showAlert('Error', 'Invalid JSON properties'); return; }
+
+            const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+            const nodes = await safeJson(nodesResp) || [];
+            const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+            const payload = JSON.stringify({ id, label, properties: props });
+
+            try {
+                const response = await fetchWithAuth('/api/db/proxy/graph', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        url: `http://${storeNode.address}/api/v1/graph/vertex`,
+                        method: 'POST',
+                        payload: payload
+                    })
+                });
+
+                if (response.ok) {
+                    hideModal('vertex-modal');
+                    nodesDataset.add({ id, label: label || id, title: id, properties: props, color: '#6366f1' });
+                    showAlert('Success', 'Nodo creado correctamente', 'success');
+                } else {
+                    showAlert('Error', 'Failed to create vertex: ' + response.status);
+                }
+            } catch (error) {
+                showAlert('Error', error.message);
+            }
+        }
+
+        function openAddEdgeModal() {
+            showModal('edge-modal');
+        }
+
+        async function submitEdge() {
+            const from = document.getElementById('edge-from').value;
+            const to = document.getElementById('edge-to').value;
+            const label = document.getElementById('edge-label').value;
+            const propsStr = document.getElementById('edge-properties').value;
+
+            let props = {};
+            try { props = JSON.parse(propsStr); } catch (e) { showAlert('Error', 'Invalid JSON properties'); return; }
+
+            const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+            const nodes = await safeJson(nodesResp) || [];
+            const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+            const payload = JSON.stringify({ fromId: from, toId: to, label, properties: props });
+
+            try {
+                const response = await fetchWithAuth('/api/db/proxy/graph', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        url: `http://${storeNode.address}/api/v1/graph/edge`,
+                        method: 'POST',
+                        payload: payload
+                    })
+                });
+
+                if (response.ok) {
+                    hideModal('edge-modal');
+                    edgesDataset.add({ from, to, label: label, title: label });
+                    showAlert('Success', 'Relación creada correctamente', 'success');
+                } else {
+                    showAlert('Error', 'Failed to create edge: ' + response.status);
+                }
+            } catch (error) {
+                showAlert('Error', error.message);
+            }
+        }
+
+        async function traverseGraph() {
+            const startId = document.getElementById('traverse-start-id').value;
+            const depth = document.getElementById('traverse-depth').value;
+
+            if (!startId) { showAlert('Warning', 'Ingrese un ID de nodo inicial'); return; }
+
+            const nodesResp = await fetchWithAuth('/api/monitor/nodes');
+            const nodes = await safeJson(nodesResp) || [];
+            const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
+
+            try {
+                const url = `http://${storeNode.address}/api/v1/graph/traverse/${startId}?depth=${depth}`;
+                const response = await fetchWithAuth('/api/db/proxy/graph', {
+                    method: 'POST',
+                    body: JSON.stringify({ url, method: 'GET' })
+                });
+
+                if (response.ok) {
+                    const data = await safeJson(response) || [];
+                    // Update dataset with new nodes
+                    data.forEach(node => {
+                        if (!nodesDataset.get(node.id)) {
+                            nodesDataset.add({ id: node.id, label: node.label || node.id, title: node.id, properties: node.properties, color: '#a855f7' });
+                        }
+                    });
+                    fitGraph();
+                } else {
+                    showAlert('Error', 'Traverse failed: ' + response.status);
+                }
+            } catch (error) {
+                showAlert('Error', error.message);
+            }
+        }
+
+        function setGraphPhysics(enabled) {
+            network.setOptions({ physics: { enabled: enabled } });
+            const btns = document.querySelectorAll('#view-graph-explorer .view-mode-btn');
+            btns[0].classList.toggle('active', enabled);
+            btns[1].classList.toggle('active', !enabled);
+        }
+
+        function fitGraph() {
+            if (network) network.fit({ animation: true });
         }
 
         function addDocumentFromTree(dbName, colName, engine) {
             selectCollection(dbName, colName, engine);
             setTimeout(() => {
-                openAddDocModal();
+                if (engine === 'Graph') {
+                    openAddVertexModal();
+                } else {
+                    openAddDocModal();
+                }
             }, 100);
         }
 
@@ -2459,6 +3285,11 @@
                 const nodes = await safeJson(nodesResp) || [];
                 const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
 
+                if (!storeNode) {
+                    showAlert('Error', 'No online STORAGE nodes found.');
+                    return;
+                }
+
                 const targetUrl = `http://${storeNode.address}/api/v1/document/${currentSelectedCollection}/${encodeURIComponent(docToDeleteId)}`;
                 const resp = await fetchWithAuth('/api/db/proxy/document', {
                     method: 'POST',
@@ -2639,7 +3470,7 @@
                     } else if (engine !== 'Document') {
                         filtered = []; // Default all to Document if no engine info
                     }
-                    document.getElementById(`col-list-${dbName}-${engine}`).innerHTML = renderCollectionItems(dbName, filtered, engine);
+                    document.getElementById(`col-list-${db.name}-${eng.name}`).innerHTML = renderCollectionItems(db.name, filtered, eng.name);
                 }
             } finally {
                 btn.style.animation = '';
@@ -2670,7 +3501,7 @@
 
                 return `
                     <div class="tree-type-item" style="padding-left: 1rem;">
-                        <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                         <span>${u.username} <small style="color: #64748b">(${rolesForDb})</small></span>
                     </div>
                 `;
@@ -2751,7 +3582,10 @@
                     let filtered = collections;
                     if (collections.length > 0 && typeof collections[0] === 'object') {
                         filtered = collections.filter(c => c.engine === eng.name).map(c => c.name);
-                    } else if (eng.name !== 'Document') {
+                    } else if (eng.name === 'Document' || eng.name === 'Graph') {
+                        // If we don't have engine info, show them in both Document and Graph for visibility
+                        filtered = collections;
+                    } else {
                         filtered = [];
                     }
 
@@ -2953,18 +3787,14 @@
         }
 
         async function handleSubmitDb() {
-            console.log("DEBUG: handleSubmitDb called");
             const oldName = document.getElementById('dbOldName').value;
             const name = document.getElementById('dbNameInput').value.trim();
             const engine = document.getElementById('dbEngineSelect').value;
             const storage = document.getElementById('dbStorageSelect').value;
 
-            console.log(`DEBUG: oldName=${oldName}, name=${name}, engine=${engine}, storage=${storage}`);
-
             if (!name) return showAlert('Error', 'El nombre de la base de datos es obligatorio');
 
             const isEdit = document.getElementById('dbFormTitle').textContent.includes('Editar') || (oldName && oldName.length > 0);
-            console.log("DEBUG: isEdit=" + isEdit);
 
             if (isEdit && !oldName) {
                 return showAlert('Error', 'No se ha seleccionado ninguna base de datos para editar', 'warning');
@@ -2978,66 +3808,48 @@
             const url = isEdit ? '/api/db/' + oldName : '/api/db';
             const method = isEdit ? 'PUT' : 'POST';
 
-            console.log(`DEBUG: Fetching URL=${url} Method=${method}`);
-
             try {
+                const payload = { name, engine, storage };
+
                 const response = await fetchWithAuth(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, engine, storage })
+                    body: JSON.stringify(payload)
                 });
 
-                console.log("DEBUG: First fetch status=" + response.status);
-
                 if (response.ok) {
-                    console.log("DEBUG: Database saved/updated successfully, starting role sync");
-
-                    // Sync roles: collect all selections including 'none'
                     const roleMappings = {};
                     document.querySelectorAll('.role-type-select').forEach(select => {
                         const username = select.dataset.username;
-                        const type = select.value;
-                        if (username && type) {
-                            roleMappings[username] = type;
+                        const rType = select.value;
+                        if (username && rType) {
+                            roleMappings[username] = rType;
                         }
                     });
 
                     console.log('DEBUG: Role mappings to sync:', roleMappings);
-
-                    // We need an endpoint to sync roles
-                    // Use backticks for template literal
                     const syncUrl = `/api/web-auth/databases/${name}/sync-roles`;
-                    console.log("DEBUG: Syncing roles to " + syncUrl);
-
                     const syncResponse = await fetchWithAuth(syncUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(roleMappings)
                     });
 
-                    console.log("DEBUG: Sync fetch status=" + syncResponse.status);
-
                     if (!syncResponse.ok) {
                         const err = await syncResponse.text();
                         console.error('Sync roles error:', err);
-                        // IMPORTANT: Do NOT swallow this error if you want the user to know it failed.
-                        // However, the DB was already saved. We show a warning.
                         showAlert('Advertencia', 'Base de datos guardada, pero hubo un error asignando permisos: ' + (err || "Acceso Denegado"), 'warning');
-                    } else {
-                        console.log('Sync roles successful');
                     }
 
-                    // Wrap refresh in try/catch to ensure modal closes even if refresh fails
                     try {
-                        console.log("DEBUG: Refreshing metadata...");
                         await fetchUsers();
                         await fetchRoles();
                         fetchDatabases();
                     } catch (refreshErr) {
-                        console.error('Error refreshing data after save:', refreshErr);
+                        console.error('Error refreshing data:', refreshErr);
                     }
 
-                    document.getElementById('db-modal').classList.add('hidden');
+                    hideModal('db-modal');
                     resetDbForm();
                     showAlert('Éxito', `Base de datos ${isEdit ? 'actualizada' : 'creada'} correctamente`, 'success');
                 } else {

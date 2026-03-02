@@ -14,8 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class GraphEngine extends AbstractEngine {
 
-    public record Vertex(String id, String label, Map<String, Object> properties) {}
-    public record Edge(String fromId, String toId, String label) {}
+    public record Vertex(String id, String label, Map<String, Object> properties) {
+    }
+
+    public record Edge(String fromId, String toId, String label) {
+    }
 
     private final Map<String, Vertex> vertexStore = new ConcurrentHashMap<>();
     private final Map<String, List<Edge>> outEdges = new ConcurrentHashMap<>();
@@ -43,17 +46,18 @@ public class GraphEngine extends AbstractEngine {
         return Multi.createFrom().emitter(emitter -> {
             Set<String> visited = new HashSet<>();
             Queue<String> queue = new LinkedList<>();
-            
+
             queue.add(startId);
             visited.add(startId);
-            
+
             int depth = 0;
             while (!queue.isEmpty() && depth < maxDepth) {
                 int levelSize = queue.size();
                 for (int i = 0; i < levelSize; i++) {
                     String currentId = queue.poll();
                     Vertex v = vertexStore.get(currentId);
-                    if (v != null) emitter.emit(v);
+                    if (v != null)
+                        emitter.emit(v);
 
                     List<Edge> edges = outEdges.getOrDefault(currentId, Collections.emptyList());
                     for (Edge edge : edges) {
