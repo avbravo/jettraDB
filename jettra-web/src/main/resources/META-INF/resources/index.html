@@ -1468,8 +1468,8 @@
                     style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
             <div class="mb-4">
-                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">ID del Nodo (JID)</label>
-                <input type="text" id="vertex-jid" placeholder="ej: persona:1" style="font-family: monospace;">
+                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">ID del Nodo (id)</label>
+                <input type="text" id="vertex-id" placeholder="ej: persona:1" style="font-family: monospace;">
             </div>
             <div class="mb-4">
                 <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Etiqueta (Label)</label>
@@ -1482,7 +1482,7 @@
             </div>
             <div style="display: flex; gap: 1rem;">
                 <button class="btn" onclick="saveVertex()" style="flex: 1; background: var(--primary);">Guardar
-                    Vértice</button>
+                    Nodo</button>
                 <button class="btn" onclick="hideModal('vertex-modal')"
                     style="background: rgba(255,255,255,0.05); color: white; flex: 1;">Cancelar</button>
             </div>
@@ -1493,32 +1493,27 @@
     <div id="edge-modal" class="modal-overlay hidden">
         <div class="card" style="width: 100%; max-width: 500px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2 id="edge-modal-title" style="margin: 0;">Añadir Relación</h2>
+                <h2 id="edge-modal-title" style="margin: 0;">Añadir Arista</h2>
                 <button onclick="hideModal('edge-modal')"
                     style="background: none; border: none; color: white; cursor: pointer; font-size: 1.5rem;">&times;</button>
             </div>
             <div class="grid mb-4">
                 <div>
-                    <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Origen (From JID)</label>
-                    <input type="text" id="edge-from" placeholder="ej: persona:1" style="font-family: monospace;">
+                    <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Origen (fromId)</label>
+                    <input type="text" id="edge-fromId" placeholder="ej: persona:1" style="font-family: monospace;">
                 </div>
                 <div>
-                    <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Destino (To JID)</label>
-                    <input type="text" id="edge-to" placeholder="ej: persona:2" style="font-family: monospace;">
+                    <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Destino (toId)</label>
+                    <input type="text" id="edge-toId" placeholder="ej: persona:2" style="font-family: monospace;">
                 </div>
             </div>
             <div class="mb-4">
                 <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Etiqueta (Label)</label>
                 <input type="text" id="edge-label" placeholder="ej: CONOCE_A">
             </div>
-            <div class="mb-6">
-                <label class="text-xs text-gray-400 mb-2 block font-semibold uppercase">Propiedades (JSON)</label>
-                <textarea id="edge-properties"
-                    style="width: 100%; height: 120px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.1); font-family: monospace; font-size: 0.85rem; color: #a5b4fc; padding: 0.75rem; border-radius: 0.5rem; resize: vertical;"></textarea>
-            </div>
             <div style="display: flex; gap: 1rem;">
                 <button class="btn" onclick="saveEdge()" style="flex: 1; background: var(--secondary);">Guardar
-                    Relación</button>
+                    Arista</button>
                 <button class="btn" onclick="hideModal('edge-modal')"
                     style="background: rgba(255,255,255,0.05); color: white; flex: 1;">Cancelar</button>
             </div>
@@ -1690,6 +1685,8 @@
                     <option value="Document">Document</option>
                     <option value="Column">Column</option>
                     <option value="Graph">Graph</option>
+                    <option value="Vertex">Vertex</option>
+                    <option value="Edge">Edge</option>
                     <option value="Vector">Vector</option>
                     <option value="Object">Object</option>
                     <option value="Key-value">Key-value</option>
@@ -2017,87 +2014,68 @@
             refreshData();
         }
 
-        async function loadGraphData(colName) {
-            currentSelectedCollection = colName;
-            document.getElementById('graph-explorer-title').textContent = `Graph: ${colName}`;
-            showView('graph-explorer');
+        let nodesDataset = new vis.DataSet([]);
+        let edgesDataset = new vis.DataSet([]);
 
-            try {
-                // Fetch storage node for proxy
-                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-                const nodes = await safeJson(nodesResp) || [];
-                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-                if (!storeNode) {
-                    showAlert('Error', 'No hay nodos de almacenamiento disponibles para el proxy de grafos.', 'error');
-                    return;
-                }
-
-                const targetUrl = `http://${storeNode.address}/api/v1/graph/${colName}/data`;
-                const resp = await fetchWithAuth('/api/db/proxy/graph', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: targetUrl, method: 'GET' })
-                });
-
-                if (resp.ok) {
-                    const data = await safeJson(resp);
-                    renderGraph(data.nodes || [], data.edges || []);
-                } else {
-                    showAlert('Error', 'Error al cargar datos del grafo: ' + resp.status, 'error');
-                }
-            } catch (e) {
-                console.error('Graph Load Error:', e);
-                showAlert('Error', 'Error de conexión: ' + e.message, 'error');
-            }
-        }
-
-        function renderGraph(nodes, edges) {
+        function initGraph() {
             const container = document.getElementById('graph-canvas');
-            const visNodes = new vis.DataSet(nodes.map(n => ({
-                id: n.jid,
-                label: n.label || n.jid,
-                title: JSON.stringify(n.properties || {}, null, 2),
-                properties: n.properties,
-                color: {
-                    background: '#8b5cf6',
-                    border: '#a78bfa',
-                    highlight: { background: '#c084fc', border: '#e9d5ff' }
-                },
-                font: { color: '#ffffff' }
-            })));
-
-            const visEdges = new vis.DataSet(edges.map(e => ({
-                from: e.from,
-                to: e.to,
-                label: e.label,
-                title: JSON.stringify(e.properties || {}, null, 2),
-                properties: e.properties,
-                arrows: 'to',
-                color: { color: '#6366f1', highlight: '#818cf8' },
-                font: { color: '#94a3b8', size: 10 }
-            })));
-
-            const data = { nodes: visNodes, edges: visEdges };
+            const data = { nodes: nodesDataset, edges: edgesDataset };
             const options = {
+                nodes: {
+                    shape: 'dot',
+                    size: 20,
+                    font: { size: 14, color: '#ffffff' },
+                    borderWidth: 2,
+                    shadow: true
+                },
+                edges: {
+                    width: 2,
+                    color: { inherit: 'from' },
+                    smooth: { type: 'continuous' },
+                    arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+                },
                 physics: {
                     enabled: true,
-                    barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 }
+                    barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 },
+                    maxVelocity: 50,
+                    minVelocity: 0.1,
+                    solver: 'barnesHut',
+                    stabilization: { iterations: 150 }
                 },
                 interaction: { hover: true, tooltipDelay: 200 }
             };
-
             network = new vis.Network(container, data, options);
 
             network.on("selectNode", function (params) {
                 const nodeId = params.nodes[0];
-                const node = visNodes.get(nodeId);
+                const node = nodesDataset.get(nodeId);
                 showNodeInfo(node);
             });
 
             network.on("deselectNode", function () {
                 document.getElementById('node-info-panel').classList.add('hidden');
             });
+        }
+
+        async function loadGraphData(colName) {
+            currentSelectedCollection = colName;
+            document.getElementById('graph-explorer-title').textContent = `Graph: ${colName}`;
+            showView('graph-explorer');
+
+            if (!network) initGraph();
+
+            nodesDataset.clear();
+            edgesDataset.clear();
+
+            try {
+                // Fetch storage node for traverse (we still need this for some direct calls if needed, 
+                // but for traverse we'll use the new jettra-web API)
+                // However, loadGraphData should ideally show SOME data initially.
+                // jettra-graph.md doesn't have a "list all" so we'll just wait for traverse.
+                console.log("Graph Explorer ready. Use 'Traverse' to load nodes.");
+            } catch (error) {
+                console.error('Error loading graph:', error);
+            }
         }
 
         function showNodeInfo(node) {
@@ -2113,51 +2091,44 @@
             panel.classList.remove('hidden');
         }
 
-        function openAddVertexModal() {
-            document.getElementById('vertex-jid').value = '';
-            document.getElementById('vertex-label').value = '';
+        function openAddVertexModal(defaultLabel = '') {
+            document.getElementById('vertex-id').value = 'v' + Date.now();
+            document.getElementById('vertex-label').value = defaultLabel;
             document.getElementById('vertex-properties').value = '{}';
             showModal('vertex-modal');
         }
 
-        function openAddEdgeModal() {
-            document.getElementById('edge-from').value = '';
-            document.getElementById('edge-to').value = '';
-            document.getElementById('edge-label').value = '';
-            document.getElementById('edge-properties').value = '{}';
+        function openAddEdgeModal(defaultLabel = '') {
+            document.getElementById('edge-fromId').value = '';
+            document.getElementById('edge-toId').value = '';
+            document.getElementById('edge-label').value = defaultLabel;
             showModal('edge-modal');
         }
 
         async function saveVertex() {
-            const jid = document.getElementById('vertex-jid').value;
+            const id = document.getElementById('vertex-id').value;
             const label = document.getElementById('vertex-label').value;
             const propertiesStr = document.getElementById('vertex-properties').value;
 
-            if (!jid) return showAlert('Error', 'El JID es obligatorio', 'error');
+            if (!id) return showAlert('Error', 'El ID es obligatorio', 'error');
 
             try {
-                const properties = JSON.parse(propertiesStr);
-                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-                const nodes = await safeJson(nodesResp) || [];
-                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-                const targetUrl = `http://${storeNode.address}/api/v1/graph/${currentSelectedCollection}/vertex`;
-                const resp = await fetchWithAuth('/api/db/proxy/graph', {
+                const properties = JSON.parse(propertiesStr || '{}');
+                const resp = await fetchWithAuth('/api/v1/graph/vertex', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: targetUrl,
-                        method: 'POST',
-                        payload: JSON.stringify({ jid, label, properties })
-                    })
+                    body: JSON.stringify({ id, label, properties })
                 });
 
                 if (resp.ok) {
-                    showAlert('Éxito', 'Vértice creado', 'success');
+                    showAlert('Éxito', 'Nodo creado correctamente', 'success');
                     hideModal('vertex-modal');
-                    loadGraphData(currentSelectedCollection);
+                    if (nodesDataset) {
+                        nodesDataset.add({ id, label: label || id, title: id, properties, color: '#6366f1' });
+                    }
                 } else {
-                    showAlert('Error', 'Error al crear vértice: ' + resp.status, 'error');
+                    const err = await safeJson(resp);
+                    showAlert('Error', 'Error al crear nodo: ' + (err.error || resp.status), 'error');
                 }
             } catch (e) {
                 showAlert('Error', 'JSON de propiedades inválido o error de red: ' + e.message, 'error');
@@ -2165,39 +2136,31 @@
         }
 
         async function saveEdge() {
-            const from = document.getElementById('edge-from').value;
-            const to = document.getElementById('edge-to').value;
+            const fromId = document.getElementById('edge-fromId').value;
+            const toId = document.getElementById('edge-toId').value;
             const label = document.getElementById('edge-label').value;
-            const propertiesStr = document.getElementById('edge-properties').value;
 
-            if (!from || !to) return showAlert('Error', 'Origen y Destino son obligatorios', 'error');
+            if (!fromId || !toId) return showAlert('Error', 'Origen y Destino son obligatorios', 'error');
 
             try {
-                const properties = JSON.parse(propertiesStr);
-                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-                const nodes = await safeJson(nodesResp) || [];
-                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-                const targetUrl = `http://${storeNode.address}/api/v1/graph/${currentSelectedCollection}/edge`;
-                const resp = await fetchWithAuth('/api/db/proxy/graph', {
+                const resp = await fetchWithAuth('/api/v1/graph/edge', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        url: targetUrl,
-                        method: 'POST',
-                        payload: JSON.stringify({ from, to, label, properties })
-                    })
+                    body: JSON.stringify({ fromId, toId, label })
                 });
 
                 if (resp.ok) {
-                    showAlert('Éxito', 'Relación creada', 'success');
+                    showAlert('Éxito', 'Arista creada correctamente', 'success');
                     hideModal('edge-modal');
-                    loadGraphData(currentSelectedCollection);
+                    if (edgesDataset) {
+                        edgesDataset.add({ from: fromId, to: toId, label: label, title: label });
+                    }
                 } else {
-                    showAlert('Error', 'Error al crear relación: ' + resp.status, 'error');
+                    const err = await safeJson(resp);
+                    showAlert('Error', 'Error al crear arista: ' + (err.error || resp.status), 'error');
                 }
             } catch (e) {
-                showAlert('Error', 'JSON de propiedades inválido o error de red: ' + e.message, 'error');
+                showAlert('Error', 'Error de red: ' + e.message, 'error');
             }
         }
 
@@ -2219,25 +2182,28 @@
             if (!startNode) return showAlert('Error', 'Ingrese un ID de nodo inicial', 'error');
 
             try {
-                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-                const nodes = await safeJson(nodesResp) || [];
-                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-                const targetUrl = `http://${storeNode.address}/api/v1/graph/${currentSelectedCollection}/traverse?id=${encodeURIComponent(startNode)}&depth=${depth}`;
-                const resp = await fetchWithAuth('/api/db/proxy/graph', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: targetUrl, method: 'GET' })
-                });
-
+                const resp = await fetchWithAuth(`/api/v1/graph/traverse/${encodeURIComponent(startNode)}?depth=${depth}`);
                 if (resp.ok) {
-                    const data = await safeJson(resp);
-                    renderGraph(data.nodes || [], data.edges || []);
+                    const data = await safeJson(resp) || [];
+                    // Update dataset with new nodes
+                    data.forEach(node => {
+                        if (!nodesDataset.get(node.id)) {
+                            nodesDataset.add({
+                                id: node.id,
+                                label: node.label || node.id,
+                                title: node.id,
+                                properties: node.properties,
+                                color: '#a855f7'
+                            });
+                        }
+                    });
+                    fitGraph();
                 } else {
-                    showAlert('Error', 'Traversal falló', 'error');
+                    const err = await safeJson(resp);
+                    showAlert('Error', 'Traversal falló: ' + (err.error || resp.status), 'error');
                 }
             } catch (e) {
-                showAlert('Error', e.message, 'error');
+                showAlert('Error', 'Error de red: ' + e.message, 'error');
             }
         }
 
@@ -2257,6 +2223,8 @@
             { name: 'Document', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
             { name: 'Column', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z' },
             { name: 'Graph', icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14' },
+            { name: 'Vertex', icon: 'M12 4v16m8-8H4' },
+            { name: 'Edge', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
             { name: 'Vector', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
             { name: 'Object', icon: 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4' },
             { name: 'Key-value', icon: 'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z' },
@@ -2439,10 +2407,15 @@
                     </div>
                 </div >
                 <div id="sub-${dbName}-${col}" class="${expandedNodes.has(`sub-${dbName}-${col}`) ? 'show' : 'hidden'}" style="padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
-                    ${engine === 'Graph' ? `
-                    <div class="tree-type-item" onclick="selectCollection('${dbName}', '${col}', '${engine}')" style="font-size: 0.75rem; color: #c084fc;">
+                    ${engine === 'Vertex' ? `
+                    <div class="tree-type-item" onclick="addVertexFromTree('${dbName}', '${col}')" style="font-size: 0.75rem; color: #a5b4fc;">
+                        <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                         Añadir Registro
+                    </div>
+                    ` : engine === 'Edge' ? `
+                    <div class="tree-type-item" onclick="addEdgeFromTree('${dbName}', '${col}')" style="font-size: 0.75rem; color: #a5b4fc;">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                         Explorador de Grafos
+                         Añadir Registro
                     </div>
                     ` : `
                     <div class="tree-type-item" onclick="selectCollection('${dbName}', '${col}', '${engine}')" style="font-size: 0.75rem; color: var(--primary);">
@@ -2485,8 +2458,21 @@
                 engineSelect.style.cursor = 'pointer';
             }
 
-            document.getElementById('col-modal-title').textContent = colName ? 'Editar Colección' : 'Nueva Colección';
-            document.getElementById('col-submit-btn').textContent = colName ? 'Guardar Cambios' : 'Crear Colección';
+            let title = 'Nueva Colección';
+            let btnText = 'Crear Colección';
+            if (engine === 'Vertex') {
+                title = colName ? 'Editar Tipo de Vértice' : 'Nuevo Tipo de Vértice';
+                btnText = colName ? 'Guardar Cambios' : 'Crear Tipo de Vértice';
+            } else if (engine === 'Edge') {
+                title = colName ? 'Editar Tipo de Arista' : 'Nuevo Tipo de Arista';
+                btnText = colName ? 'Guardar Cambios' : 'Crear Tipo de Arista';
+            } else if (colName) {
+                title = 'Editar Colección';
+                btnText = 'Guardar Cambios';
+            }
+
+            document.getElementById('col-modal-title').textContent = title;
+            document.getElementById('col-submit-btn').textContent = btnText;
             showModal('collection-modal');
         }
 
@@ -2811,220 +2797,19 @@
             }
         }
 
-        // --- Graph Logic ---
-        let nodesDataset = new vis.DataSet([]);
-        let edgesDataset = new vis.DataSet([]);
 
-        function initGraph() {
-            const container = document.getElementById('graph-canvas');
-            const data = { nodes: nodesDataset, edges: edgesDataset };
-            const options = {
-                nodes: {
-                    shape: 'dot',
-                    size: 20,
-                    font: { size: 14, color: '#ffffff' },
-                    borderWidth: 2,
-                    shadow: true
-                },
-                edges: {
-                    width: 2,
-                    color: { inherit: 'from' },
-                    smooth: { type: 'continuous' },
-                    arrows: { to: { enabled: true, scaleFactor: 0.5 } }
-                },
-                physics: {
-                    enabled: true,
-                    barnesHut: { gravitationalConstant: -2000, centralGravity: 0.3, springLength: 150 },
-                    maxVelocity: 50,
-                    minVelocity: 0.1,
-                    solver: 'barnesHut',
-                    stabilization: { iterations: 150 }
-                },
-                interaction: { hover: true, tooltipDelay: 200 }
-            };
-            network = new vis.Network(container, data, options);
 
-            network.on("click", function (params) {
-                if (params.nodes.length > 0) {
-                    const nodeId = params.nodes[0];
-                    const node = nodesDataset.get(nodeId);
-                    showNodeInfo(node);
-                } else {
-                    document.getElementById('node-info-panel').classList.add('hidden');
-                }
-            });
-        }
-
-        function showNodeInfo(node) {
-            const panel = document.getElementById('node-info-panel');
-            const label = document.getElementById('selected-node-label');
-            const props = document.getElementById('selected-node-properties');
-
-            label.textContent = `Nodo: ${node.id} (${node.label || 'No Label'})`;
-            props.innerHTML = `<pre style="margin:0; font-family:monospace; background:rgba(0,0,0,0.4); padding:0.5rem; border-radius:4px;">${JSON.stringify(node.properties || {}, null, 2)}</pre>`;
-            panel.classList.remove('hidden');
-        }
-
-        async function loadGraphData(colName) {
-            if (!network) initGraph();
-
-            nodesDataset.clear();
-            edgesDataset.clear();
-
-            try {
-                const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-                const nodes = await safeJson(nodesResp) || [];
-                const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-                if (!storeNode) {
-                    showAlert('Error', 'No online STORAGE nodes found.');
-                    return;
-                }
-
-                // Since we don't have a "get all graph items" listing easily in the basic engine yet,
-                // we'll try a generic traverse from a known root or just show instructions.
-                // For a real implementation, we'd have a list of recent vertices.
-                console.log("Graph Explorer ready. Use 'Traverse' to load nodes.");
-            } catch (error) {
-                console.error('Error loading graph:', error);
-            }
-        }
-
-        function openAddVertexModal() {
-            document.getElementById('vertex-id').value = 'v' + Date.now();
-            showModal('vertex-modal');
-        }
-
-        async function submitVertex() {
-            const id = document.getElementById('vertex-id').value;
-            const label = document.getElementById('vertex-label').value;
-            const propsStr = document.getElementById('vertex-properties').value;
-
-            let props = {};
-            try { props = JSON.parse(propsStr); } catch (e) { showAlert('Error', 'Invalid JSON properties'); return; }
-
-            const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-            const nodes = await safeJson(nodesResp) || [];
-            const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-            const payload = JSON.stringify({ id, label, properties: props });
-
-            try {
-                const response = await fetchWithAuth('/api/db/proxy/graph', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        url: `http://${storeNode.address}/api/v1/graph/vertex`,
-                        method: 'POST',
-                        payload: payload
-                    })
-                });
-
-                if (response.ok) {
-                    hideModal('vertex-modal');
-                    nodesDataset.add({ id, label: label || id, title: id, properties: props, color: '#6366f1' });
-                    showAlert('Success', 'Nodo creado correctamente', 'success');
-                } else {
-                    showAlert('Error', 'Failed to create vertex: ' + response.status);
-                }
-            } catch (error) {
-                showAlert('Error', error.message);
-            }
-        }
-
-        function openAddEdgeModal() {
-            showModal('edge-modal');
-        }
-
-        async function submitEdge() {
-            const from = document.getElementById('edge-from').value;
-            const to = document.getElementById('edge-to').value;
-            const label = document.getElementById('edge-label').value;
-            const propsStr = document.getElementById('edge-properties').value;
-
-            let props = {};
-            try { props = JSON.parse(propsStr); } catch (e) { showAlert('Error', 'Invalid JSON properties'); return; }
-
-            const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-            const nodes = await safeJson(nodesResp) || [];
-            const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-            const payload = JSON.stringify({ fromId: from, toId: to, label, properties: props });
-
-            try {
-                const response = await fetchWithAuth('/api/db/proxy/graph', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        url: `http://${storeNode.address}/api/v1/graph/edge`,
-                        method: 'POST',
-                        payload: payload
-                    })
-                });
-
-                if (response.ok) {
-                    hideModal('edge-modal');
-                    edgesDataset.add({ from, to, label: label, title: label });
-                    showAlert('Success', 'Relación creada correctamente', 'success');
-                } else {
-                    showAlert('Error', 'Failed to create edge: ' + response.status);
-                }
-            } catch (error) {
-                showAlert('Error', error.message);
-            }
-        }
-
-        async function traverseGraph() {
-            const startId = document.getElementById('traverse-start-id').value;
-            const depth = document.getElementById('traverse-depth').value;
-
-            if (!startId) { showAlert('Warning', 'Ingrese un ID de nodo inicial'); return; }
-
-            const nodesResp = await fetchWithAuth('/api/monitor/nodes');
-            const nodes = await safeJson(nodesResp) || [];
-            const storeNode = nodes.find(n => n.role === 'STORAGE' && n.status === 'ONLINE');
-
-            try {
-                const url = `http://${storeNode.address}/api/v1/graph/traverse/${startId}?depth=${depth}`;
-                const response = await fetchWithAuth('/api/db/proxy/graph', {
-                    method: 'POST',
-                    body: JSON.stringify({ url, method: 'GET' })
-                });
-
-                if (response.ok) {
-                    const data = await safeJson(response) || [];
-                    // Update dataset with new nodes
-                    data.forEach(node => {
-                        if (!nodesDataset.get(node.id)) {
-                            nodesDataset.add({ id: node.id, label: node.label || node.id, title: node.id, properties: node.properties, color: '#a855f7' });
-                        }
-                    });
-                    fitGraph();
-                } else {
-                    showAlert('Error', 'Traverse failed: ' + response.status);
-                }
-            } catch (error) {
-                showAlert('Error', error.message);
-            }
-        }
-
-        function setGraphPhysics(enabled) {
-            network.setOptions({ physics: { enabled: enabled } });
-            const btns = document.querySelectorAll('#view-graph-explorer .view-mode-btn');
-            btns[0].classList.toggle('active', enabled);
-            btns[1].classList.toggle('active', !enabled);
-        }
-
-        function fitGraph() {
-            if (network) network.fit({ animation: true });
-        }
-
-        function addDocumentFromTree(dbName, colName, engine) {
-            selectCollection(dbName, colName, engine);
+        function addVertexFromTree(dbName, colName) {
+            selectCollection(dbName, colName, 'Vertex');
             setTimeout(() => {
-                if (engine === 'Graph') {
-                    openAddVertexModal();
-                } else {
-                    openAddDocModal();
-                }
+                openAddVertexModal(colName);
+            }, 100);
+        }
+
+        function addEdgeFromTree(dbName, colName) {
+            selectCollection(dbName, colName, 'Edge');
+            setTimeout(() => {
+                openAddEdgeModal(colName);
             }, 100);
         }
 
@@ -3577,39 +3362,96 @@
                             </div>
                         </div>
 
-                        ${SUPPORTED_ENGINES.map(eng => {
-                    let collections = db.collections || [];
-                    let filtered = collections;
-                    if (collections.length > 0 && typeof collections[0] === 'object') {
-                        filtered = collections.filter(c => c.engine === eng.name).map(c => c.name);
-                    } else if (eng.name === 'Document' || eng.name === 'Graph') {
-                        // If we don't have engine info, show them in both Document and Graph for visibility
-                        filtered = collections;
-                    } else {
-                        filtered = [];
-                    }
-
-                    return `
-                            <div class="tree-engine-node ${expandedNodes.has(`col-list-${db.name}-${eng.name}`) ? 'active-engine' : ''}" id="engine-${db.name}-${eng.name}">
-                                <div class="tree-type-item" onclick="toggleEngineActions(this)">
-                                    <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path></svg>
-                                    ${eng.name}
-                                </div>
-                                <div class="tree-actions">
-                                    ${privs.write || privs.admin ? `
-                                    <div class="action-icon" title="Añadir Coleccion" onclick="openCollectionModal('${db.name}', '', '${eng.name}')">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                    </div>
-                                    ` : ''}
-                                    <div class="action-icon" title="Refrescar" onclick="refreshCollections('${db.name}', '${eng.name}', this)">
-                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                    </div>
-                                </div>
-                                <div class="tree-children tree-collection-list ${expandedNodes.has(`col-list-${db.name}-${eng.name}`) ? 'show' : ''}" id="col-list-${db.name}-${eng.name}">
-                                    ${renderCollectionItems(db.name, filtered, eng.name)}
+                        ${db.engine === 'Graph' ? `
+                            <!-- Special Graph Subtree (Vertex/Edge Types) -->
+                            <div class="tree-engine-node">
+                                <div class="tree-type-item" onclick="showView('graph-explorer'); selectCollection('${db.name}', '', 'Graph')">
+                                    <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
+                                    Graph Explorer
                                 </div>
                             </div>
-                        `}).join('')}
+                            ${(() => {
+                            const collections = db.collections || [];
+                            const vTypes = collections.filter(c => {
+                                const eng = (typeof c === 'object' ? c.engine : '').toLowerCase();
+                                const name = (typeof c === 'object' ? c.name : c).toLowerCase();
+                                return eng === 'vertex' || name.includes('vertex');
+                            }).map(c => typeof c === 'object' ? c.name : c);
+
+                            const eTypes = collections.filter(c => {
+                                const eng = (typeof c === 'object' ? c.engine : '').toLowerCase();
+                                const name = (typeof c === 'object' ? c.name : c).toLowerCase();
+                                return eng === 'edge' || name.includes('edge');
+                            }).map(c => typeof c === 'object' ? c.name : c);
+
+                            const engVertex = SUPPORTED_ENGINES.find(e => e.name === 'Vertex');
+                            const engEdge = SUPPORTED_ENGINES.find(e => e.name === 'Edge');
+
+                            return `
+                                <div class="tree-engine-node ${expandedNodes.has(`col-list-${db.name}-Vertex`) ? 'active-engine' : ''}" id="engine-${db.name}-Vertex">
+                                    <div class="tree-type-item" onclick="toggleEngineActions(this)">
+                                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${engVertex.icon}"></path></svg>
+                                        Vertex Types
+                                    </div>
+                                    <div class="tree-actions">
+                                        ${privs.write || privs.admin ? `
+                                        <div class="action-icon" title="Añadir Tipo de Vértice" onclick="openCollectionModal('${db.name}', '', 'Vertex')">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    <div class="tree-children tree-collection-list ${expandedNodes.has(`col-list-${db.name}-Vertex`) ? 'show' : ''}" id="col-list-${db.name}-Vertex">
+                                        ${renderCollectionItems(db.name, vTypes, 'Vertex')}
+                                    </div>
+                                </div>
+                                <div class="tree-engine-node ${expandedNodes.has(`col-list-${db.name}-Edge`) ? 'active-engine' : ''}" id="engine-${db.name}-Edge">
+                                    <div class="tree-type-item" onclick="toggleEngineActions(this)">
+                                        <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${engEdge.icon}"></path></svg>
+                                        Edge Types
+                                    </div>
+                                    <div class="tree-actions">
+                                        ${privs.write || privs.admin ? `
+                                        <div class="action-icon" title="Añadir Tipo de Arista" onclick="openCollectionModal('${db.name}', '', 'Edge')">
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        </div>
+                                        ` : ''}
+                                    </div>
+                                    <div class="tree-children tree-collection-list ${expandedNodes.has(`col-list-${db.name}-Edge`) ? 'show' : ''}" id="col-list-${db.name}-Edge">
+                                        ${renderCollectionItems(db.name, eTypes, 'Edge')}
+                                    </div>
+                                </div>
+                                `;
+                        })()}
+                        ` : SUPPORTED_ENGINES.filter(e => e.name !== 'Vertex' && e.name !== 'Edge' && e.name !== 'Graph').map(eng => {
+                            let collections = db.collections || [];
+                            let filtered = [];
+                            if (collections.length > 0 && typeof collections[0] === 'object') {
+                                filtered = collections.filter(c => c.engine === eng.name).map(c => c.name);
+                            } else if (eng.name === 'Document') {
+                                filtered = collections;
+                            }
+
+                            return `
+                                    <div class="tree-engine-node ${expandedNodes.has(`col-list-${db.name}-${eng.name}`) ? 'active-engine' : ''}" id="engine-${db.name}-${eng.name}">
+                                        <div class="tree-type-item" onclick="toggleEngineActions(this)">
+                                            <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path></svg>
+                                            ${eng.name}
+                                        </div>
+                                        <div class="tree-actions">
+                                            ${privs.write || privs.admin ? `
+                                            <div class="action-icon" title="Añadir Coleccion" onclick="openCollectionModal('${db.name}', '', '${eng.name}')">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                            </div>
+                                            ` : ''}
+                                            <div class="action-icon" title="Refrescar" onclick="refreshCollections('${db.name}', '${eng.name}', this)">
+                                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                            </div>
+                                        </div>
+                                        <div class="tree-children tree-collection-list ${expandedNodes.has(`col-list-${db.name}-${eng.name}`) ? 'show' : ''}" id="col-list-${db.name}-${eng.name}">
+                                            ${renderCollectionItems(db.name, filtered, eng.name)}
+                                        </div>
+                                    </div>
+                                `}).join('')}
                     </div>
                 </div>
                 `;
