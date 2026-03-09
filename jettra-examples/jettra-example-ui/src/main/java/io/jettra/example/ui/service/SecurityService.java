@@ -101,4 +101,17 @@ public class SecurityService {
             return false;
         }
     }
+
+    public boolean validateToken(String token) {
+        try {
+            String bearer = "Bearer " + token;
+            // We use getUsers as a lightweight check to verify the token is still valid.
+            // If PD returns 401, this will throw an exception caught below.
+            authClient.getUsers(bearer);
+            return true;
+        } catch (Exception e) {
+            LOG.warn("Token validation failed: " + e.getMessage());
+            return false;
+        }
+    }
 }

@@ -93,6 +93,7 @@ public class DatabaseResource {
 
         Database db = new Database(name, engine, storage);
         try {
+            LOG.infof("DEBUG: Calling pdClient.createDatabase for db [%s] with token length: %d", name, token.length());
             Response resp = pdClient.createDatabase(db, "Bearer " + token);
             if (resp.getStatus() >= 200 && resp.getStatus() < 300) {
                 // Auto-assign roles
@@ -176,11 +177,15 @@ public class DatabaseResource {
                         .header("HX-Trigger", "refreshExplorer")
                         .build();
             } else {
+                String errorBody = resp.hasEntity() ? resp.readEntity(String.class) : "No error body";
+                LOG.errorf("Error creating database: %d. Body: %s", resp.getStatus(), errorBody);
                 DatabaseForm form = new DatabaseForm("new-db-form");
-                form.setError("Error creating database: " + resp.getStatus());
+                form.setError("Error creating database: " + resp.getStatus() + " - " + errorBody);
+                form.init();
                 return Response.ok(form.render()).build();
             }
         } catch (Exception e) {
+            LOG.error("Exception in saveDatabase", e);
             DatabaseForm form = new DatabaseForm("new-db-form");
             form.setError("Error: " + e.getMessage());
             form.init();
@@ -317,21 +322,22 @@ public class DatabaseResource {
 
             boolean isSuperUser = "super-user".equals(user.getUsername());
             if (isSuperUser) {
-                // For super-user, we show a badge and use a hidden input to ensure it's submitted
+                // For super-user, we show a badge and use a hidden input to ensure it's
+                // submitted
                 // browsers don't submit disabled fields.
                 Div superUserDisplay = new Div("super-user-display-" + user.getUsername());
                 superUserDisplay.setStyleClass("flex items-center gap-2");
-                
+
                 Badge badge = new Badge("role-badge-" + user.getUsername(), "Super User");
                 badge.setColor("indigo");
                 superUserDisplay.addComponent(badge);
-                
+
                 // Hidden input to ensure it's sent in the form
                 InputText hiddenRole = new InputText("role-" + user.getUsername());
                 hiddenRole.setType("hidden");
                 hiddenRole.setValue("super-user");
                 superUserDisplay.addComponent(hiddenRole);
-                
+
                 row.add(superUserDisplay.render());
             } else {
                 SelectOne roleSelect = new SelectOne("role-" + user.getUsername());
@@ -405,7 +411,7 @@ public class DatabaseResource {
     @Produces(MediaType.TEXT_HTML)
     public Response saveDatabasePermissions(jakarta.ws.rs.core.MultivaluedMap<String, String> formParams) {
         LOG.infof("DEBUG: saveDatabasePermissions called. formParams: %s", formParams);
-        
+
         String dbName = formParams.getFirst("name");
         String token = getAuthToken();
         if (token == null)
@@ -426,22 +432,25 @@ public class DatabaseResource {
                 roleMappings.put(username, role);
             }
         }
-        
+
         LOG.infof("DEBUG: roleMappings built: %s", roleMappings);
 
-        // Self-lockout prevention & special checks (as requested to match index.html logic)
+        // Self-lockout prevention & special checks (as requested to match index.html
+        // logic)
         String currentLoggedInUser = headers.getCookies().containsKey("user_session")
                 ? headers.getCookies().get("user_session").getValue()
                 : "";
-        
+
         LOG.infof("DEBUG: Saving perms for DB [%s]. Current User: [%s]", dbName, currentLoggedInUser);
 
         boolean isGlobalAdmin = "super-user".equalsIgnoreCase(currentLoggedInUser);
 
         if (!isGlobalAdmin) {
             String currentUserNewRole = roleMappings.get(currentLoggedInUser);
-            if (currentUserNewRole != null && ("denied".equals(currentUserNewRole) || "none".equals(currentUserNewRole))) {
-                Alert alert = new Alert("perm-error", "Action Blocked: You cannot remove your own access completely. Assign another administrator first or contact the global admin.");
+            if (currentUserNewRole != null
+                    && ("denied".equals(currentUserNewRole) || "none".equals(currentUserNewRole))) {
+                Alert alert = new Alert("perm-error",
+                        "Action Blocked: You cannot remove your own access completely. Assign another administrator first or contact the global admin.");
                 alert.setType("danger");
                 alert.setStyleClass("bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl mb-4");
                 return Response.ok(alert.render()).build();
@@ -454,25 +463,27 @@ public class DatabaseResource {
             // Re-render the security view to show updated state
             Response securityResponse = getDatabaseSecurity(dbName);
             String securityHtml = (String) securityResponse.getEntity();
-            
+
             // Success alert with premium styling (Flowbite-like)
-            String alertHtml = String.format("""
-                <div id='alert-success-perms' class='flex items-center p-6 mb-8 text-green-400 border border-green-500/20 bg-green-500/5 backdrop-blur-xl rounded-3xl animate-in fade-in slide-in-from-top-4 duration-500' role='alert'>
-                  <svg class='flex-shrink-0 w-6 h-6' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='currentColor' viewBox='0 0 20 20'>
-                    <path d='M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z'/>
-                  </svg>
-                  <span class='sr-only'>Success</span>
-                  <div class='ms-4 text-sm font-bold tracking-tight text-green-300'>
-                    SECURITY POLICY SYNCHRONIZED: The permissions for database '%s' have been successfully deployed. The data explorer has been updated with the authorized users.
-                  </div>
-                  <button type='button' class='ms-auto -mx-1.5 -my-1.5 bg-transparent text-green-400 hover:text-green-200 rounded-lg focus:ring-2 focus:ring-green-400 p-1.5 hover:bg-green-500/10 inline-flex items-center justify-center h-8 w-8' data-dismiss-target='#alert-success-perms' aria-label='Close' onclick='this.parentElement.remove()'>
-                    <span class='sr-only'>Close</span>
-                    <svg class='w-3 h-3' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 14 14'>
-                        <path stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6'/>
-                    </svg>
-                  </button>
-                </div>
-                """, dbName);
+            String alertHtml = String.format(
+                    """
+                            <div id='alert-success-perms' class='flex items-center p-6 mb-8 text-green-400 border border-green-500/20 bg-green-500/5 backdrop-blur-xl rounded-3xl animate-in fade-in slide-in-from-top-4 duration-500' role='alert'>
+                              <svg class='flex-shrink-0 w-6 h-6' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='currentColor' viewBox='0 0 20 20'>
+                                <path d='M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z'/>
+                              </svg>
+                              <span class='sr-only'>Success</span>
+                              <div class='ms-4 text-sm font-bold tracking-tight text-green-300'>
+                                SECURITY POLICY SYNCHRONIZED: The permissions for database '%s' have been successfully deployed. The data explorer has been updated with the authorized users.
+                              </div>
+                              <button type='button' class='ms-auto -mx-1.5 -my-1.5 bg-transparent text-green-400 hover:text-green-200 rounded-lg focus:ring-2 focus:ring-green-400 p-1.5 hover:bg-green-500/10 inline-flex items-center justify-center h-8 w-8' data-dismiss-target='#alert-success-perms' aria-label='Close' onclick='this.parentElement.remove()'>
+                                <span class='sr-only'>Close</span>
+                                <svg class='w-3 h-3' aria-hidden='true' xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 14 14'>
+                                    <path stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6'/>
+                                </svg>
+                              </button>
+                            </div>
+                            """,
+                    dbName);
 
             return Response.ok(alertHtml + securityHtml)
                     .header("HX-Trigger", "refreshExplorer")

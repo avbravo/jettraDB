@@ -55,6 +55,10 @@ public class WebDbResource {
                     .request(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                     .post(Entity.entity(db, MediaType.APPLICATION_JSON));
+
+            if (response.hasEntity()) {
+                return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+            }
             return Response.status(response.getStatus()).build();
         } catch (Exception e) {
             return Response.serverError().build();
@@ -70,6 +74,10 @@ public class WebDbResource {
                     .request(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                     .put(Entity.entity(db, MediaType.APPLICATION_JSON));
+
+            if (response.hasEntity()) {
+                return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+            }
             return Response.status(response.getStatus()).build();
         } catch (Exception e) {
             return Response.serverError().build();
@@ -84,6 +92,10 @@ public class WebDbResource {
                     .request(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.AUTHORIZATION, getAuthHeader())
                     .delete();
+
+            if (response.hasEntity()) {
+                return Response.status(response.getStatus()).entity(response.readEntity(String.class)).build();
+            }
             return Response.status(response.getStatus()).build();
         } catch (Exception e) {
             return Response.serverError().build();

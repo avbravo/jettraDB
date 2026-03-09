@@ -40,7 +40,7 @@ public class GraphResource {
 
     @GET
     @Path("/traverse/{startId}")
-    public Multi<GraphEngine.Vertex> traverse(
+    public Multi<Object> traverse(
             @PathParam("startId") String startId,
             @QueryParam("depth") @jakarta.ws.rs.DefaultValue("3") int depth) {
         LOG.infof("Traversing graph from %s with depth %d", startId, depth);

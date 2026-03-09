@@ -17,6 +17,8 @@ public class DatabaseForm extends Form {
 
     public DatabaseForm(String id) {
         super(id);
+        errorLabel = new Label(id + "-error-msg", "");
+        errorLabel.setStyleClass("hidden");
     }
 
     public void init() {
@@ -30,8 +32,6 @@ public class DatabaseForm extends Form {
         this.setHxTarget("#main-content-view");
         this.setHxSwap("innerHTML");
 
-        errorLabel = new Label("db-error-msg", "");
-        errorLabel.setStyleClass("hidden");
         this.addComponent(errorLabel);
 
         // Header with Vibe

@@ -6,7 +6,7 @@ public class Button extends Component {
     public Button(String id, String label) {
         super(id);
         this.label = label;
-        this.styleClass = "j3d-button";
+        this.styleClass = "j3d-button px-5 py-2.5";
     }
 
     public String getLabel() {

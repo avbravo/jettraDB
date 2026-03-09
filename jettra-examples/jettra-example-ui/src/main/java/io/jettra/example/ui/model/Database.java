@@ -10,6 +10,7 @@ public class Database {
     private String name;
     private String engine;
     private String storage;
+    private java.util.List<Collection> collections = new java.util.ArrayList<>();
 
     public Database() {
     }
@@ -18,6 +19,7 @@ public class Database {
         this.name = name;
         this.engine = engine;
         this.storage = storage;
+        this.collections = new java.util.ArrayList<>();
     }
 
     public String getName() {
@@ -42,5 +44,13 @@ public class Database {
 
     public void setStorage(String storage) {
         this.storage = storage;
+    }
+
+    public java.util.List<Collection> getCollections() {
+        return collections;
+    }
+
+    public void setCollections(java.util.List<Collection> collections) {
+        this.collections = collections;
     }
 }

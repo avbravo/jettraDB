@@ -28,7 +28,7 @@ public class Modal extends Container {
         sb.append(String.format("<div id='%s' %s class='%s'>", id, renderAttributes(), styleClass));
         sb.append("<div class='relative w-full max-w-2xl max-h-full p-4'>");
         // Modal content
-        sb.append("<div class='j3d-modal-card'>");
+        sb.append("<div class='j3d-modal-card overflow-hidden'>");
         // Modal header
         sb.append("<div class='flex items-start justify-between p-6 border-b border-gray-700 rounded-t'>");
         sb.append(String.format("<h3 class='text-xl font-semibold text-gray-900 dark:text-white'>%s</h3>", title));

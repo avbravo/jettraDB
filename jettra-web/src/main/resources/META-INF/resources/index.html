@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo/jettra-logo.png">
     <script src="https://unpkg.com/htmx.org@2.0.8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="jettra-3d.js"></script>
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <script>
         const token = localStorage.getItem('jettra_token');
@@ -28,15 +30,17 @@
             --primary: #8b5cf6;
             --secondary: #ec4899;
             --accent: #06b6d4;
-            --bg: #020617;
-            --card-bg: rgba(15, 23, 42, 0.4);
-            --header-bg: rgba(2, 6, 23, 0.8);
+            --bg: #050505;
+            --card-bg: rgba(15, 15, 20, 0.7);
+            --header-bg: rgba(10, 10, 15, 0.85);
             --text: #f8fafc;
             --sidebar-width: 280px;
-            --neon-blue: #22d3ee;
-            --neon-purple: #c084fc;
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-blue: #00ffff;
+            --neon-purple: #007bff;
+            --glass-border: rgba(0, 123, 255, 0.3);
             --glass-shine: rgba(255, 255, 255, 0.05);
+            --glow-cyan: rgba(0, 255, 255, 0.5);
+            --glow-blue: rgba(0, 123, 255, 0.5);
         }
 
         body {
@@ -79,16 +83,41 @@
         .brand {
             font-size: 1.25rem;
             font-weight: 600;
-            background: linear-gradient(to right, #818cf8, #c084fc);
+            background: linear-gradient(to right, #00ffff, #007bff);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .window3d {
+            border-radius: 12px;
+            background: rgba(15, 15, 20, 0.8);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border) !important;
+            box-shadow: 0 0 20px var(--glow-blue) !important;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .window-header {
+            background: rgba(0, 123, 255, 0.8);
+            padding: 10px 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            user-select: none;
+            color: white;
         }
 
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);
-            background: rgba(2, 6, 23, 0.8);
+            background: rgba(10, 10, 15, 0.85);
             backdrop-filter: blur(30px) saturate(150%);
             -webkit-backdrop-filter: blur(30px) saturate(150%);
             border-right: 1px solid var(--glass-border);
@@ -96,12 +125,13 @@
             display: flex;
             flex-direction: column;
             position: fixed;
-            top: 70px;
-            bottom: 0;
-            left: 0;
+            top: 85px;
+            bottom: 20px;
+            left: 20px;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 90;
-            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 20px var(--glow-blue);
+            border-radius: 12px;
         }
 
         .sidebar.collapsed {
@@ -111,17 +141,25 @@
         /* Main Content */
         .main-content {
             flex: 1;
-            margin-top: 60px;
+            margin-top: 85px;
             /* Space for top bar */
-            margin-left: var(--sidebar-width);
-            /* Space for sidebar */
+            margin-left: calc(var(--sidebar-width) + 40px);
+            /* Space for sidebar + margin */
+            margin-right: 20px;
+            margin-bottom: 20px;
             padding: 2rem;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             transition: margin-left 0.3s ease;
-            width: calc(100% - var(--sidebar-width));
+            width: calc(100% - var(--sidebar-width) - 60px);
             box-sizing: border-box;
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: 0 0 20px var(--glow-blue);
         }
 
         .hamburger {
@@ -237,17 +275,18 @@
         }
 
         .nav-item:hover {
-            background: rgba(139, 92, 246, 0.15);
-            color: white;
-            border-color: rgba(139, 92, 246, 0.3);
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            border-color: rgba(0, 255, 255, 0.3);
             transform: translateX(5px);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
         }
 
         .nav-item.active {
-            background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), transparent);
-            color: var(--neon-purple);
-            border-left: 4px solid var(--primary);
-            box-shadow: inset 10px 0 20px rgba(139, 92, 246, 0.1);
+            background: linear-gradient(90deg, rgba(0, 123, 255, 0.2), transparent);
+            color: #00ffff;
+            border-left: 4px solid #007bff;
+            box-shadow: inset 10px 0 20px rgba(0, 123, 255, 0.1);
         }
 
         .grid {
@@ -330,11 +369,11 @@
 
         .card:hover {
             transform: translateY(-8px) scale(1.01);
-            border-color: rgba(139, 92, 246, 0.5);
+            border-color: rgba(0, 123, 255, 0.5);
             box-shadow:
                 0 20px 25px -5px rgba(0, 0, 0, 0.2),
                 0 10px 10px -5px rgba(0, 0, 0, 0.1),
-                0 0 20px rgba(139, 92, 246, 0.2);
+                0 0 20px var(--glow-blue);
         }
 
         .btn {
@@ -594,7 +633,7 @@
             inset: 0;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(8px);
-            z-index: 1000;
+            z-index: 3000;
             display: none;
             /* Changed from flex to none by default */
             align-items: center;
@@ -1332,9 +1371,6 @@
                     Visualizing graph relationships...</p>
             </div>
             <div style="display: flex; gap: 1rem;">
-                <button class="btn" onclick="openAddVertexModal()" style="background: var(--primary);">+ Nodo</button>
-                <button class="btn" onclick="openAddEdgeModal()" style="background: var(--secondary);">+
-                    Relación</button>
                 <button class="btn" onclick="loadGraphData(currentSelectedCollection)"
                     style="background: rgba(255,255,255,0.1);">Refrescar</button>
             </div>
@@ -1353,6 +1389,29 @@
             </div>
 
             <div class="graph-sidebar">
+                <div class="card vertex-form" style="padding: 1rem; background: rgba(0,0,0,0.2);">
+                    <h3 style="font-size: 0.9rem; color: var(--primary); margin-bottom: 0.75rem;">Añadir Nodo</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <input type="text" id="sidebar-vertex-id" placeholder="ID (ej: v1)" style="font-size: 0.8rem;">
+                        <input type="text" id="sidebar-vertex-label" placeholder="Etiqueta" style="font-size: 0.8rem;">
+                        <textarea id="sidebar-vertex-properties" placeholder="Propiedades (JSON)"
+                            style="font-size: 0.8rem; height: 60px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 0.25rem; padding: 0.25rem;"></textarea>
+                        <button class="btn" onclick="saveVertex('sidebar')"
+                            style="padding: 0.4rem; font-size: 0.8rem; background: var(--primary);">Guardar</button>
+                    </div>
+                </div>
+
+                <div class="card edge-form" style="padding: 1rem; background: rgba(0,0,0,0.2);">
+                    <h3 style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.75rem;">Añadir Relación</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <input type="text" id="sidebar-edge-from" placeholder="Desde ID" style="font-size: 0.8rem;">
+                        <input type="text" id="sidebar-edge-to" placeholder="Hacia ID" style="font-size: 0.8rem;">
+                        <input type="text" id="sidebar-edge-label" placeholder="Etiqueta" style="font-size: 0.8rem;">
+                        <button class="btn" onclick="saveEdge('sidebar')"
+                            style="padding: 0.4rem; font-size: 0.8rem; background: var(--secondary);">Guardar</button>
+                    </div>
+                </div>
+
                 <div class="card" style="padding: 1rem; background: rgba(0,0,0,0.2);">
                     <h3 style="font-size: 0.9rem; color: #a5b4fc; margin-bottom: 0.75rem;">Explorar desde Nodo</h3>
                     <div style="display: flex; gap: 0.5rem;">
@@ -2105,10 +2164,11 @@
             showModal('edge-modal');
         }
 
-        async function saveVertex() {
-            const id = document.getElementById('vertex-id').value;
-            const label = document.getElementById('vertex-label').value;
-            const propertiesStr = document.getElementById('vertex-properties').value;
+        async function saveVertex(source = 'modal') {
+            const prefix = source === 'sidebar' ? 'sidebar-vertex-' : 'vertex-';
+            const id = document.getElementById(prefix + 'id').value;
+            const label = document.getElementById(prefix + 'label').value;
+            const propertiesStr = document.getElementById(prefix + 'properties').value;
 
             if (!id) return showAlert('Error', 'El ID es obligatorio', 'error');
 
@@ -2122,9 +2182,14 @@
 
                 if (resp.ok) {
                     showAlert('Éxito', 'Nodo creado correctamente', 'success');
-                    hideModal('vertex-modal');
+                    if (source === 'modal') hideModal('vertex-modal');
                     if (nodesDataset) {
-                        nodesDataset.add({ id, label: label || id, title: id, properties, color: '#6366f1' });
+                        const existing = nodesDataset.get(id);
+                        if (existing) {
+                            nodesDataset.update({ id, label: label || id, title: id, properties, color: '#6366f1' });
+                        } else {
+                            nodesDataset.add({ id, label: label || id, title: id, properties, color: '#6366f1' });
+                        }
                     }
                 } else {
                     const err = await safeJson(resp);
@@ -2135,10 +2200,10 @@
             }
         }
 
-        async function saveEdge() {
-            const fromId = document.getElementById('edge-fromId').value;
-            const toId = document.getElementById('edge-toId').value;
-            const label = document.getElementById('edge-label').value;
+        async function saveEdge(source = 'modal') {
+            const fromId = document.getElementById(source === 'sidebar' ? 'sidebar-edge-from' : 'edge-fromId').value;
+            const toId = document.getElementById(source === 'sidebar' ? 'sidebar-edge-to' : 'edge-toId').value;
+            const label = document.getElementById(source === 'sidebar' ? 'sidebar-edge-label' : 'edge-label').value;
 
             if (!fromId || !toId) return showAlert('Error', 'Origen y Destino son obligatorios', 'error');
 
@@ -2151,9 +2216,12 @@
 
                 if (resp.ok) {
                     showAlert('Éxito', 'Arista creada correctamente', 'success');
-                    hideModal('edge-modal');
+                    if (source === 'modal') hideModal('edge-modal');
                     if (edgesDataset) {
-                        edgesDataset.add({ from: fromId, to: toId, label: label, title: label });
+                        const edgeId = `${fromId}-${toId}-${label}`;
+                        if (!edgesDataset.get(edgeId)) {
+                            edgesDataset.add({ id: edgeId, from: fromId, to: toId, label: label, title: label });
+                        }
                     }
                 } else {
                     const err = await safeJson(resp);
@@ -2185,16 +2253,31 @@
                 const resp = await fetchWithAuth(`/api/v1/graph/traverse/${encodeURIComponent(startNode)}?depth=${depth}`);
                 if (resp.ok) {
                     const data = await safeJson(resp) || [];
-                    // Update dataset with new nodes
-                    data.forEach(node => {
-                        if (!nodesDataset.get(node.id)) {
-                            nodesDataset.add({
-                                id: node.id,
-                                label: node.label || node.id,
-                                title: node.id,
-                                properties: node.properties,
-                                color: '#a855f7'
-                            });
+                    // Update dataset with new nodes and edges
+                    data.forEach(item => {
+                        if (item.fromId && item.toId) {
+                            // It's an edge
+                            const edgeId = `${item.fromId}-${item.toId}-${item.label}`;
+                            if (!edgesDataset.get(edgeId)) {
+                                edgesDataset.add({
+                                    id: edgeId,
+                                    from: item.fromId,
+                                    to: item.toId,
+                                    label: item.label,
+                                    title: item.label
+                                });
+                            }
+                        } else if (item.id) {
+                            // It's a vertex
+                            if (!nodesDataset.get(item.id)) {
+                                nodesDataset.add({
+                                    id: item.id,
+                                    label: item.label || item.id,
+                                    title: item.id,
+                                    properties: item.properties,
+                                    color: item.id === startNode ? '#ec4899' : '#a855f7'
+                                });
+                            }
                         }
                     });
                     fitGraph();
@@ -2343,14 +2426,8 @@
                 await fetchRoles();
                 await fetchSequences();
 
-                // Fetch collections for all databases to populate tree
-                for (let db of allDatabases) {
-                    try {
-                        const colRes = await fetchWithAuth(`/api/db/${db.name}/collections`);
-                        if (colRes.ok) db.collections = await safeJson(colRes);
-                    } catch (e) { console.error('Error fetching collections for ' + db.name, e); }
-                }
-
+                // Databases already include collections from the initial /api/db call in most cases.
+                // If they are missing, the "Refresh" button or individual engine nodes handle it.
                 renderDbTree(allDatabases);
             } catch (error) {
                 console.error('Error fetching databases:', error);
@@ -2406,13 +2483,13 @@
                         ` : ''}
                     </div>
                 </div >
-                <div id="sub-${dbName}-${col}" class="${expandedNodes.has(`sub-${dbName}-${col}`) ? 'show' : 'hidden'}" style="padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
-                    ${engine === 'Vertex' ? `
+                <div id="sub-${dbName}-${col}" class="tree-children ${expandedNodes.has(`sub-${dbName}-${col}`) ? 'show' : 'hidden'}" style="padding-left: 1.5rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
+                    ${engine.toLowerCase() === 'vertex' ? `
                     <div class="tree-type-item" onclick="addVertexFromTree('${dbName}', '${col}')" style="font-size: 0.75rem; color: #a5b4fc;">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                          Añadir Registro
                     </div>
-                    ` : engine === 'Edge' ? `
+                    ` : engine.toLowerCase() === 'edge' ? `
                     <div class="tree-type-item" onclick="addEdgeFromTree('${dbName}', '${col}')" style="font-size: 0.75rem; color: #a5b4fc;">
                         <svg style="width: 12px; height: 12px; margin-right: 0.5rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                          Añadir Registro
@@ -3248,14 +3325,22 @@
                 const response = await fetchWithAuth(`/api/db/${dbName}/collections`);
                 if (response.ok) {
                     const cols = await safeJson(response);
-                    // If backend returns objects with engine info, filter. Otherwise, show all in "Document" for now.
-                    let filtered = cols;
-                    if (cols.length > 0 && typeof cols[0] === 'object') {
-                        filtered = cols.filter(c => c.engine === engine).map(c => c.name);
-                    } else if (engine !== 'Document') {
-                        filtered = []; // Default all to Document if no engine info
+                    let filtered = [];
+                    if (cols && cols.length > 0) {
+                        if (typeof cols[0] === 'object') {
+                            filtered = cols.filter(c => {
+                                const cEng = (c.engine || '').toLowerCase();
+                                const tEng = engine.toLowerCase();
+                                if (cEng === tEng) return true;
+                                if (tEng === 'document' && !SUPPORTED_ENGINES.some(se => se.name.toLowerCase() === cEng)) return true;
+                                return false;
+                            }).map(c => c.name);
+                        } else if (engine.toLowerCase() === 'document') {
+                            filtered = cols;
+                        }
                     }
-                    document.getElementById(`col-list-${db.name}-${eng.name}`).innerHTML = renderCollectionItems(db.name, filtered, eng.name);
+                    const targetEl = document.getElementById(`col-list-${dbName}-${engine}`);
+                    if (targetEl) targetEl.innerHTML = renderCollectionItems(dbName, filtered, engine);
                 }
             } finally {
                 btn.style.animation = '';
@@ -3362,32 +3447,24 @@
                             </div>
                         </div>
 
-                        ${db.engine === 'Graph' ? `
-                            <!-- Special Graph Subtree (Vertex/Edge Types) -->
-                            <div class="tree-engine-node">
-                                <div class="tree-type-item" onclick="showView('graph-explorer'); selectCollection('${db.name}', '', 'Graph')">
-                                    <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
-                                    Graph Explorer
-                                </div>
-                            </div>
-                            ${(() => {
-                            const collections = db.collections || [];
-                            const vTypes = collections.filter(c => {
-                                const eng = (typeof c === 'object' ? c.engine : '').toLowerCase();
-                                const name = (typeof c === 'object' ? c.name : c).toLowerCase();
-                                return eng === 'vertex' || name.includes('vertex');
-                            }).map(c => typeof c === 'object' ? c.name : c);
+                        ${db.engine === 'Graph' ? (() => {
+                        const collections = db.collections || [];
+                        const vTypes = collections.filter(c => {
+                            const eng = (typeof c === 'object' ? c.engine : '').toLowerCase();
+                            const name = (typeof c === 'object' ? c.name : c).toLowerCase();
+                            return eng === 'vertex' || name.includes('vertex');
+                        }).map(c => typeof c === 'object' ? c.name : c);
 
-                            const eTypes = collections.filter(c => {
-                                const eng = (typeof c === 'object' ? c.engine : '').toLowerCase();
-                                const name = (typeof c === 'object' ? c.name : c).toLowerCase();
-                                return eng === 'edge' || name.includes('edge');
-                            }).map(c => typeof c === 'object' ? c.name : c);
+                        const eTypes = collections.filter(c => {
+                            const eng = (typeof c === 'object' ? c.engine : '').toLowerCase();
+                            const name = (typeof c === 'object' ? c.name : c).toLowerCase();
+                            return eng === 'edge' || name.includes('edge');
+                        }).map(c => typeof c === 'object' ? c.name : c);
 
-                            const engVertex = SUPPORTED_ENGINES.find(e => e.name === 'Vertex');
-                            const engEdge = SUPPORTED_ENGINES.find(e => e.name === 'Edge');
+                        const engVertex = SUPPORTED_ENGINES.find(e => e.name === 'Vertex');
+                        const engEdge = SUPPORTED_ENGINES.find(e => e.name === 'Edge');
 
-                            return `
+                        return `
                                 <div class="tree-engine-node ${expandedNodes.has(`col-list-${db.name}-Vertex`) ? 'active-engine' : ''}" id="engine-${db.name}-Vertex">
                                     <div class="tree-type-item" onclick="toggleEngineActions(this)">
                                         <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${engVertex.icon}"></path></svg>
@@ -3421,17 +3498,31 @@
                                     </div>
                                 </div>
                                 `;
-                        })()}
-                        ` : SUPPORTED_ENGINES.filter(e => e.name !== 'Vertex' && e.name !== 'Edge' && e.name !== 'Graph').map(eng => {
-                            let collections = db.collections || [];
-                            let filtered = [];
-                            if (collections.length > 0 && typeof collections[0] === 'object') {
-                                filtered = collections.filter(c => c.engine === eng.name).map(c => c.name);
-                            } else if (eng.name === 'Document') {
+                    })() : ''}
+
+                        ${SUPPORTED_ENGINES.filter(e => e.name !== 'Vertex' && e.name !== 'Edge' && e.name !== 'Graph').map(eng => {
+                        let collections = db.collections || [];
+                        let filtered = [];
+                        if (collections.length > 0) {
+                            if (typeof collections[0] === 'object') {
+                                filtered = collections.filter(c => {
+                                    const cEng = (c.engine || '').toLowerCase();
+                                    const tEng = eng.name.toLowerCase();
+                                    if (cEng === tEng) return true;
+                                    // Fallback unrecognized engines to Document node
+                                    if (tEng === 'document' && !SUPPORTED_ENGINES.some(se => se.name.toLowerCase() === cEng)) return true;
+                                    return false;
+                                }).map(c => c.name);
+                            } else if (eng.name.toLowerCase() === 'document') {
                                 filtered = collections;
                             }
+                        }
 
-                            return `
+                        // Only show engine node if it has collections or if it's the primary engine of the DB
+                        const isPrimary = db.engine === eng.name;
+                        if (filtered.length === 0 && !isPrimary && eng.name !== 'Document') return '';
+
+                        return `
                                     <div class="tree-engine-node ${expandedNodes.has(`col-list-${db.name}-${eng.name}`) ? 'active-engine' : ''}" id="engine-${db.name}-${eng.name}">
                                         <div class="tree-type-item" onclick="toggleEngineActions(this)">
                                             <svg style="width: 12px; height: 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path></svg>
@@ -3451,7 +3542,8 @@
                                             ${renderCollectionItems(db.name, filtered, eng.name)}
                                         </div>
                                     </div>
-                                `}).join('')}
+                                `;
+                    }).join('')}
                     </div>
                 </div>
                 `;
@@ -3465,6 +3557,14 @@
             if (children.id) {
                 if (children.classList.contains('show')) {
                     expandedNodes.add(children.id);
+
+                    // Show 3D engine windows for the selected database
+                    if (children.id.startsWith('children-')) {
+                        const dbName = children.id.replace('children-', '');
+                        if (window.showEngineWindows) {
+                            showEngineWindows(dbName);
+                        }
+                    }
                 } else {
                     expandedNodes.delete(children.id);
                 }
@@ -3651,7 +3751,7 @@
             const method = isEdit ? 'PUT' : 'POST';
 
             try {
-                const payload = { name, engine, storage };
+                const payload = { name, engine, storage, collections: [] };
 
                 const response = await fetchWithAuth(url, {
                     method: method,
@@ -4599,7 +4699,119 @@
                 showAlert('Error: ' + e.message, 'error');
             }
         }
+
+        // Anchor windows to 3D space near the grid
+        window.addEventListener('load', () => {
+            if (window.anchorTo3D) {
+                // position them relative to the 3D scene (x, y, z)
+                anchorTo3D('win-system', -15, 2, -10);
+                anchorTo3D('win-network', 18, 4, -15);
+                anchorTo3D('win-security', 0, 8, -25);
+            }
+        });
+
+        function showEngineWindows(dbName) {
+            if (!window.anchorTo3D || !window.clearSpatialWindows) return;
+
+            // Clear previous engine windows
+            clearSpatialWindows('engine-view');
+
+            const db = allDatabases.find(d => d.name === dbName);
+            if (!db) return;
+
+            // Determine which engines to show
+            // If it's a specific engine DB, show that one prominently
+            // Otherwise show all supported engines
+            let enginesToShow = [];
+            if (db.engine && db.engine !== 'Default') {
+                enginesToShow = SUPPORTED_ENGINES.filter(e => e.name === db.engine || e.name === 'Document');
+            } else {
+                enginesToShow = SUPPORTED_ENGINES.slice(0, 5); // Show first 5 engines for generic DBs
+            }
+
+            const radius = 20;
+            const count = enginesToShow.length;
+
+            enginesToShow.forEach((eng, i) => {
+                const angle = (i / count) * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = 3 + Math.sin(i) * 5; // Variance in height
+
+                const winId = `eng-win-${dbName}-${eng.name}`;
+                const win = document.createElement('div');
+                win.id = winId;
+                win.className = 'window3d';
+                win.style.width = '200px';
+                win.style.zIndex = '1500';
+
+                win.innerHTML = `
+                    <div class="window-header" onmousedown="startWindowDrag(event, '${winId}')">
+                        <div class="flex items-center gap-2">
+                            <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path>
+                            </svg>
+                            <span>${eng.name}</span>
+                        </div>
+                    </div>
+                    <div class="p-4 text-center">
+                        <div class="text-[10px] opacity-60 mb-2">DATABASE: ${dbName}</div>
+                        <button class="j3d-button text-[10px] py-1 px-3" onclick="openCollectionModal('${dbName}', '', '${eng.name}')">
+                            NEW COLLECTION
+                        </button>
+                    </div>
+                `;
+                document.body.appendChild(win);
+                anchorTo3D(winId, x, y, z, 'engine-view');
+            });
+        }
     </script>
+
+    <!-- Spatial Windows -->
+    <div id="win-system" class="window3d" style="width: 250px; z-index: 1500; position: fixed;">
+        <div class="window-header" onmousedown="startWindowDrag(event, 'win-system')">
+            <span>System Status</span>
+            <button class="text-xs opacity-50 hover:opacity-100">×</button>
+        </div>
+        <div class="p-4 text-xs space-y-2">
+            <div class="flex justify-between"><span>CPU</span><span class="text-cyan-400">24%</span></div>
+            <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                <div class="bg-cyan-500 h-full" style="width: 24%"></div>
+            </div>
+            <div class="flex justify-between"><span>RAM</span><span class="text-blue-400">4.2 GB</span></div>
+            <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                <div class="bg-blue-500 h-full" style="width: 42%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="win-network" class="window3d" style="width: 280px; z-index: 1500; position: fixed;">
+        <div class="window-header" onmousedown="startWindowDrag(event, 'win-network')"
+            style="background: rgba(0, 255, 127, 0.6);">
+            <span>Network Traffic</span>
+            <button class="text-xs opacity-50 hover:opacity-100">×</button>
+        </div>
+        <div class="p-4 text-xs font-mono text-green-400">
+            <div>IN: 4.2 MB/s</div>
+            <div>OUT: 1.1 MB/s</div>
+            <div class="mt-2 h-10 w-full border-b border-green-500/30 relative">
+                <div class="absolute bottom-0 left-0 right-0 h-4 bg-green-500/10"
+                    style="clip-path: polygon(0 100%, 20% 40%, 40% 80%, 60% 20%, 80% 60%, 100% 100%);"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="win-security" class="window3d" style="width: 220px; z-index: 1500; position: fixed;">
+        <div class="window-header" onmousedown="startWindowDrag(event, 'win-security')"
+            style="background: rgba(255, 69, 0, 0.6);">
+            <span>Security</span>
+            <button class="text-xs opacity-50 hover:opacity-100">×</button>
+        </div>
+        <div class="p-4 text-center">
+            <div class="text-orange-500 text-2xl font-bold mb-1">SAFE</div>
+            <div class="text-[10px] opacity-60">Threat Level: Minimal</div>
+        </div>
+    </div>
 </body>
 
 </html>

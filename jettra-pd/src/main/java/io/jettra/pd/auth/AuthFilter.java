@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import jakarta.annotation.Priority;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -12,7 +11,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
 @Provider
-@Priority(Priorities.AUTHENTICATION)
+@Priority(1)
 public class AuthFilter implements ContainerRequestFilter {
 
     private static final org.jboss.logging.Logger LOG = org.jboss.logging.Logger.getLogger(AuthFilter.class);
@@ -26,12 +25,16 @@ public class AuthFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) throws IOException {
         String path = requestContext.getUriInfo().getPath();
+        String method = requestContext.getMethod();
         // Robustly strip leading slashes
         while (path.startsWith("/")) {
             path = path.substring(1);
         }
-        System.out.println("DEBUG: AuthFilter path=" + path);
-        LOG.infof("AuthFilter entering for path: %s", path);
+
+        // Log headers for debugging
+        StringBuilder sb = new StringBuilder();
+        requestContext.getHeaders().forEach((k, v) -> sb.append(k).append(": ").append(v).append(", "));
+        LOG.infof("AuthFilter: Incoming -> Method: %s, Path: %s, Headers: [%s]", method, path, sb.toString());
 
         // 1. Truly public endpoints
         if (path.equals("api/auth/login") || path.equals("api/web-auth/login") ||
@@ -96,7 +99,7 @@ public class AuthFilter implements ContainerRequestFilter {
                     path.startsWith("api/web-auth/users") || path.startsWith("api/web-auth/roles") ||
                     (path.equals("stop") || path.contains("/stop"))) {
 
-                String method = requestContext.getMethod();
+                method = requestContext.getMethod();
                 boolean isListing = method.equals("GET") && !(path.equals("stop") || path.contains("/stop"));
                 boolean isStopNode = path.equals("stop") || path.contains("/stop");
 
@@ -168,7 +171,7 @@ public class AuthFilter implements ContainerRequestFilter {
             }
 
             if (dbName != null && !dbName.isEmpty()) {
-                String method = requestContext.getMethod();
+                method = requestContext.getMethod();
                 // Map structural changes to ADMIN
                 if (path.contains("sync-roles") ||
                         (path.contains("collections") && !method.equals("GET")) ||

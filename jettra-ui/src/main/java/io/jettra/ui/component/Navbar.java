@@ -7,8 +7,7 @@ public class Navbar extends Container {
 
     public Navbar(String id) {
         super(id);
-        this.styleClass = "border-b border-white/10 px-4 py-2.5 fixed left-0 right-0 top-0 z-50 transition-all duration-300";
-        this.addAttribute("style", "background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px);");
+        this.styleClass = "j3d-navbar px-4 py-2.5 fixed left-0 right-0 top-0 z-50 transition-all duration-300";
         this.rightContent = new Div(id + "-right");
     }
 

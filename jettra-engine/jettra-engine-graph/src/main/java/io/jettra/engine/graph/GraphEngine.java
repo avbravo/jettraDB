@@ -41,8 +41,9 @@ public class GraphEngine extends AbstractEngine {
 
     /**
      * Optimized K-Step Traversal (BFS).
+     * Returns both Vertices and Edges found during traversal.
      */
-    public Multi<Vertex> traverse(String startId, int maxDepth) {
+    public Multi<Object> traverse(String startId, int maxDepth) {
         return Multi.createFrom().emitter(emitter -> {
             Set<String> visited = new HashSet<>();
             Queue<String> queue = new LinkedList<>();
@@ -56,11 +57,15 @@ public class GraphEngine extends AbstractEngine {
                 for (int i = 0; i < levelSize; i++) {
                     String currentId = queue.poll();
                     Vertex v = vertexStore.get(currentId);
-                    if (v != null)
+                    if (v != null) {
                         emitter.emit(v);
+                    }
 
                     List<Edge> edges = outEdges.getOrDefault(currentId, Collections.emptyList());
                     for (Edge edge : edges) {
+                        // Always emit the edge if we found it during traversal
+                        emitter.emit(edge);
+
                         if (!visited.contains(edge.toId())) {
                             visited.add(edge.toId());
                             queue.add(edge.toId());

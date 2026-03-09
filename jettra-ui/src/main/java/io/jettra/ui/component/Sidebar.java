@@ -8,7 +8,7 @@ public class Sidebar extends Container {
 
     public Sidebar(String id) {
         super(id);
-        this.styleClass = "fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full border-r border-gray-100/10 sm:translate-x-0";
+        this.styleClass = "j3d-sidebar fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform -translate-x-full sm:translate-x-0";
         this.addAttribute("aria-label", "Sidebar");
     }
 
@@ -20,7 +20,7 @@ public class Sidebar extends Container {
     public String render() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format(
-                "<aside id='%s' class='%s' style='background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);'%s>",
+                "<aside id='%s' class='%s'%s>",
                 id, styleClass, renderAttributes()));
         sb.append("<div class='h-full px-3 pb-4 overflow-y-auto'>");
         sb.append("<ul class='space-y-2 font-medium'>");

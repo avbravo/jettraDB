@@ -9,14 +9,24 @@ public class Table extends Component {
 
     public Table(String id) {
         super(id);
-        this.styleClass = "w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400";
+        this.styleClass = "j3d-table";
     }
 
-    public List<String> getHeaders() { return headers; }
-    public void setHeaders(List<String> headers) { this.headers = headers; }
+    public List<String> getHeaders() {
+        return headers;
+    }
 
-    public List<List<String>> getRows() { return rows; }
-    public void setRows(List<List<String>> rows) { this.rows = rows; }
+    public void setHeaders(List<String> headers) {
+        this.headers = headers;
+    }
+
+    public List<List<String>> getRows() {
+        return rows;
+    }
+
+    public void setRows(List<List<String>> rows) {
+        this.rows = rows;
+    }
 
     public void addHeader(String header) {
         headers.add(header);
@@ -29,26 +39,27 @@ public class Table extends Component {
     @Override
     public String render() {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("<div class='relative overflow-x-auto'><table id='%s' class='%s'%s>", id, styleClass, renderAttributes()));
-        
+        sb.append(String.format("<div class='relative overflow-x-auto'><table id='%s' class='%s'%s>", id, styleClass,
+                renderAttributes()));
+
         // Header
-        sb.append("<thead class='text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400'><tr>");
+        sb.append("<thead><tr>");
         for (String header : headers) {
-            sb.append(String.format("<th scope='col' class='px-6 py-3'>%s</th>", header));
+            sb.append(String.format("<th scope='col'>%s</th>", header));
         }
         sb.append("</tr></thead>");
 
         // Body
         sb.append("<tbody>");
         for (List<String> row : rows) {
-            sb.append("<tr class='bg-white border-b dark:bg-gray-800 dark:border-gray-700'>");
+            sb.append("<tr>");
             for (String cell : row) {
                 sb.append(String.format("<td class='px-6 py-4'>%s</td>", cell));
             }
             sb.append("</tr>");
         }
         sb.append("</tbody>");
-        
+
         sb.append("</table></div>");
         return sb.toString();
     }

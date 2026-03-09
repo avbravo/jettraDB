@@ -43,8 +43,15 @@ public class DashboardResource {
             LOG.warn("DEBUG (Dashboard): user_session cookie NOT FOUND");
             return Response.temporaryRedirect(URI.create("/")).build();
         }
-
         String username = headers.getCookies().get("user_session").getValue();
+        String token = getAuthToken();
+
+        // Validate token/session validity
+        if (token == null || !securityService.validateToken(token)) {
+            LOG.warnf("DEBUG (Dashboard): Invalid or expired token for user: %s", username);
+            return Response.temporaryRedirect(URI.create("/")).build();
+        }
+
         LOG.infof("DEBUG (Dashboard): Request by user: %s", username);
         LOG.infof("DEBUG (Dashboard): Cookies present: %s", headers.getCookies().keySet());
 
@@ -68,7 +75,6 @@ public class DashboardResource {
 
         boolean isGlobalAdmin = "admin".equalsIgnoreCase(username) || "super-user".equalsIgnoreCase(username);
         if (!isGlobalAdmin) {
-            String token = getAuthToken();
             if (token != null) {
                 User user = securityService.getUser(username, token);
                 if (user != null && ("super-user".equalsIgnoreCase(user.getProfile())
@@ -575,43 +581,66 @@ public class DashboardResource {
                     }
                 }
 
-                // Add default engines
+                // Engines definitions with icons
                 DataExplorer.EngineNode docEng = new DataExplorer.EngineNode("Document (Collection)",
                         "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode colEng = new DataExplorer.EngineNode("Column",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode graphEng = new DataExplorer.EngineNode("Graph",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode vecEng = new DataExplorer.EngineNode("Vector",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode objEng = new DataExplorer.EngineNode("Object",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode kvEng = new DataExplorer.EngineNode("Key-Value",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode geoEng = new DataExplorer.EngineNode("Geospatial",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode tsEng = new DataExplorer.EngineNode("Time-Series",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
+                DataExplorer.EngineNode fileEng = new DataExplorer.EngineNode("Files",
+                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z");
 
-                // Fetch collections for this DB
+                // Fetch collections and distribute them by engine type
                 try {
                     List<io.jettra.example.ui.model.Collection> cols = pdClient.getCollections(db.getName(),
                             "Bearer " + token);
                     if (cols != null) {
                         for (io.jettra.example.ui.model.Collection col : cols) {
-                            if ("Document".equals(col.getEngine())) {
+                            String engineType = col.getEngine();
+                            if ("Document".equals(engineType))
                                 docEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
-                            }
+                            else if ("Column".equals(engineType))
+                                colEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            else if ("Graph".equals(engineType))
+                                graphEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            else if ("Vector".equals(engineType))
+                                vecEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            else if ("Object".equals(engineType))
+                                objEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            else if ("Key-Value".equals(engineType))
+                                kvEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            else if ("Geospatial".equals(engineType))
+                                geoEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            else if ("Time-Series".equals(engineType))
+                                tsEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+                            else if ("Files".equals(engineType))
+                                fileEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
                         }
                     }
                 } catch (Exception e) {
-                    // Fallback or log if fetch fails (e.g. legacy DBs)
-                    // LOG.warn("Could not fetch collections for " + db.getName());
+                    LOG.error("Error fetching collections for explorer node: " + db.getName(), e);
                 }
 
                 dbNode.addEngine(docEng);
-                dbNode.addEngine(new DataExplorer.EngineNode("Column",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
-                dbNode.addEngine(new DataExplorer.EngineNode("Graph",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
-                dbNode.addEngine(new DataExplorer.EngineNode("Vector",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
-                dbNode.addEngine(new DataExplorer.EngineNode("Object",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
-                dbNode.addEngine(new DataExplorer.EngineNode("Key-Value",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
-                dbNode.addEngine(new DataExplorer.EngineNode("Geospatial",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
-                dbNode.addEngine(new DataExplorer.EngineNode("Time-Series",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
-                dbNode.addEngine(new DataExplorer.EngineNode("Files",
-                        "M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z"));
+                dbNode.addEngine(colEng);
+                dbNode.addEngine(graphEng);
+                dbNode.addEngine(vecEng);
+                dbNode.addEngine(objEng);
+                dbNode.addEngine(kvEng);
+                dbNode.addEngine(geoEng);
+                dbNode.addEngine(tsEng);
+                dbNode.addEngine(fileEng);
 
                 dataExplorer.addDatabase(dbNode);
             }
