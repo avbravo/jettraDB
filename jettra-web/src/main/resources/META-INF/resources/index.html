@@ -2426,8 +2426,23 @@
                 await fetchRoles();
                 await fetchSequences();
 
-                // Databases already include collections from the initial /api/db call in most cases.
-                // If they are missing, the "Refresh" button or individual engine nodes handle it.
+                console.log('Databases fetched:', allDatabases);
+
+                // Re-add the loop to fetch collections for each database to ensure data availability
+                for (let db of allDatabases) {
+                    try {
+                        console.log(`Fetching collections for DB: ${db.name}`);
+                        const colRes = await fetchWithAuth(`/api/db/${db.name}/collections`);
+                        if (colRes.ok) {
+                            db.collections = await safeJson(colRes);
+                            console.log(`Collections for ${db.name}:`, db.collections);
+                        } else {
+                            console.warn(`Failed to fetch collections for ${db.name}: ${colRes.status}`);
+                        }
+                    } catch (e) {
+                        console.error('Error fetching collections for ' + db.name, e);
+                    }
+                }
                 renderDbTree(allDatabases);
             } catch (error) {
                 console.error('Error fetching databases:', error);
@@ -3379,6 +3394,7 @@
         }
 
         function renderDbTree(dbs) {
+            console.log('Rendering DB Tree with:', dbs);
             const treeRoot = document.getElementById('db-tree-root');
             if (!treeRoot) return;
 
