@@ -20,7 +20,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.ArrayList;
 import io.jettra.example.ui.service.SecurityService;
-import io.jettra.example.ui.model.User;
+import io.jettra.example.ui.model.UserUI;
 
 @Path("/dashboard")
 public class DashboardResource {
@@ -76,7 +76,7 @@ public class DashboardResource {
         boolean isGlobalAdmin = "admin".equalsIgnoreCase(username) || "super-user".equalsIgnoreCase(username);
         if (!isGlobalAdmin) {
             if (token != null) {
-                User user = securityService.getUser(username, token);
+                UserUI user = securityService.getUser(username, token);
                 if (user != null && ("super-user".equalsIgnoreCase(user.getProfile())
                         || "admin".equalsIgnoreCase(user.getProfile()))) {
                     isGlobalAdmin = true;
@@ -361,11 +361,11 @@ public class DashboardResource {
                         }
                     });
 
-                    // Global listener for data-modal-hide - uses closest() to handle SVG/children clicks
+                    // Global listener for data-jettra-modal-hide - uses closest() to handle SVG/children clicks
                     document.addEventListener('click', function(e) {
-                        const hideBtn = e.target.closest('[data-modal-hide]');
+                        const hideBtn = e.target.closest('[data-jettra-modal-hide]');
                         if (hideBtn) {
-                            const modalId = hideBtn.getAttribute('data-modal-hide');
+                            const modalId = hideBtn.getAttribute('data-jettra-modal-hide');
 
                             // Only prevent default if it's not a button that should trigger an HTMX request
                             const hasHx = hideBtn.hasAttribute('hx-post') || hideBtn.hasAttribute('hx-delete') || hideBtn.hasAttribute('hx-put') || hideBtn.hasAttribute('hx-get');
@@ -543,9 +543,14 @@ public class DashboardResource {
     @Produces(MediaType.TEXT_HTML)
     public String getExplorerView() {
         DataExplorer dataExplorer = new DataExplorer("data-explorer");
+        StringBuilder script3d = new StringBuilder();
+        script3d.append("\n<script>\n");
+        script3d.append(
+                "if (typeof window.clearSpatialWindows === 'function') window.clearSpatialWindows('collections');\n");
+        script3d.append("document.querySelectorAll('.col-3d-node').forEach(n => n.remove());\n");
 
         List<Database> dbs = new ArrayList<>();
-        List<User> allUsers = new ArrayList<>();
+        List<UserUI> allUsers = new ArrayList<>();
         String token = null;
         try {
             if (headers.getCookies().containsKey("auth_token")) {
@@ -565,7 +570,7 @@ public class DashboardResource {
                 DataExplorer.DatabaseNode dbNode = new DataExplorer.DatabaseNode(db.getName());
 
                 // Add authorized users to the node
-                for (User user : allUsers) {
+                for (UserUI user : allUsers) {
                     String userRole = null;
                     if (user.getRoles() != null) {
                         for (String role : user.getRoles()) {
@@ -606,6 +611,7 @@ public class DashboardResource {
                     List<io.jettra.example.ui.model.Collection> cols = pdClient.getCollections(db.getName(),
                             "Bearer " + token);
                     if (cols != null) {
+                        int colIdx = 0;
                         for (io.jettra.example.ui.model.Collection col : cols) {
                             String engineType = col.getEngine();
                             if ("Document".equals(engineType))
@@ -626,6 +632,43 @@ public class DashboardResource {
                                 tsEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
                             else if ("Files".equals(engineType))
                                 fileEng.addCollection(new DataExplorer.CollectionNode(col.getName()));
+
+                            // 3D Rendering JS Script
+                            String safeName = col.getName().replaceAll("[^a-zA-Z0-9]", "-");
+                            String nodeId = "col-3d-node-" + db.getName() + "-" + safeName;
+                            int engIdx = 0;
+                            if ("Column".equals(engineType))
+                                engIdx = 1;
+                            else if ("Graph".equals(engineType))
+                                engIdx = 2;
+                            else if ("Vector".equals(engineType))
+                                engIdx = 3;
+
+                            double x = (colIdx % 5) * 4 - 2;
+                            double y = (engIdx) * 4 - 6;
+                            double z = -5;
+
+                            script3d.append("var node_").append(safeName).append(" = document.createElement('div');\n");
+                            script3d.append("node_").append(safeName).append(".id = '").append(nodeId).append("';\n");
+                            script3d.append("node_").append(safeName)
+                                    .append(".className = 'col-3d-node pointer-events-auto';\n");
+                            script3d.append("node_").append(safeName).append(".style.position = 'fixed';\n");
+                            script3d.append("node_").append(safeName).append(".style.cursor = 'pointer';\n");
+                            script3d.append("node_").append(safeName).append(
+                                    ".innerHTML = `<div class=\"col-node-inner shadow-cyan-500/50 shadow-lg\" style=\"width: 32px; height: 32px; background: rgba(0, 255, 255, 0.2); border: 2px solid #00ffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); position: relative;\"><svg style=\"width: 16px; height: 16px; color: white;\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 7v10a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2z\"></path></svg><div style=\"position: absolute; bottom: -22px; width: max-content; font-size: 10px; font-weight: 800; color: #00ffff; text-shadow: 0 0 4px #00ffff, 0 0 8px black; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.3);\">")
+                                    .append(col.getName().toUpperCase()).append("</div></div>`;\n");
+                            script3d.append("node_").append(safeName).append(
+                                    ".onmousedown = function(e){ if (typeof window.start3DDrag === 'function') window.start3DDrag(e, this.id); };\n");
+                            script3d.append("node_").append(safeName).append(
+                                    ".onclick = function(e){ e.stopPropagation(); if (typeof window.is3DWindowMoved === 'function' && window.is3DWindowMoved()) return; htmx.ajax('GET', '/dashboard/document/explorer?db=")
+                                    .append(db.getName()).append("&col=").append(col.getName())
+                                    .append("', {target:'#main-content-view'}); };\n");
+                            script3d.append("document.body.appendChild(node_").append(safeName).append(");\n");
+                            script3d.append("if (typeof window.anchorTo3D === 'function') window.anchorTo3D('")
+                                    .append(nodeId).append("', ").append(x).append(", ").append(y).append(", ")
+                                    .append(z).append(", 'collections');\n");
+
+                            colIdx++;
                         }
                     }
                 } catch (Exception e) {
@@ -649,7 +692,8 @@ public class DashboardResource {
             dataExplorer.addDatabase(emptyDb);
         }
 
-        return dataExplorer.render();
+        script3d.append("</script>\n");
+        return dataExplorer.render() + script3d.toString();
     }
 
     // Helper for Modals

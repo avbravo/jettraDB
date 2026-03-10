@@ -4,126 +4,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JettraDB Login</title>
+    <title>JettraDB Portal | Terminal Access</title>
     <link rel="icon" type="image/png" href="/logo/jettra-logo.png">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="jettra-3d.js"></script>
     <style>
         :root {
             --primary: #6366f1;
-            --bg: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text: #f8fafc;
+            --secondary: #06b6d4;
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.4);
+            --text: #f1f5f9;
+            --glow: 0 0 20px rgba(99, 102, 241, 0.4);
         }
 
         body {
             font-family: 'Outfit', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            background: var(--bg);
             color: var(--text);
+            margin: 0;
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
+        }
+
+        /* Hero Image View (Layered behind) - Removed static image to let 3D canvas shine */
+        .login-hero-bg {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at center, rgba(15, 23, 42, 0.2) 0%, rgba(2, 6, 23, 0.9) 100%);
+            z-index: -1;
+        }
+
+        .login-hero-bg::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent 0%, var(--bg) 100%);
         }
 
         .login-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(12px);
-            padding: 2.5rem;
-            border-radius: 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(10, 15, 30, 0.65);
+            backdrop-filter: blur(25px) saturate(200%);
+            -webkit-backdrop-filter: blur(25px) saturate(200%);
+            padding: 3rem;
+            border-radius: 2.5rem;
+            border: 1px solid rgba(0, 255, 255, 0.2);
             width: 100%;
-            max-width: 400px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 420px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 20px rgba(0, 255, 255, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .login-card:hover {
+            box-shadow: 0 0 50px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(0, 255, 255, 0.4);
+            transform: translateY(-10px) rotateX(5deg) scale(1.02);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 0 10px var(--primary));
+        }
+
+        .logo-container img {
+            width: 80px;
+            height: 80px;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
         }
 
         h2 {
             margin-top: 0;
             text-align: center;
-            margin-bottom: 2rem;
-            color: white;
+            margin-bottom: 0.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+            font-style: italic;
+            font-size: 1.875rem;
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            font-weight: 600;
         }
 
         .input-group {
             margin-bottom: 1.5rem;
+            position: relative;
         }
 
         label {
             display: block;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
             color: #94a3b8;
-            font-size: 0.875rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
         }
 
         input {
-            width: 90%;
-            padding: 0.75rem;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 0.5rem;
-            color: white;
-            font-family: inherit;
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: rgba(2, 6, 23, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            border-radius: 1rem;
+            color: #00ffff;
+            font-family: 'Fira Code', monospace;
+            box-sizing: border-box;
+            transition: all 0.3s;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
         }
 
         input:focus {
             outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px var(--primary);
+            border-color: #00ffff;
+            background: rgba(2, 6, 23, 0.9);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.1);
+            transform: scale(1.02);
         }
 
         button {
             width: 100%;
-            padding: 0.75rem;
-            background: var(--primary);
+            padding: 1.25rem;
+            background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
             color: white;
             border: none;
-            border-radius: 0.5rem;
-            font-weight: 600;
+            border-radius: 1.25rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
         }
 
         button:hover {
-            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
+        }
+
+        button:active {
+            transform: translateY(0);
         }
 
         #error-msg {
-            color: #ef4444;
+            color: #fb7185;
+            background: rgba(244, 63, 94, 0.1);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            padding: 1rem;
+            border-radius: 1rem;
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             font-size: 0.875rem;
+            font-weight: 600;
             display: none;
+            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-1px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(2px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-4px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(4px, 0, 0);
+            }
+        }
+
+        footer {
+            position: fixed;
+            bottom: 2rem;
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
     </style>
 </head>
 
 <body>
-    <div class="login-card">
-        <div style="text-align: center; margin-bottom: 1.5rem;">
-            <img src="/logo/jettra-logo.png" alt="JettraDB Logo" style="width: 64px; height: 64px;">
+    <div class="login-hero-bg"></div>
+
+    <div id="loginCard" class="login-card">
+        <div class="logo-container">
+            <img src="/logo/jettra-logo.png" alt="JettraDB Logo">
         </div>
-        <h2>JettraDB Admin</h2>
+        <h2>Jettra Portal</h2>
+        <div class="subtitle">Secure Authentication</div>
+
         <form id="loginForm">
             <div class="input-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required>
+                <label for="username">Identity Identifier</label>
+                <input type="text" id="username" name="username" placeholder="Username / Admin ID" required>
             </div>
             <div class="input-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <label for="password">Encryption Key</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" required>
             </div>
-            <button type="submit">Log In</button>
+            <button type="submit">Initialize Link</button>
             <div id="error-msg"></div>
         </form>
     </div>
 
-    <footer
-        style="position: fixed; bottom: 1rem; text-align: center; color: #64748b; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
-        <img src="/logo/jettra-logo.png" alt="JettraDB Logo" style="width: 20px; height: 20px; opacity: 0.7;">
-        <span>&copy; 2024 JettraDB</span>
+    <footer>
+        &copy; 2024 JETTRA SYSTEMS COLLABORATIVE
     </footer>
 
     <script>
+        // Anchor to 3D Space
+        window.addEventListener('load', () => {
+            if (window.anchorTo3D) {
+                // Position card at the origin of the Cartesian plane
+                window.anchorTo3D('loginCard', 0, 0, 5);
+            }
+        });
+
         const form = document.getElementById('loginForm');
         const errorMsg = document.getElementById('error-msg');
 
@@ -136,14 +278,11 @@
             const password = form.password.value;
 
             try {
-                console.log('Attempting login to /api/web-auth/login...');
                 const response = await fetch('/api/web-auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
-
-                console.log('Response status:', response.status);
 
                 if (response.ok) {
                     const data = await response.json();
@@ -154,14 +293,11 @@
 
                     window.location.href = '/index.html';
                 } else {
-                    const errorText = await response.text();
-                    console.error('Login failed with status:', response.status, errorText);
-                    errorMsg.textContent = 'Invalid credentials or server error';
+                    errorMsg.textContent = 'ACCESS DENIED: INVALID FRAGMENT CREDENTIALS';
                     errorMsg.style.display = 'block';
                 }
             } catch (err) {
-                console.error('Fetch error:', err);
-                errorMsg.textContent = 'Login failed (Network Error): ' + err.message + '. Check if the server is running and accessible.';
+                errorMsg.textContent = 'PROTOCOL ERROR: UNABLE TO ESTABLISH LINK';
                 errorMsg.style.display = 'block';
             }
         });

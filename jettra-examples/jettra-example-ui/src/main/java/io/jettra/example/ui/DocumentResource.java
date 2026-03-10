@@ -640,7 +640,9 @@ public class DocumentResource {
             if (value instanceof Map<?, ?>) {
                 Tree.TreeNode node = new Tree.TreeNode(key,
                         "<svg class='w-3 h-3 text-slate-500' fill='none' stroke='currentColor' viewBox='0 0 24 24'><path d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3l-2-2H5a2 2 0 00-2 2z'></path></svg>");
-                buildTreeFromMap(node, (Map<String, Object>) value);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> childMap = (Map<String, Object>) value;
+                buildTreeFromMap(node, childMap);
                 parent.addChild(node);
             } else if (value instanceof List<?>) {
                 Tree.TreeNode node = new Tree.TreeNode(key + " [" + ((List<?>) value).size() + " items]",

@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @RegisterForReflection
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class User {
+public class UserUI {
     private String username;
     private String password;
     private String email;

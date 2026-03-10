@@ -2,6 +2,7 @@ package io.jettra.example.ui;
 
 import io.jettra.example.ui.model.Node;
 import io.jettra.example.ui.model.RaftGroup;
+import io.jettra.example.ui.model.UserUI;
 import io.jettra.example.ui.service.ClusterService;
 import io.jettra.ui.component.*;
 import jakarta.inject.Inject;
@@ -57,7 +58,7 @@ public class ClusterResource {
 
                 boolean isSuperUser = "admin".equalsIgnoreCase(username) || "super-user".equalsIgnoreCase(username);
                 if (!isSuperUser && username != null && token != null) {
-                        var user = securityService.getUser(username, token);
+                        UserUI user = securityService.getUser(username, token);
                         if (user != null && ("super-user".equalsIgnoreCase(user.getProfile())
                                         || "admin".equalsIgnoreCase(user.getProfile()))) {
                                 isSuperUser = true;

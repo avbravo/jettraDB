@@ -8,7 +8,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import io.jettra.example.ui.client.PlacementDriverClient;
 import io.jettra.example.ui.form.DatabaseForm;
 import io.jettra.example.ui.model.Database;
-import io.jettra.example.ui.model.User;
+import io.jettra.example.ui.model.UserUI;
 import io.jettra.example.ui.service.SecurityService;
 import io.jettra.ui.component.Alert;
 import io.jettra.ui.component.Badge;
@@ -312,8 +312,8 @@ public class DatabaseResource {
         table.addHeader("Profile");
         table.addHeader("Database Role");
 
-        List<User> users = securityService.getUsers(token);
-        for (User user : users) {
+        List<UserUI> users = securityService.getUsers(token);
+        for (UserUI user : users) {
             List<String> row = new ArrayList<>();
             row.add("<div class='flex items-center gap-2'><div class='w-7 h-7 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center text-[10px] font-bold'>"
                     + user.getUsername().substring(0, 1).toUpperCase() + "</div>" + user.getUsername() + "</div>");

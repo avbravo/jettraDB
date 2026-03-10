@@ -61,6 +61,28 @@
             overflow: hidden;
         }
 
+        .col-3d-node {
+            transition: opacity 0.3s ease;
+        }
+
+        @keyframes neon-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px var(--accent), 0 0 20px rgba(99, 102, 241, 0.3);
+                transform: scale(1);
+            }
+
+            50% {
+                box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(99, 102, 241, 0.5);
+                transform: scale(1.1);
+            }
+        }
+
+        .col-node-inner {
+            animation: neon-pulse 2s infinite ease-in-out;
+        }
+
         /* Top Bar */
         .top-bar {
             height: 70px;
@@ -739,7 +761,7 @@
         }
 
         .tree-children.show {
-            display: flex;
+            display: flex !important;
         }
 
         .tree-type-item {
@@ -1006,6 +1028,9 @@
         </div>
     </nav>
     <!-- Stop Node Modal -->
+    <!-- Floating Engine Windows Container -->
+    <div id="engine-windows-container" style="position: fixed; inset: 0; pointer-events: none; z-index: 5;"></div>
+
     <div id="stop-modal" class="modal-overlay">
         <div class="modal-content"
             style="max-width: 450px; border: 1px solid rgba(239, 68, 68, 0.3); background: var(--bg); padding: 2rem; border-radius: 1rem; position: relative;">
@@ -2041,6 +2066,7 @@
         let currentView = 'cluster';
         let allNodes = [];
         let allDatabases = [];
+        let isFetchingDatabases = false;
         let allUsers = [];
         let allSequences = [];
         let network = null;
@@ -2414,41 +2440,53 @@
         }, 2000);
 
 
-        async function fetchDatabases() {
+        async function fetchDatabases(force = false) {
+            if (isFetchingDatabases && !force) return;
+            isFetchingDatabases = true;
             try {
                 const response = await fetchWithAuth('/api/db');
                 if (response.status === 401) return logout();
                 if (!response.ok) throw new Error('HTTP ' + response.status);
-                allDatabases = await safeJson(response) || [];
+                const dbs = await safeJson(response) || [];
 
-                // Fetch users and roles to have info for the tree
+                // Fetch collections for each database in parallel for efficiency
+                const dbPromises = dbs.map(async (db) => {
+                    try {
+                        const colRes = await fetchWithAuth(`/api/db/${db.name}/collections`);
+                        if (colRes.ok) {
+                            db.collections = await safeJson(colRes);
+                        } else {
+                            db.collections = [];
+                        }
+                    } catch (e) {
+                        console.error('Error fetching collections for ' + db.name, e);
+                        db.collections = [];
+                    }
+                    return db;
+                });
+
+                allDatabases = await Promise.all(dbPromises);
+
+                // Fetch other meta info
                 await fetchUsers();
                 await fetchRoles();
                 await fetchSequences();
 
-                console.log('Databases fetched:', allDatabases);
-
-                // Re-add the loop to fetch collections for each database to ensure data availability
-                for (let db of allDatabases) {
-                    try {
-                        console.log(`Fetching collections for DB: ${db.name}`);
-                        const colRes = await fetchWithAuth(`/api/db/${db.name}/collections`);
-                        if (colRes.ok) {
-                            db.collections = await safeJson(colRes);
-                            console.log(`Collections for ${db.name}:`, db.collections);
-                        } else {
-                            console.warn(`Failed to fetch collections for ${db.name}: ${colRes.status}`);
-                        }
-                    } catch (e) {
-                        console.error('Error fetching collections for ' + db.name, e);
-                    }
-                }
+                console.log('Databases with collections fetched:', allDatabases);
                 renderDbTree(allDatabases);
+
+                // Update 3D visualization if a database is currently selected/expanded
+                const expandedDb = Array.from(expandedNodes).find(id => id.startsWith('children-'));
+                if (expandedDb) {
+                    const dbName = expandedDb.replace('children-', '');
+                    renderCollection3DNodes(dbName);
+                }
             } catch (error) {
                 console.error('Error fetching databases:', error);
+            } finally {
+                isFetchingDatabases = false;
             }
         }
-
         function getUserPrivileges(dbName) {
             if (userProfile === 'super-user') {
                 return { admin: true, read: true, write: true };
@@ -2855,8 +2893,16 @@
                 'Authorization': `Bearer ${token}`,
                 ...options.headers
             };
+
+            // Prevent browser caching for API requests to ensure fresh data
+            const fetchOptions = {
+                cache: 'no-store',
+                ...options,
+                headers
+            };
+
             try {
-                const response = await fetch(url, { ...options, headers });
+                const response = await fetch(url, fetchOptions);
                 if (response.status === 401 || response.status === 403) {
                     window.location.href = '/login.html';
                     throw new Error('Unauthorized');
@@ -2885,6 +2931,7 @@
                 showView('document-explorer');
                 document.getElementById('doc-explorer-title').textContent = `${colName} (${engine})`;
                 document.getElementById('doc-explorer-subtitle').textContent = `Exploring collection in database: ${dbName}`;
+                clearObject3DNodes(); // Clear previous objects
                 loadDocuments(colName);
             }
         }
@@ -2975,6 +3022,7 @@
                     loadedDocuments = data ? data.map(d => JSON.parse(d)) : [];
                     renderCurrentDocuments();
                     updatePaginationControls();
+                    renderObject3DNodes(loadedDocuments); // Trigger 3D rendering
                 } else {
                     container.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Collection is empty or unreachable (Status: ${resp.status}).</div>`;
                     loadedDocuments = [];
@@ -3288,7 +3336,18 @@
                 });
                 if (response.ok) {
                     closeCollectionModal();
-                    fetchDatabases();
+
+                    // Ensure the tree nodes are expanded to show the new collection
+                    if (window.expandedNodes) {
+                        expandedNodes.add(`children-${dbName}`);
+                        expandedNodes.add(`col-list-${dbName}-${engine}`);
+                    }
+
+                    await fetchDatabases(true); // Force refresh to ensure data is updated
+
+                    // Show in 3D
+                    renderCollection3DNodes(dbName);
+
                     if (engine === 'Document') {
                         selectCollection(dbName, colName, engine);
                     }
@@ -3347,6 +3406,7 @@
                                 const cEng = (c.engine || '').toLowerCase();
                                 const tEng = engine.toLowerCase();
                                 if (cEng === tEng) return true;
+                                // Fallback unrecognized engines to Document node
                                 if (tEng === 'document' && !SUPPORTED_ENGINES.some(se => se.name.toLowerCase() === cEng)) return true;
                                 return false;
                             }).map(c => c.name);
@@ -3394,7 +3454,8 @@
         }
 
         function renderDbTree(dbs) {
-            console.log('Rendering DB Tree with:', dbs);
+            console.log('[Tree] Rendering DB Tree with databases count:', dbs ? dbs.length : 0);
+            if (dbs) console.table(dbs.map(d => ({ name: d.name, engine: d.engine, cols: d.collections ? d.collections.length : 0 })));
             const treeRoot = document.getElementById('db-tree-root');
             if (!treeRoot) return;
 
@@ -3574,15 +3635,19 @@
                 if (children.classList.contains('show')) {
                     expandedNodes.add(children.id);
 
-                    // Show 3D engine windows for the selected database
+                    // Show 3D engine windows and collections for the selected database
                     if (children.id.startsWith('children-')) {
                         const dbName = children.id.replace('children-', '');
                         if (window.showEngineWindows) {
                             showEngineWindows(dbName);
                         }
+                        renderCollection3DNodes(dbName);
                     }
                 } else {
                     expandedNodes.delete(children.id);
+                    if (children.id.startsWith('children-')) {
+                        clearCollection3DNodes();
+                    }
                 }
             }
         }
@@ -4717,7 +4782,64 @@
         }
 
         // Anchor windows to 3D space near the grid
+        function initEngine3DWindows() {
+            const container = document.getElementById('engine-windows-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            SUPPORTED_ENGINES.forEach((eng, index) => {
+                const winId = `engine-win-${eng.name.toLowerCase().replace(' ', '-')}`;
+                const win = document.createElement('div');
+                win.id = winId;
+                win.className = 'j3d-card p-4 pointer-events-auto shadow-[0_0_20px_rgba(0,123,255,0.2)]';
+                win.style.width = '180px';
+                win.style.position = 'fixed';
+                win.style.cursor = 'move';
+                win.style.zIndex = '10';
+                win.setAttribute('onmousedown', `startWindowDrag(event, '${winId}')`);
+
+                win.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+                        <div style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: rgba(99, 102, 241, 0.1); border-radius: 6px;">
+                            <svg style="width: 14px; height: 14px; color: var(--accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path>
+                            </svg>
+                        </div>
+                        <span style="font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: white;">${eng.name}</span>
+                    </div>
+                    <div style="font-size: 0.65rem; color: #94a3b8; font-family: 'Outfit', sans-serif;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>Status</span>
+                            <span style="color: #10b981; font-weight: bold;">ONLINE</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                            <span>Load</span>
+                            <span style="color: white;">${Math.floor(Math.random() * 40 + 10)}%</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px; height: 3px; width: 100%; background: rgba(255,255,255,0.05); border-radius: 1.5px; overflow: hidden;">
+                        <div style="height: 100%; width: ${30 + Math.random() * 60}%; background: linear-gradient(90deg, var(--primary), var(--accent));"></div>
+                    </div>
+                `;
+
+                container.appendChild(win);
+
+                // Spiral distribution in 3D space
+                const angle = (index / SUPPORTED_ENGINES.length) * Math.PI * 2;
+                const radius = 12 + (index % 3) * 2;
+                const x = Math.cos(angle) * radius;
+                const y = (index % 5) - 2;
+                const z = Math.sin(angle) * radius;
+
+                if (window.anchorTo3D) {
+                    window.anchorTo3D(winId, x, y, z, 'engines');
+                }
+            });
+        }
+
         window.addEventListener('load', () => {
+            initEngine3DWindows();
+            refreshData();
             if (window.anchorTo3D) {
                 // position them relative to the 3D scene (x, y, z)
                 anchorTo3D('win-system', -15, 2, -10);
@@ -4726,60 +4848,304 @@
             }
         });
 
-        function showEngineWindows(dbName) {
-            if (!window.anchorTo3D || !window.clearSpatialWindows) return;
+        // 3D Collection Visualization Logic
+        function renderCollection3DNodes(dbName) {
+            try {
+                if (!window.anchorTo3D || !window.clearSpatialWindows) return;
 
-            // Clear previous engine windows
-            clearSpatialWindows('engine-view');
+                console.log(`[3D] Rendering collection nodes for DB: ${dbName}`);
+                clearCollection3DNodes();
 
-            const db = allDatabases.find(d => d.name === dbName);
-            if (!db) return;
+                const db = allDatabases.find(d => d.name === dbName);
+                if (!db || !db.collections) {
+                    console.warn(`[3D] DB ${dbName} not found or has no collections`);
+                    return;
+                }
 
-            // Determine which engines to show
-            // If it's a specific engine DB, show that one prominently
-            // Otherwise show all supported engines
-            let enginesToShow = [];
-            if (db.engine && db.engine !== 'Default') {
-                enginesToShow = SUPPORTED_ENGINES.filter(e => e.name === db.engine || e.name === 'Document');
-            } else {
-                enginesToShow = SUPPORTED_ENGINES.slice(0, 5); // Show first 5 engines for generic DBs
+                console.log(`[3D] Found ${db.collections.length} collections for ${dbName}`);
+
+                db.collections.forEach((col, idx) => {
+                    if (!col) return;
+                    const colName = typeof col === 'object' ? col.name : col;
+                    // Ensure colEngine is always lowercase for case-insensitive matching
+                    const colEngine = ((typeof col === 'object' ? col.engine : 'Document') || 'Document').toLowerCase();
+                    const nodeId = `col-3d-node-${dbName}-${colName}`;
+
+                    const node = document.createElement('div');
+                    node.id = nodeId;
+                    node.className = 'col-3d-node pointer-events-auto';
+                    node.style.position = 'fixed';
+                    node.style.cursor = 'pointer';
+                    node.title = `${colName} (${colEngine})`;
+
+                    // Find engine to use its icon, default to Document
+                    let eng = SUPPORTED_ENGINES.find(e => e.name.toLowerCase() === colEngine.toLowerCase());
+                    if (!eng) {
+                        eng = SUPPORTED_ENGINES[0]; // Document
+                    }
+
+                    // Futuristic glowy node design with pulse
+                    node.innerHTML = `
+                    <div class="col-node-inner" style="width: 32px; height: 32px; background: rgba(99, 102, 241, 0.2); border: 2px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); overflow: visible; position: relative;">
+                        <svg style="width: 16px; height: 16px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path>
+                        </svg>
+                        <div style="position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 9px; font-weight: 800; color: white; text-shadow: 0 0 4px var(--accent), 0 0 8px black; background: rgba(0,0,0,0.4); padding: 1px 4px; border-radius: 4px;">
+                            ${colName.toUpperCase()}
+                        </div>
+                    </div>
+                `;
+
+                    node.onclick = (e) => {
+                        e.stopPropagation();
+                        console.log(`[3D] Clicked collection: ${colName}`);
+                        selectCollection(dbName, colName, colEngine);
+                    };
+
+                    document.body.appendChild(node);
+
+                    // Load position from localStorage or use grid fallback
+                    const savedPosStr = localStorage.getItem(`jettra_col_pos_${dbName}_${colName}`);
+                    let x = 0, y = 0, z = 0;
+                    if (savedPosStr) {
+                        try {
+                            const parsedPos = JSON.parse(savedPosStr);
+                            x = parsedPos.x;
+                            y = parsedPos.y;
+                            z = parsedPos.z;
+                        } catch(e) { /* ignore parse error */ }
+                    } else {
+                        // Systematic placement on the X-Y-Z plane
+                        // X: idx offset, Y: based on engine index, Z: constant or varied
+                        let engIdx = SUPPORTED_ENGINES.findIndex(e => e.name.toLowerCase() === engName.toLowerCase());
+                        if (engIdx === -1) engIdx = 0;
+
+                        // Place collections on a vertical plane at a specific X offset
+                        x = (idx % 5) * 4 - 2; // More centered on X
+                        y = (engIdx) * 4 - 6; // Tighter Y spread
+                        z = -5; // Closer Z depth for the "plane"
+                    }
+
+                    console.log(`[3D] Anchoring collection node ${nodeId} at [${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}]`);
+                    window.anchorTo3D(nodeId, x, y, z, 'collections');
+                    
+                    // Add HTML attribute for dragging and context menu
+                    node.setAttribute('onmousedown', `start3DDrag(event, '${nodeId}')`);
+                    node.setAttribute('oncontextmenu', `showCollectionContext3D(event, '${dbName}', '${colName}', '${nodeId}'); return false;`);
+                });
+            } catch (err) {
+                console.error('[3D] Error in renderCollection3DNodes:', err);
+            }
+        }
+
+        function clearCollection3DNodes() {
+            console.log('[3D] Clearing collection nodes');
+            if (window.clearSpatialWindows) {
+                window.clearSpatialWindows('collections');
+            }
+            document.querySelectorAll('.col-3d-node').forEach(el => el.remove());
+        }
+
+        async function showCollectionContext3D(e, dbName, colName, nodeId) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Clear any existing context menus
+            const existingContext = document.getElementById('collection-3d-context');
+            if (existingContext) {
+                existingContext.remove();
             }
 
-            const radius = 20;
-            const count = enginesToShow.length;
+            // Find the node's 3D position to anchor the context menu nearby
+            const nodeEl = document.getElementById(nodeId);
+            if (!nodeEl) return;
+            
+            // Get coordinates from trackedWindows in jettra-3d
+            let x = 0, y = 0, z = 0;
+            if (window.trackedWindows) {
+                const win = window.trackedWindows.find(w => w.el.id === nodeId);
+                if (win) {
+                    x = win.pos.x + 2; // Offset slightly to the right
+                    y = win.pos.y;
+                    z = win.pos.z + 0.5; // Offset slightly forward
+                }
+            }
 
-            enginesToShow.forEach((eng, i) => {
-                const angle = (i / count) * Math.PI * 2;
-                const x = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
-                const y = 3 + Math.sin(i) * 5; // Variance in height
+            const contextId = 'collection-3d-context';
+            const contextEl = document.createElement('div');
+            contextEl.id = contextId;
+            contextEl.className = 'window3d pointer-events-auto';
+            contextEl.style.position = 'fixed';
+            contextEl.style.width = '240px';
+            contextEl.style.zIndex = '3000'; // above everything
 
-                const winId = `eng-win-${dbName}-${eng.name}`;
-                const win = document.createElement('div');
-                win.id = winId;
-                win.className = 'window3d';
-                win.style.width = '200px';
-                win.style.zIndex = '1500';
+            contextEl.innerHTML = `
+                <div class="window-header" style="background: rgba(139, 92, 246, 0.8);">
+                    <span><svg style="width: 12px; height: 12px; display: inline; margin-right: 4px; vertical-align: text-bottom;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Colección Info</span>
+                    <button onclick="document.getElementById('${contextId}').remove()" style="background:none; border:none; color:white; cursor:pointer;">&times;</button>
+                </div>
+                <div style="padding: 15px; color: white;">
+                    <div style="margin-bottom: 10px;">
+                        <span style="color: #94a3b8; font-size: 0.75rem;">Nombre:</span><br>
+                        <span style="font-weight: bold; font-size: 0.95rem;">${colName}</span>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <span style="color: #94a3b8; font-size: 0.75rem;">Documentos:</span><br>
+                        <span id="${contextId}-doc-count" style="font-size: 1.25rem; font-weight: bold; color: var(--accent);">
+                            <svg class="animate-spin" style="width: 16px; height: 16px; color: var(--accent); display: inline;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </span>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="document.getElementById('${contextId}').remove(); showRenameCollectionModal('${dbName}', '${colName}')" class="btn" style="padding: 6px 12px; font-size: 0.75rem; flex: 1;">Renombrar</button>
+                        <button onclick="document.getElementById('${contextId}').remove(); confirmRemoveCollection('${dbName}', '${colName}')" class="btn" style="background: linear-gradient(135deg, #ef4444, #b91c1c); padding: 6px 12px; font-size: 0.75rem; flex: 1;">Eliminar</button>
+                    </div>
+                </div>
+            `;
 
-                win.innerHTML = `
+            document.body.appendChild(contextEl);
+            
+            if (window.anchorTo3D) {
+                window.anchorTo3D(contextId, x, y, z, 'context-menus');
+            }
+
+            // Fetch document count
+            try {
+                const countReq = {
+                    action: 'find',
+                    database: dbName,
+                    collection: colName,
+                    filter: {}
+                };
+                const resp = await fetchWithAuth('/api/db/proxy/document', {
+                    method: 'POST',
+                    body: JSON.stringify(countReq)
+                });
+                
+                let docCount = 0;
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && Array.isArray(data)) {
+                        docCount = data.length;
+                    }
+                }
+                document.getElementById(`${contextId}-doc-count`).textContent = docCount.toLocaleString();
+            } catch (err) {
+                console.error('[3D] Error fetching context doc count:', err);
+                document.getElementById(`${contextId}-doc-count`).textContent = 'Error';
+            }
+        }
+
+        function renderObject3DNodes(objects) {
+            try {
+                if (!window.anchorTo3D || !window.clearSpatialWindows) return;
+                console.log(`[3D] Rendering ${objects.length} object nodes`);
+                clearObject3DNodes();
+
+                objects.forEach((obj, idx) => {
+                    const objId = obj.jettraID || `obj-${idx}`;
+                    const nodeId = `obj-3d-node-${objId}`;
+
+                    const node = document.createElement('div');
+                    node.id = nodeId;
+                    node.className = 'obj-3d-node pointer-events-auto';
+                    node.style.position = 'fixed';
+                    node.style.cursor = 'pointer';
+                    node.title = `Object: ${objId}`;
+
+                    node.innerHTML = `
+                        <div class="obj-node-inner" style="width: 24px; height: 24px; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; border-radius: 4px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); position: relative;">
+                            <svg style="width: 12px; height: 12px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    `;
+
+                    node.onclick = (e) => {
+                        e.stopPropagation();
+                        console.log(`[3D] Clicked object: ${objId}`);
+                        editDocument(objId);
+                    };
+
+                    document.body.appendChild(node);
+
+                    // Position in a grid on the plane
+                    // X: idx % 10, Y: Math.floor(idx / 10), Z: fixed
+                    const x = (idx % 8) * 3 - 10;
+                    const y = Math.floor(idx / 8) * 3 - 5;
+                    const z = 10; // In front of the grid for emphasis
+
+                    window.anchorTo3D(nodeId, x, y, z, 'objects');
+                });
+            } catch (err) {
+                console.error('[3D] Error in renderObject3DNodes:', err);
+            }
+        }
+
+        function clearObject3DNodes() {
+            console.log('[3D] Clearing object nodes');
+            if (window.clearSpatialWindows) {
+                window.clearSpatialWindows('objects');
+            }
+            document.querySelectorAll('.obj-3d-node').forEach(el => el.remove());
+        }
+
+        function showEngineWindows(dbName) {
+            try {
+                if (!window.anchorTo3D || !window.clearSpatialWindows) return;
+                console.log(`[3D] Showing engine windows for DB: ${dbName}`);
+
+                // Clear previous engine windows
+                clearSpatialWindows('engines');
+
+                const db = allDatabases.find(d => d.name === dbName);
+                if (!db) return;
+                // Determine which engines to show
+                // If it's a specific engine DB, show that one prominently
+                // Otherwise show all supported engines
+                let enginesToShow = [];
+                if (db.engine && db.engine !== 'Default') {
+                    enginesToShow = SUPPORTED_ENGINES.filter(e => e.name === db.engine || e.name === 'Document');
+                } else {
+                    enginesToShow = SUPPORTED_ENGINES.slice(0, 5); // Show first 5 engines for generic DBs
+                }
+
+                const radius = 20;
+                const count = enginesToShow.length;
+
+                enginesToShow.forEach((eng, i) => {
+                    const x = -10; // Closer X anchor
+                    const y = (i * 5) - 10; // Tighter Y spread
+                    const z = 2;
+
+                    const winId = `eng-win-${dbName}-${eng.name}`;
+                    const win = document.createElement('div');
+                    win.id = winId;
+                    win.className = 'window3d';
+                    win.style.width = '200px';
+                    win.style.zIndex = '1500';
+
+                    win.innerHTML = `
                     <div class="window-header" onmousedown="startWindowDrag(event, '${winId}')">
-                        <div class="flex items-center gap-2">
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${eng.icon}"></path>
                             </svg>
                             <span>${eng.name}</span>
                         </div>
                     </div>
-                    <div class="p-4 text-center">
-                        <div class="text-[10px] opacity-60 mb-2">DATABASE: ${dbName}</div>
-                        <button class="j3d-button text-[10px] py-1 px-3" onclick="openCollectionModal('${dbName}', '', '${eng.name}')">
-                            NEW COLLECTION
+                    <div style="padding: 16px; text-align: center;">
+                        <div style="font-size: 10px; opacity: 0.6; margin-bottom: 8px;">ENGINE: ${eng.name}</div>
+                        <button class="j3d-button" style="font-size: 10px; padding: 4px 12px;" onclick="openCollectionModal('${dbName}', '', '${eng.name}')">
+                            ADD COLLECTION
                         </button>
                     </div>
                 `;
-                document.body.appendChild(win);
-                anchorTo3D(winId, x, y, z, 'engine-view');
-            });
+                    document.body.appendChild(win);
+                    anchorTo3D(winId, x, y, z, 'engines');
+                });
+            } catch (err) {
+                console.error('[3D] Error in showEngineWindows:', err);
+            }
         }
     </script>
 

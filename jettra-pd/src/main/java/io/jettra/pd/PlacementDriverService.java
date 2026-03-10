@@ -135,6 +135,9 @@ public class PlacementDriverService {
             boolean exists = db.collections().stream().anyMatch(c -> c.name().equals(collectionName));
             if (!exists) {
                 db.collections().add(new CollectionMetadata(collectionName, engine));
+                LOG.infof("addCollection SUCCESS. DB %s now has %d collections.", dbName, db.collections().size());
+            } else {
+                LOG.infof("addCollection SKIPPED. Collection %s already exists in DB %s.", collectionName, dbName);
             }
             return true;
         }

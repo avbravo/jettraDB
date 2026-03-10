@@ -1,6 +1,6 @@
 package io.jettra.example.ui;
 
-import io.jettra.example.ui.model.User;
+import io.jettra.example.ui.model.UserUI;
 import io.jettra.example.ui.service.SecurityService;
 import io.jettra.ui.component.*;
 import jakarta.inject.Inject;
@@ -45,7 +45,7 @@ public class SecurityResource {
                 boolean isGlobalAdmin = "admin".equalsIgnoreCase(currentLoggedInUser)
                                 || "super-user".equalsIgnoreCase(currentLoggedInUser);
                 if (!isGlobalAdmin) {
-                        User user = securityService.getUser(currentLoggedInUser, token);
+                        UserUI user = securityService.getUser(currentLoggedInUser, token);
                         if (user != null) {
                                 if ("admin".equalsIgnoreCase(user.getProfile())
                                                 || "super-user".equalsIgnoreCase(user.getProfile())) {
@@ -78,7 +78,7 @@ public class SecurityResource {
                 usersTable.addHeader("Roles");
                 usersTable.addHeader("Actions");
 
-                List<User> users = securityService.getUsers(token);
+                List<UserUI> users = securityService.getUsers(token);
                 int pageSize = 5;
                 int currentPage = (pageIdx == null || pageIdx < 0) ? 0 : pageIdx;
                 int totalUsers = users.size();
@@ -88,9 +88,9 @@ public class SecurityResource {
 
                 int start = currentPage * pageSize;
                 int end = Math.min(start + pageSize, totalUsers);
-                List<User> paginatedUsers = (start < totalUsers) ? users.subList(start, end) : new ArrayList<>();
+                List<UserUI> paginatedUsers = (start < totalUsers) ? users.subList(start, end) : new ArrayList<>();
 
-                for (User user : paginatedUsers) {
+                for (UserUI user : paginatedUsers) {
                         List<String> row = new ArrayList<>();
                         row.add("<div class='flex items-center gap-2'><div class='w-7 h-7 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center text-[10px] font-bold'>"
                                         + user.getUsername().substring(0, 1).toUpperCase() + "</div>"
@@ -182,7 +182,7 @@ public class SecurityResource {
                         @jakarta.ws.rs.QueryParam("edit") boolean isEdit) {
 
                 String token = getAuthToken();
-                User user = new User();
+                UserUI user = new UserUI();
                 user.setUsername(username);
                 user.setEmail(email);
                 user.setPassword(password);
@@ -198,7 +198,7 @@ public class SecurityResource {
                 if (!isEdit) {
                         // Check if super-user already exists if trying to create one
                         if ("super-user".equalsIgnoreCase(profile)) {
-                                List<User> existing = securityService.getUsers(token);
+                                List<UserUI> existing = securityService.getUsers(token);
                                 boolean hasSuper = existing.stream()
                                                 .anyMatch(u -> "super-user".equalsIgnoreCase(u.getProfile()));
                                 if (hasSuper) {

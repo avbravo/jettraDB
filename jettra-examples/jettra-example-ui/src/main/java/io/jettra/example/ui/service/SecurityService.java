@@ -2,7 +2,7 @@ package io.jettra.example.ui.service;
 
 import io.jettra.example.ui.client.AuthClient;
 import io.jettra.example.ui.model.Role;
-import io.jettra.example.ui.model.User;
+import io.jettra.example.ui.model.UserUI;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.Collections;
@@ -18,10 +18,10 @@ public class SecurityService {
     @RestClient
     AuthClient authClient;
 
-    public List<User> getUsers(String token) {
+    public List<UserUI> getUsers(String token) {
         try {
             String bearer = token != null ? "Bearer " + token : null;
-            List<User> users = authClient.getUsers(bearer);
+            List<UserUI> users = authClient.getUsers(bearer);
             LOG.infof("Fetched %d users from PD", users != null ? users.size() : 0);
             return users;
         } catch (Exception e) {
@@ -42,7 +42,7 @@ public class SecurityService {
         }
     }
 
-    public User getUser(String username, String token) {
+    public UserUI getUser(String username, String token) {
         try {
             String bearer = token != null ? "Bearer " + token : null;
             return authClient.getUser(username, bearer);
@@ -52,7 +52,7 @@ public class SecurityService {
         }
     }
 
-    public boolean saveUser(User user, boolean isEdit, String token) {
+    public boolean saveUser(UserUI user, boolean isEdit, String token) {
         try {
             String bearer = token != null ? "Bearer " + token : null;
             jakarta.ws.rs.core.Response response;

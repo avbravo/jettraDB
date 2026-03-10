@@ -1,7 +1,7 @@
 package io.jettra.example.ui.client;
 
 import io.jettra.example.ui.model.Role;
-import io.jettra.example.ui.model.User;
+import io.jettra.example.ui.model.UserUI;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -21,7 +21,7 @@ public interface AuthClient {
         @GET
         @Path("/users")
         @Produces(MediaType.APPLICATION_JSON)
-        List<User> getUsers(@jakarta.ws.rs.HeaderParam("Authorization") String token);
+        List<UserUI> getUsers(@jakarta.ws.rs.HeaderParam("Authorization") String token);
 
         @GET
         @Path("/roles")
@@ -31,20 +31,20 @@ public interface AuthClient {
         @GET
         @Path("/users/{username}")
         @Produces(MediaType.APPLICATION_JSON)
-        User getUser(@jakarta.ws.rs.PathParam("username") String username,
+        UserUI getUser(@jakarta.ws.rs.PathParam("username") String username,
                         @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
         @POST
         @Path("/users")
         @Consumes(MediaType.APPLICATION_JSON)
         @Produces(MediaType.APPLICATION_JSON)
-        Response createUser(User user, @jakarta.ws.rs.HeaderParam("Authorization") String token);
+        Response createUser(UserUI user, @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
         @PUT
         @Path("/users/{username}")
         @Consumes(MediaType.APPLICATION_JSON)
         @Produces(MediaType.APPLICATION_JSON)
-        Response updateUser(@jakarta.ws.rs.PathParam("username") String username, User user,
+        Response updateUser(@jakarta.ws.rs.PathParam("username") String username, UserUI user,
                         @jakarta.ws.rs.HeaderParam("Authorization") String token);
 
         @DELETE
