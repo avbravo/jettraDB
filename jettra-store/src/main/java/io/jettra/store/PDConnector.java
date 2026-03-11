@@ -1,6 +1,9 @@
 package io.jettra.store;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
@@ -17,11 +20,15 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 @ApplicationScoped
 public class PDConnector {
 
     private static final Logger LOG = Logger.getLogger(PDConnector.class);
+
+    // Public map so LsmObjectStore can see if a collection is STORE or MEMORY
+    public static final Map<String, String> collectionStorageTypes = new ConcurrentHashMap<>();
 
     @Inject
     MultiRaftManager raftManager;
@@ -139,5 +146,27 @@ public class PDConnector {
         boolean isLeader = raftManager.getGroups().values().stream()
                 .anyMatch(g -> g.getState() == RaftState.LEADER);
         return isLeader ? "LEADER" : "FOLLOWER";
+    }
+
+    @Scheduled(every = "10s")
+    void fetchStorageRoutes() {
+        if (stopped)
+            return;
+
+        String host = pdAddress.split(":")[0];
+        String pdUrl = String.format("http://%s:8080/api/internal/pd/storage-routes", host);
+
+        try (jakarta.ws.rs.client.Client client = ClientBuilder.newClient()) {
+            Response response = client.target(pdUrl).request(MediaType.APPLICATION_JSON).get();
+            if (response.getStatus() == 200) {
+                String json = response.readEntity(String.class);
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                Map<String, String> routes = mapper.readValue(json, new TypeReference<Map<String, String>>() {});
+                collectionStorageTypes.clear();
+                collectionStorageTypes.putAll(routes);
+            }
+        } catch (Exception e) {
+            // LOG.debug("Failed to fetch storage routes", e);
+        }
     }
 }

@@ -20,6 +20,8 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
+    volumes:
+      - ./data/pd:/deployments/data/pd
     networks:
       - jettra-net
 
@@ -73,6 +75,8 @@ services:
       - JETTRA_PD_ADDR=jettra-pd:9000
       - JETTRA_NODE_ID=jettra-store-1
       - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders
+    volumes:
+      - ./data/store-1:/deployments/data/store
     networks:
       - jettra-net
 
@@ -90,6 +94,8 @@ services:
       - JETTRA_PD_ADDR=jettra-pd:9000
       - JETTRA_NODE_ID=jettra-store-2
       - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders
+    volumes:
+      - ./data/store-2:/deployments/data/store
     networks:
       - jettra-net
 
@@ -107,6 +113,8 @@ services:
       - JETTRA_PD_ADDR=jettra-pd:9000
       - JETTRA_NODE_ID=jettra-store-3
       - JAVA_OPTS=-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -XX:+UseZGC -XX:+ZGenerational -XX:+UseCompactObjectHeaders
+    volumes:
+      - ./data/store-3:/deployments/data/store
     networks:
       - jettra-net
 

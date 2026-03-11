@@ -8,6 +8,8 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.Map;
+import java.util.HashMap;
 
 @Path("/api/internal/pd")
 @Produces(MediaType.APPLICATION_JSON)
@@ -47,6 +49,18 @@ public class PlacementDriverResource {
     public Response register(NodeMetadata node) {
         pdService.registerNode(node);
         return Response.ok().build();
+    }
+
+    @GET
+    @Path("/storage-routes")
+    public Map<String, String> getStorageRoutes() {
+        Map<String, String> routes = new HashMap<>();
+        for (DatabaseMetadata db : pdService.listDatabases("system")) { // 'system' or parameterless equivalent to traverse all
+            for (CollectionMetadata col : db.collections()) {
+                routes.put(col.name(), db.storage());
+            }
+        }
+        return routes;
     }
 
     @GET

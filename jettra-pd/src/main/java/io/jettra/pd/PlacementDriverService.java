@@ -1,11 +1,23 @@
 package io.jettra.pd;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.jboss.logging.Logger;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class PlacementDriverService {
@@ -14,6 +26,49 @@ public class PlacementDriverService {
     private final Map<String, NodeMetadata> nodes = new ConcurrentHashMap<>();
     private final Map<Long, RaftGroupMetadata> groups = new ConcurrentHashMap<>();
     private final Map<String, DatabaseMetadata> databases = new ConcurrentHashMap<>();
+
+    @Inject
+    ObjectMapper objectMapper;
+
+    private static final String DATA_DIR = "data/pd";
+    private static final String DB_FILE = DATA_DIR + "/databases.json";
+
+    @PostConstruct
+    void init() {
+        loadDatabasesFromDisk();
+    }
+
+    private synchronized void saveDatabasesToDisk() {
+        try {
+            Path dirPath = Paths.get(DATA_DIR);
+            if (!Files.exists(dirPath)) {
+                Files.createDirectories(dirPath);
+            }
+            
+            List<DatabaseMetadata> persistentDbs = databases.values().stream()
+                    .filter(db -> "STORE".equalsIgnoreCase(db.storage()))
+                    .collect(Collectors.toList());
+            
+            objectMapper.writeValue(new File(DB_FILE), persistentDbs);
+        } catch (IOException e) {
+            LOG.error("Failed to save databases to disk", e);
+        }
+    }
+
+    private void loadDatabasesFromDisk() {
+        try {
+            File file = new File(DB_FILE);
+            if (file.exists()) {
+                List<DatabaseMetadata> loadedDbs = objectMapper.readValue(file, new TypeReference<List<DatabaseMetadata>>() {});
+                for (DatabaseMetadata db : loadedDbs) {
+                    databases.put(db.name(), db);
+                }
+                LOG.infof("Loaded %d persistent databases from disk.", loadedDbs.size());
+            }
+        } catch (IOException e) {
+            LOG.error("Failed to load databases from disk", e);
+        }
+    }
 
     @jakarta.inject.Inject
     io.jettra.pd.auth.AuthService authService;
@@ -69,6 +124,7 @@ public class PlacementDriverService {
         if (authService != null) {
             authService.setupDefaultDatabaseRoles(db.name(), creator);
         }
+        saveDatabasesToDisk();
     }
 
     public void updateDatabase(String oldName, DatabaseMetadata db) {
@@ -80,11 +136,13 @@ public class PlacementDriverService {
             }
         }
         databases.put(db.name(), db);
+        saveDatabasesToDisk();
     }
 
     public void deleteDatabase(String name) {
         LOG.infof("Deleting database: %s", name);
         databases.remove(name);
+        saveDatabasesToDisk();
     }
 
     public java.util.Collection<DatabaseMetadata> listDatabases(String username) {
@@ -136,6 +194,7 @@ public class PlacementDriverService {
             if (!exists) {
                 db.collections().add(new CollectionMetadata(collectionName, engine));
                 LOG.infof("addCollection SUCCESS. DB %s now has %d collections.", dbName, db.collections().size());
+                saveDatabasesToDisk();
             } else {
                 LOG.infof("addCollection SKIPPED. Collection %s already exists in DB %s.", collectionName, dbName);
             }
@@ -147,7 +206,9 @@ public class PlacementDriverService {
     public void removeCollection(String dbName, String collectionName) {
         DatabaseMetadata db = databases.get(dbName);
         if (db != null) {
-            db.collections().removeIf(c -> c.name().equals(collectionName));
+            if (db.collections().removeIf(c -> c.name().equals(collectionName))) {
+                saveDatabasesToDisk();
+            }
         }
     }
 
@@ -158,6 +219,7 @@ public class PlacementDriverService {
                 CollectionMetadata col = db.collections().get(i);
                 if (col.name().equals(oldName)) {
                     db.collections().set(i, new CollectionMetadata(newName, col.engine()));
+                    saveDatabasesToDisk();
                     break;
                 }
             }
@@ -261,6 +323,7 @@ public class PlacementDriverService {
                     boolean exists = col.indexes().stream().anyMatch(idx -> idx.name().equals(indexName));
                     if (!exists) {
                         col.indexes().add(new IndexMetadata(indexName, field, type));
+                        saveDatabasesToDisk();
                     }
                     return true;
                 }
@@ -274,7 +337,11 @@ public class PlacementDriverService {
         if (db != null) {
             for (CollectionMetadata col : db.collections()) {
                 if (col.name().equals(colName)) {
-                    return col.indexes().removeIf(idx -> idx.name().equals(indexName));
+                    boolean removed = col.indexes().removeIf(idx -> idx.name().equals(indexName));
+                    if (removed) {
+                        saveDatabasesToDisk();
+                    }
+                    return removed;
                 }
             }
         }
@@ -313,6 +380,7 @@ public class PlacementDriverService {
                     boolean exists = col.rules().stream().anyMatch(r -> r.name().equals(name));
                     if (!exists) {
                         col.rules().add(new RuleMetadata(name, condition, action, true));
+                        saveDatabasesToDisk();
                     }
                     return true;
                 }
@@ -326,7 +394,11 @@ public class PlacementDriverService {
         if (db != null) {
             for (CollectionMetadata col : db.collections()) {
                 if (col.name().equals(colName)) {
-                    return col.rules().removeIf(r -> r.name().equals(ruleName));
+                    boolean removed = col.rules().removeIf(r -> r.name().equals(ruleName));
+                    if (removed) {
+                        saveDatabasesToDisk();
+                    }
+                    return removed;
                 }
             }
         }
