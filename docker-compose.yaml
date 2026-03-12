@@ -19,7 +19,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-      start_period: 10s
+      start_period: 10s     
     volumes:
       - ./data/pd:/deployments/data/pd
     networks:

@@ -181,6 +181,48 @@ public class WebDbResource {
     }
 
     @jakarta.ws.rs.POST
+    @Path("/proxy/document")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response proxyDocument(java.util.Map<String, String> body) {
+        String targetUrl = body.get("url");
+        String method = body.get("method");
+        String jsonPayload = body.get("payload");
+
+        if (targetUrl == null || method == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Missing url or method").build();
+        }
+
+        try (Client client = ClientBuilder.newClient()) {
+            jakarta.ws.rs.client.Invocation.Builder builder = client.target(targetUrl)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header(HttpHeaders.AUTHORIZATION, getAuthHeader());
+
+            Response response;
+            if ("POST".equalsIgnoreCase(method)) {
+                response = builder.post(Entity.json(jsonPayload != null ? jsonPayload : "{}"));
+            } else {
+                response = builder.get();
+            }
+
+            if (response.getStatus() == 401 || response.getStatus() == 403) {
+                return Response.status(response.getStatus()).build();
+            }
+
+            if (response.hasEntity()) {
+                String entity = response.readEntity(String.class);
+                return Response.status(response.getStatus())
+                        .entity(entity)
+                        .type(MediaType.APPLICATION_JSON)
+                        .build();
+            }
+            return Response.status(response.getStatus()).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.serverError().entity(e.getMessage()).build();
+        }
+    }
+
+    @jakarta.ws.rs.POST
     @Path("/proxy/graph")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response proxyGraph(java.util.Map<String, String> body) {
